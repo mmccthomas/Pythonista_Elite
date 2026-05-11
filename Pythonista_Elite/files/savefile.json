@@ -1,0 +1,1396 @@
+{
+    "planets": [
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 7,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 19,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 15,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 21,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 21,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 11,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 11,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 7,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 15,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 13,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 21,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 9,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 7,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 13,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 17,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 21,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 13,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 17,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 13,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 17,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 9,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 19,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 17,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 5,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 5,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 17,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 11,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 7,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 13,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 21,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 15,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        },
+        {
+            "num_thargoids": 0,
+            "newly_occupied": false,
+            "newly_liberated": false
+        }
+    ],
+    "player_ship": {
+        "planet_number": 7,
+        "energy": 400,
+        "fuel": 20.0,
+        "equipment": [
+            20.0,
+            3,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+        ],
+        "cargo_hold": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "cargo_total": 0,
+        "shields": {
+            "fore": 80,
+            "aft": 80
+        },
+        "flags": {
+            "illegal_trading": false,
+            "increased_police": false,
+            "cleared_record": false
+        },
+        "lasers": {
+            "fore": 0,
+            "aft": null,
+            "port": null,
+            "starboard": null
+        },
+        "limits": {
+            "cargo_hold": 20,
+            "energy_recharge": 0.4
+        }
+    },
+    "player": {
+        "kills": 100,
+        "cash": 10000.0,
+        "status": 0,
+        "rating": 0,
+        "offenses": 0
+    },
+    "market": {
+        "prices": [
+            30.8,
+            19.9,
+            8.1,
+            56.6,
+            59.3,
+            85.6,
+            56.6,
+            69.2,
+            60.5,
+            35.8,
+            56.6,
+            65.7,
+            17.8,
+            69.1,
+            41.0,
+            73.2,
+            73.8
+        ],
+        "stock": [
+            9,
+            12,
+            19,
+            0,
+            0,
+            19,
+            0,
+            18,
+            12,
+            9,
+            0,
+            19,
+            18,
+            5,
+            6,
+            11,
+            3
+        ]
+    },
+    "engine_state": {
+        "next_invasion": 66430,
+        "next_liberation": 44443,
+        "extinction": false,
+        "end_game": false
+    }
+}
