@@ -617,7 +617,7 @@ class Renderer:
         fl = camera.focal_length
         if True:  # obj.visible:
             
-            t = getattr(obj, 'explosion_time', 0)
+            t = getattr(obj, 'explosion_time', 1.0)
             world_verts = obj.get_world_vertices()
             center = obj.position_in_world
         

@@ -5,7 +5,7 @@ import constants as cs
 from vector import Vector, Matrix, unit_vector, set_init_matrix, vector_dot_product, tidy_matrix
 from constants import logger
 from swat import Ship
-from wireframe_3d import Vector3
+from wireframe_3d_2 import Vector3
 import traceback
 
 NOSEV = 2
@@ -14,6 +14,8 @@ SIDEV = 0
 PLANET = 0
 STATION = 1
 SUN = 1
+
+
 
 
 class Space:
@@ -415,7 +417,6 @@ class Space:
                         Vector(vec.x, vec.z, -vec.y),
                         Vector(d*vec.x, d*vec.y, d*vec.z)])
         
-        # print('station', sx, sy, sz)
         gs.swat.add_new_station(sx, sy, sz, rotmat)
         
     def change_view(self):
@@ -455,7 +456,8 @@ class Space:
             tidy_matrix(obj.rotmat) 
             self.change_view()
             obj.sync_model()
-                 
+            # give time for explosion
+            # remove after exploded     
             if obj.flags & cs.FLG_REMOVE:
                 if type == cs.SHIP_VIPER:
                     gs.cmdr.legal_status |= 64
@@ -912,7 +914,6 @@ class Space:
           x_sign = y_sign = -x_sign
         
         planet_vector = (x_sign << 16, y_sign << 16, z_sign << 16)
-        # print('planet_vector', planet_vector)
     
         # Sun Vector ---
         # Sun Z is determined by bits 0-2 of s1_hi, forced to be negative (behind you)
@@ -952,7 +953,7 @@ class Space:
                 self.enter_witchspace()
                 return
             gs.docked_planet = self.destination_planet
-            logger.debug(f'Completed hyperspace {gs.cmdr.fuel=}  {self.hyper_distance=}')
+            logger.debug(f'Completed hyperspace')
         gs.cmdr.market_rnd = gs.rand255()
         gs.current_planet_data = gs.planet.generate_planet_stats(gs.docked_planet)
         self.trade.generate_stock_market(gs.current_planet_data.economy)
@@ -962,8 +963,7 @@ class Space:
         self.flight_climb = 0
         self.stars.create_new_stars()
         gs.swat.clear_universe()
-        gs.swat.generate_landscape()
-        # gs.generate_landscape(gs.docked_planet.a * 251 + gs.docked_planet.b)
+        gs.swat.generate_landscape()        
         planet_vector, sun_vector = self.get_solar_system_vectors(gs.docked_planet)
         
         FIST = gs.cmdr.legal_status
@@ -993,7 +993,10 @@ class Space:
             self.hyper_countdown -= 1
     
     # -------Warp / launch
-    
+        
+    def cross_product(self, a, b):
+        return Vector(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x)
+
     def teleport(self, target, height, axis=NOSEV):
         # function to move the ship for testing
         # moves object direct in front of ship
@@ -1009,11 +1012,30 @@ class Space:
             if obj.type != 0 and obj != target:
                 obj.location.z -= (dist - height)
         
+        # 1. Calculate the new Forward (Nose) vector
+        # We want to look at the target's position
+        look_dir = unit_vector(target.location - ship.location)
+        # 2. Build the new rotation matrix
+        # Standard 'up' vector for the world
+        world_up = Vector(0, 1, 0) 
+        
+        # If looking straight up/down, avoid a zero cross-product
+        if abs(look_dir.y) > 0.99:
+            world_up = Vector(0, 0, 1)
+            
+        new_side = unit_vector(self.cross_product(world_up, look_dir))
+        new_roof = self.cross_product(look_dir, new_side)
+        
+        # 3. Update the ship's rotation matrix
+        ship.rotmat[SIDEV] = new_side * -1
+        ship.rotmat[ROOFV] = new_roof
+        ship.rotmat[NOSEV] = look_dir * -1
+        
         # target.sync_model()
         ship.acceleration = 0
         ship.velocity = 0
         self.gs.flight_speed = 0
-        self.gs.msg.text = f"Jump to {target.name} Complete"
+        self.gs.msg_left.text = f"Jump to {target.name} Complete"
         
     def jump_direct(self, key):
       
@@ -1038,7 +1060,7 @@ class Space:
           # spawn station
           self.update_universe()
           station = self.gs.universe[1]
-          if station.name in ('COROLIS', 'DODO'):
+          if station.name in ('CORIOLIS', 'DODO'):
               self.teleport(station, height=3000, axis=NOSEV)
               #self.update_universe()
                 
@@ -1058,7 +1080,7 @@ class Space:
 
         jump = min(
             min(gs.universe[PLANET].distance, gs.universe[1].distance) - 75000,
-            4096)
+            8192)
         
         for obj in gs.universe:
             if obj.type != 0:
@@ -1078,8 +1100,6 @@ class Space:
         self.stars.create_new_stars()
         gs.swat.clear_universe()
         gs.swat.generate_landscape()
-        # gs.generate_landscape(gs.docked_planet.a * 251 + gs.docked_planet.b)
-
         gs.swat.add_new_ship(cs.SHIP_PLANET, 0, 0, 65536, None, 0, 0)
         rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
         rotmat[NOSEV].x *= -1

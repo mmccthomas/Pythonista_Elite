@@ -4,7 +4,6 @@ import constants as cs
 from game_engine import Point2
 from constants import logger
 from elite import GalaxySeed
-from types import SimpleNamespace
 # Ratings and Equipment Types
 
 # LASER_NAMES = {0: "None", 1: "Pulse", 2: "Beam", 3: "Military", 4: "Mining"}
@@ -114,14 +113,11 @@ class Docked:
         self.gfx = game_state.gfx
         
         self.gs = game_state    # docked, witchspace, energy, universe...
-        self.flight_rect = self.gs.parent_scene.flight_rect
-        self.centre = self.flight_rect.center()
-        self.SCALE = min(self.flight_rect.width, self.flight_rect.height) / 255
-        
+        self.SCALE = min(cs.FLIGHT_RECT.width, cs.FLIGHT_RECT.height) / 255
         self.scale = Point2(cs.GFX_SCALEX, cs.GFX_SCALEY)
         self.cross = Point2(0, 0)
         self.old_cross = Point2(-1, -1)
-        self.cross_timer = 0        
+        self.cross_timer = 0
            
         self.hilite_market = -1
         self.hilite_equip = -1
@@ -133,13 +129,14 @@ class Docked:
     
     # Fuel circle / cross
     
-    def draw_fuel_limit_circle(self, c : Point2):
+    def draw_fuel_limit_circle(self, c: Point2):
      
         gfx = self.gfx
-        # TODO fix this 
+        # TODO fix this
         
+        # gfx.set_clip_region(cs.FLIGHT_RECT.x, cs.FLIGHT_RECT.y, cs.FLIGHT_RECT.w, cs.FLIGHT_RECT.h - cs.FLIGHT_RECT.y)
         radius = 2.5 * self.gs.cmdr.fuel / 10 * self.scale * self.zoom_scale
-        #radius = self.gs.cmdr.fuel / 4 * self.zoom_scale * self.SCALE
+        # radius = self.gs.cmdr.fuel / 4 * self.zoom_scale * self.SCALE
         # logger.debug(f'{radius=} {self.gs.cmdr.fuel=}')
         cross_size = 1 * self.zoom_scale * self.SCALE
         cx, cy = c.as_tuple()
@@ -204,32 +201,32 @@ class Docked:
    
     # conversion planet_space to/from flight_screen_space
     # offset and baseline are defined in short-range and galactic chart
-    def _to_screen(self, point : Point2) -> Point2:
-        coord = (point - self.baseline) * Point2(1, 1) * (self.zoom_scale * self.scale) + self.offset        
+    def _to_screen(self, point: Point2) -> Point2:
+        coord = (point - self.baseline) * (self.zoom_scale * self.scale) + self.offset
         return coord
       
-    def _to_planet(self, point : Point2) -> Point2:
-        planet_coord = self.baseline + (point - self.offset) * Point2(1, 1) / (self.zoom_scale * self.scale)        
+    def _to_planet(self, point: Point2) -> Point2:
+        planet_coord = self.baseline + (point - self.offset) / (self.zoom_scale * self.scale)
         return planet_coord.round()
             
     # ------Crosshair
-    def move_cursor_to_origin(self):        
+    def move_cursor_to_origin(self):
         self.cross = self.old_cross = Point2(self.gs.docked_planet.x, self.gs.docked_planet.y)
                                                                                          
     def move_cursor_to_xy(self, key):
         gs = self.gs
         x, y = key.removeprefix('#').split(',')
-        # x, y are in screen coordinates 
+        # x, y are in screen coordinates
         p = self._to_planet(Point2(int(x), int(y)))
         planet = gs.planet.find_planet(*p.as_tuple())
         # centre cross on nearest planet
         self.cross = self.old_cross = Point2(planet.x, planet.y)
-        gs.msg.text = f'{x=}, {y=},   {planet.x},{planet.y}'
+        # gs.msg.text = f'{x=}, {y=},   {planet.x},{planet.y}'
             
     def move_cross(self, dx, dy):
         self.cross_timer = 5
-        self.cross = self.old_cross + Point2(dx, dy)  * (6 - self.zoom_scale)        
-        self.old_cross = self.cross        
+        self.cross = self.old_cross + Point2(dx, dy) * (6 - self.zoom_scale)
+        self.old_cross = self.cross
             
     def draw_cross(self, p: Point2):
         c = self._to_screen(p)
@@ -247,10 +244,10 @@ class Docked:
     def move_if_changed(self):
         # Redraw crosshair if moved
         if self.old_cross.x == -1:
-            self.move_cursor_to_origin()                   
+            self.move_cursor_to_origin()
         
         self.draw_cross(self.old_cross)
-        self.old_cross = self.cross        
+        self.old_cross = self.cross
         self.draw_cross(self.cross)       # Crosshair countdown
                   
     def _update_cross_for_hyperspace(self):
@@ -260,18 +257,18 @@ class Docked:
     
     def _plot_planets_and_names(self):
         # for short range chart, find nearest planets and plot names
+        # row 18 is centre screen
         gs = self.gs
-        gfx = self.gfx                
-                  
+        gfx = self.gfx
+        
         sorted_planets = gs.planet.get_closest_planets(gs.docked_planet, max_distance=self.gs.cmdr.fuel)
-
         for planet in sorted_planets:
-            coord = self._to_screen(Point2(planet.x, planet.y)).round()      
+            coord = self._to_screen(Point2(planet.x, planet.y)).round()
             
             planet_name = planet.name
-            col = round(coord.x * cs.TEXT_LENGTH / cs.FLIGHT_RECT.max_x) + 1  # + 1 gives small margin left of the blob
-            row = math.ceil((cs.FLIGHT_RECT.max_y - coord.y) * cs.NUM_LINES / cs.FLIGHT_RECT.max_y) + 4
-            
+            col = math.ceil(coord.x * cs.TEXT_LENGTH / cs.FLIGHT_RECT.max_x) + 1  # + 1 gives small margin left of the blob
+            row = math.ceil((cs.FLIGHT_RECT.max_y - coord.y) / cs.TEXT_Y_INCR) + 2
+            # logger.debug(f'{planet_name=}{coord=} {row=}')
             # move row if text clashes with existing text
             for i in [0, -1, 1]:
                 if self.gfx.is_empty_text(row + i, col, len(planet_name)):
@@ -295,7 +292,7 @@ class Docked:
         gfx = self.gfx
         gs = self.gs
         self.zoom_scale = 5
-        self.offset = Point2(*self.centre)
+        self.offset = Point2(*cs.FLIGHT_RECT.center())
         self.baseline = Point2(gs.docked_planet.x, gs.docked_planet.y)
         if self.old_cross.x == -1:
             self.move_cursor_to_origin()
@@ -303,7 +300,7 @@ class Docked:
         gfx.clear_display()
         gfx.display_centre_text(0, "SHORT RANGE CHART", 140, cs.GOLD)
         centre = self._to_screen(Point2(gs.docked_planet.x, gs.docked_planet.y))
-        self.draw_fuel_limit_circle(centre)      
+        self.draw_fuel_limit_circle(centre)
         self._plot_planets_and_names()
         self.move_if_changed()
         self.show_distance_to_planet()
@@ -316,21 +313,21 @@ class Docked:
         gs = self.gs
         self.zoom_scale = 1
         self.offset = Point2(cs.FLIGHT_RECT.x, cs.FLIGHT_RECT.y)
-        self.baseline = Point2(0, 0)        
+        self.baseline = Point2(0, 0)
         if self.old_cross.x == -1:
             self.move_cursor_to_origin()
             
         gfx.clear_display()
-        gfx.display_centre_text(0, f"GALACTIC CHART {self.gs.cmdr.galaxy_number + 1}", 140, cs.GOLD)        
+        gfx.display_centre_text(0, f"GALACTIC CHART {self.gs.cmdr.galaxy_number + 1}", 140, cs.GOLD)
         self.draw_fuel_limit_circle(self._to_screen(Point2(gs.docked_planet.x, gs.docked_planet.y)))
         
         glx = self.gs.cmdr.galaxy_seed.copy()
         # self._plot_planets_and_names()
         
         for _ in range(256):
-            p = self._to_screen(Point2(glx.x, glx.y))            
+            p = self._to_screen(Point2(glx.x, glx.y))
             size = round(glx.radius / 1000)
-            colour = cs.COLOUR_LIST[glx.colour]            
+            colour = cs.COLOUR_LIST[glx.colour]
             gfx.plot_pixel(*p.as_tuple(), colour, size)
             self._next_planet(glx)
         
@@ -504,12 +501,12 @@ class Docked:
         sm = self.gs.trade.stock_market
         if not self.gs.docked:
             return
-        item = sm[self.hilite_market]        
+        item = sm[self.hilite_market]
         if item['current_quantity'] == 0 or cmdr.credits < item['current_price']:
             return
         if item['units'] == TONNES and self.gs.trade.total_cargo() == cmdr.cargo_capacity:
             return
-        cmdr.current_cargo[self.hilite_market] += 1        
+        cmdr.current_cargo[self.hilite_market] += 1
         item['current_quantity'] -= 1
         cmdr.credits -= item['current_price']
         
@@ -534,7 +531,7 @@ class Docked:
         gfx.display_text(0, 23, f"Cash: {cmdr.credits // 10}.{cmdr.credits % 10}")
         for label, x in [("PRODUCT", 0), ("UNIT", 13), ("PRICE", 19),
                          ("FOR SALE", 26), ("IN HOLD", 35)]:
-            gfx.display_colour_text(x, 3, label, cs.GREEN)        
+            gfx.display_colour_text(x, 3, label, cs.GREEN)
         
         for i in range(17):
             self.display_stock_price(i)
@@ -658,7 +655,7 @@ class Docked:
             item.show = int(item.name[0] in (' ', '+'))
 
     @staticmethod
-    def laser_refund(laser):        
+    def laser_refund(laser):
         return {
             PULSE_LASER:    4000,
             BEAM_LASER:     10000,

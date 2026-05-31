@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import colorsys
 import constants as cs
 from vector import Vector, unit_vector, vector_dot_product
-from wireframe_3d import load_wireframes_from_json, WireframeObject, WireSphere
-from wireframe_3d import WireCube, Vector3, Sun, Sprite3D, WireAxes
+from wireframe_3d_2 import load_wireframes_from_json, WireframeObject, WireSphere
+from wireframe_3d_2 import WireCube, Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
 from constants import logger
@@ -41,6 +41,10 @@ class UnivObject:
     missiles: int = 0
     distance: float = 0.0
     exploding: bool = False
+    smooth_climb: float = 0.0
+    smooth_roll: float = 0.0
+    has_fired: bool = False
+    explosion_time: float = 0.0
 
     def sync_model(self):
         """
@@ -81,7 +85,7 @@ class Swat:
         self.ship_count: dict[int, int] = {i: 0 for i in range(cs.NO_OF_SHIPS + 1)}
         
         ships = load_wireframes_from_json('files/Elite_ships.json')
-        self.ship_dict = {ship.name[0]: ship for ship in ships}
+        self.ship_dict = {ship.name: ship for ship in ships}
         # add planet and sun
         
         if cs.WIREFRAME:
@@ -90,15 +94,8 @@ class Swat:
             self.ship_dict['PLANET'] = WireSphere(radius=6400, lat_lines=16, lon_lines=16,
                                                   color=cs.GREEN)
         else:
-            # self.ship_dict['SUN'] = Sun(radius=200, color=cs.YELLOW, distance_scale=True, scale=1)
-            #self.ship_dict['SUN'] = Sprite3D('images/sun_texture.png', width=200, height=200,
-            #                                   distance_scale=True, scale=25000)
-            self.generate_sun()                                    
+            self.generate_sun()
             self.generate_landscape()
-            #img = self.gs.parent_scene.planet_image.planet
-            # img = 'images/Planet.jpg'
-            #self.ship_dict['PLANET'] = Sprite3D(img, width=200, height=200,
-            #                                    distance_scale=True, scale=25000)
                                             
         self.ship_dict['SUN'].header = self.ship_dict['CORIOLIS'].header
         self.ship_dict['SUN'].name = ('SUN',)
@@ -149,62 +146,59 @@ class Swat:
         # use AlienPlanet to change images/planet_texture.png
         # then change Sprite3D image
         colour = cs.COLOUR_LIST[self.gs.docked_planet.colour]
-        logger.debug(colour)
         colour = colorsys.rgb_to_hsv(*colour)[0]
-        cloud_threshold = 1.0 # 0.8 +  0.1* (self.gs.docked_planet.c % 3) # lower is more cloud     
+        cloud_threshold = 1.0  # 0.8 +  0.1* (self.gs.docked_planet.c % 3)  # lower is more cloud
         sea_level = (1 + self.gs.docked_planet.b % 8) / 10
-        blob_size = 2 # 1 + self.gs.docked_planet.d % 2
+        blob_size = 3  # 1 + self.gs.docked_planet.d % 2
         
         img = AlienPlanet(400, 400, colour, seed=self.gs.docked_planet.a,
-                          cloud_threshold=cloud_threshold, 
+                          cloud_threshold=cloud_threshold,
                           sea_level=sea_level,
                           blob_size=blob_size).final
-        # rel to screen                
-        clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER)/ cs.W, 
-                     (cs.FLIGHT_RECT.min_y - 46) / cs.H, 
-                     (cs.FLIGHT_RECT.max_x - 50) / cs.W, 
-                     (cs.FLIGHT_RECT.max_y - cs.HUD_H - 2 * cs.BORDER) / cs.H)
-        try:             
+        # rel to screen
+        clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER) / cs.W,  # left
+                     cs.TOP_H / cs.H,   # top
+                     (cs.FLIGHT_RECT.max_x - 2 * cs.BORDER) / cs.W,  # width
+                     (cs.FLIGHT_RECT.h + 4 * cs.BORDER) / cs.H)  # height
+        try:
             self.planet_image.planet.remove_from_parent()
         except AttributeError as e:
-             logger.debug(f'{e}')  
+            logger.debug(f'{e}')
         self.planet_image = Planet(size=500, position=cs.FLIGHT_RECT.center(), clip_rect=clip_rect)
         img = self.planet_image.planet
         self.planet_image.planet.z_position = -1
         self.planet_image.planet.alpha = 0
         self.gs.parent_scene.add_child(self.planet_image.planet)
         self.ship_dict['PLANET'] = Sprite3D(img, width=200, height=200,
-                                            distance_scale=True, scale=25000)                                                    
+                                            distance_scale=True, scale=25000)
         self.ship_dict['PLANET'].header = self.ship_dict['CORIOLIS'].header
         self.ship_dict['PLANET'].name = ('PLANET',)
-        logger.debug('generated new planet')
+        # logger.debug('generated new planet')
     
     def generate_sun(self):
-        # create a realistic sun        
-        # then change Sprite3D image        
-        clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER)/ cs.W, 
-                     (cs.FLIGHT_RECT.min_y - 46) / cs.H, 
-                     (cs.FLIGHT_RECT.max_x - 50) / cs.W, 
-                     (cs.FLIGHT_RECT.max_y - cs.HUD_H - 2 * cs.BORDER) / cs.H)
-        try:             
+        # create a realistic sun
+        # then change Sprite3D image
+        clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER) / cs.W,  # left
+                     cs.TOP_H / cs.H,   # top
+                     (cs.FLIGHT_RECT.max_x - 2 * cs.BORDER) / cs.W,  # width
+                     (cs.FLIGHT_RECT.h + 4 * cs.BORDER) / cs.H)  # height
+        try:
             self.sun_image.planet.remove_from_parent()
         except AttributeError as e:
-             logger.debug(f'{e}')  
-        self.sun_image = Planet(size=800, position=cs.FLIGHT_RECT.center(), 
+            logger.debug(f'{e}')
+        self.sun_image = Planet(size=800, position=cs.FLIGHT_RECT.center(),
                                 clip_rect=clip_rect,
                                 image_path='images/sun_texture400.png',
-                                light_dir=(0,0,1), soft=0.08)
+                                light_dir=(0, 0, 1), soft=0.08)
         img = self.sun_image.planet
         self.sun_image.planet.z_position = -1
         self.sun_image.planet.alpha = 0
         self.gs.parent_scene.add_child(self.sun_image.planet)
         self.ship_dict['SUN'] = Sprite3D(img, width=200, height=200,
-                                            distance_scale=True, scale=25000)                                                    
+                                         distance_scale=True, scale=25000)
         self.ship_dict['SUN'].header = self.ship_dict['CORIOLIS'].header
         self.ship_dict['SUN'].name = ('sun',)
-        logger.debug('generated new sun')        
-        
-        
+                
     def add_axis_display(self, obj):
         # add axis to object for debug
         axis_display = WireAxes(size=100, line_width=5)
@@ -282,7 +276,7 @@ class Swat:
                     try:
                         # spin on its axis
                         obj.roty = -127
-                        if  cs.WIREFRAME:                            
+                        if cs.WIREFRAME:
                             obj.model.color = cs.COLOUR_LIST[self.gs.docked_planet.colour]
                     except (AttributeError, IndexError):
                         pass
@@ -429,7 +423,7 @@ class Swat:
     # ------ Combat helpers
     def target_object(self, key):
         # select a target from the onscreen list of universe objects
-        # pass it to autopilot to orient ship to target for firing       
+        # pass it to autopilot to orient ship to target for firing
         gs = self.gs
         obj_status = gs.obj_status
         
@@ -443,18 +437,17 @@ class Swat:
             line_index = no_items - 1
         
         target = self.gs.universe[line_index]
-        gs.msg.text = (f'no lines {no_items} {key} {line_index} {target.name}')
+        # gs.msg.text = (f'no lines {no_items} {key} {line_index} {target.name}')
         logger.debug(f'targeting {target.name}')
         gs.keypad.key_change('Docking', name='Cancel Docking')
         gs.pilot.disengage_auto_pilot()
-        gs.pilot.flight_phase = 'FIND_TARGET'        
+        gs.pilot.flight_phase = 'FIND_TARGET'
         gs.pilot.target = target
         gs.pilot.engage_auto_pilot()
-        
-        
-        
+                        
     def in_target(self, ship_type: int, x: float, y: float, z: float) -> bool:
         # use model targetable area
+        # self.gs.msg.text = f'{x=:.0f} {y=:.0f} {z=:.0f}  Error {(x*x+y*y)/1000:.0f}k'
         if z < 0:
             return False
         if ship_type == 0:
@@ -462,6 +455,7 @@ class Swat:
         ship_name = self.ship_names[ship_type]
         model = self.ship_dict[ship_name]
         target_area = model.header['Targetable area']
+        # logger.debug(f'{x*x + y*y} {target_area=}')
         return (x*x + y*y) <= target_area
 
     def make_angry(self, un: int):
@@ -478,15 +472,16 @@ class Swat:
 
     def explode_object(self, un: int):
         gs = self.gs
-        
+        logger.debug('exploding')
         gs.cmdr.score += 1
         if (gs.cmdr.score & 255) == 0:
             gs.info_message("Right On Commander!")
         gs.sound.play_sample(cs.SND_EXPLODE)
-        self.universe[un].flags |= cs.FLG_DEAD
+        # self.universe[un].flags |= cs.FLG_REMOVE
         if self.universe[un].type == cs.SHIP_CONSTRICTOR:
             gs.cmdr.mission = 2
         self.universe[un].exploding = True
+        self.universe[un].explosion_time = 0.0
         
     def _flip_location(self, world_loc):
         """
@@ -514,6 +509,8 @@ class Swat:
             self.gs.sound.play_sample(cs.SND_BEEP)
 
         if self.laser:
+            x, y, z = univ.location.to_tuple
+            
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
 
             if univ.type not in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
@@ -522,7 +519,8 @@ class Swat:
                         univ.energy -= self.laser // 4
                 else:
                     univ.energy -= self.laser
-
+            self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
+            logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
             if univ.energy <= 0:
                 self.explode_object(un)
                 if univ.type == cs.SHIP_ASTEROID:
@@ -567,8 +565,12 @@ class Swat:
             cnt = rand255()
             if cnt >= 128:
                 return
-            cnt &= self.ship_list[self.universe[un].type].max_loot
-            cnt &= 15
+            try:
+                cnt &= self.ship_list[self.universe[un].type].max_loot
+                cnt &= 15
+            except AttributeError:
+                # no max_loot
+                cnt &= 7
 
         for _ in range(cnt):
             self.launch_enemy(un, loot, 0, 0)
@@ -722,7 +724,7 @@ class Swat:
 
         if not (flags & cs.FLG_ANGRY):
             if (flags & cs.FLG_FLY_TO_PLANET) or (flags & cs.FLG_FLY_TO_STATION):
-                gs.pilot.auto_pilot_ship(self.universe[un])                
+                gs.pilot.auto_pilot_ship(self.universe[un])
             return
 
         # Ship is angry — attack!
@@ -752,8 +754,10 @@ class Swat:
                 return
 
             if (ship.missiles != 0 and self.ecm_active == 0
-                    and ship.missiles >= (rand255() & 31)):
+                    and ship.missiles >= (rand255() & 31)
+                    and not ship.has_fired):
                 ship.missiles -= 1
+                ship.has_fired = True
                 if ship_type == cs.SHIP_THARGOID:
                     self.launch_enemy(un, cs.SHIP_THARGLET, cs.FLG_ANGRY, ship.bravery)
                 else:
@@ -824,7 +828,7 @@ class Swat:
             ship.acceleration = -1
     
     # ------ Random encounter spawning
-
+    
     def create_other_ship(self, ship_type: int) -> int:
         z = 12000
         x = 1000 + random.randint(0, 8191)

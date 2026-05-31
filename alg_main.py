@@ -2,7 +2,6 @@
 # Elite - The New Kind, Python/Pythonista port
 # Converted from C by C.J.Pinder. Original (C) I.Bell & D.Braben 1984.
 
-import time
 import random
 import math
 from ui import in_background
@@ -83,7 +82,7 @@ class MyShip:
     max_roll = 31
     max_climb = 8
     max_fuel = cs.MAX_FUEL
-
+    
 
 class Commander_:
     name = "JAMESON"
@@ -163,7 +162,9 @@ class MainLoop():
        self.mcount = 0
        self.message_count = 0
        self.message_string = ""
-       
+       self.left_message_count = 0
+       self.left_message_string = ""
+              
        self.cross_x = -1
        self.cross_y = -1
        self.old_cross_x = -1
@@ -192,7 +193,8 @@ class MainLoop():
            self.kbd = parent_scene.kbd
            self.keypad = parent_scene.keypad
            self.msg = parent_scene.msg
-           self.msg2 = parent_scene.msg2
+           self.msg_right = parent_scene.msg_right
+           self.msg_left = parent_scene.msg_left
            self.obj_status = parent_scene.obj_status
            self.hud = parent_scene.hud
            self.camera = parent_scene.camera
@@ -287,7 +289,7 @@ class MainLoop():
     
     def initialise_game(self):
     
-        self.set_rand_seed(0) #time.time())
+        self.set_rand_seed(0)  # time.time())
         self.current_screen = cs.SCR_INTRO_ONE
     
         self.restore_saved_commander()
@@ -341,86 +343,89 @@ class MainLoop():
                             
     # ── Auto-dock ─────────────────────────────────────────────────────────────────
     
-    def auto_dock(self):
+    def auto_dock(self, director_only=False):
            
-        #self.yaw_coupling = 0
+        # self.yaw_coupling = 0
         self.ship = self.space.ship
         if self.mcount == 0:
-            logger.debug(f' Dist: {self.pilot.distance_to_target:.0f}km')            
-        self.pilot.auto_pilot_ship_(self.ship)   # modifies ship in-place
-        # flight speed tracks velocity
-        self.flight_speed = min(22 * (1 + 4 * self.pilot.escape), self.ship.velocity)
-        
-     
+            logger.debug(f' Dist: {self.pilot.distance_to_target:.0f}km')
+        self.pilot.auto_pilot_ship_(self.ship, director_only=director_only)   # modifies ship in-place
+        if not director_only:
+           # flight speed tracks velocity
+           self.flight_speed = min(22 * (1 + 4 * self.pilot.escape), self.ship.velocity)
+             
     # ── Escape sequence ───────────────────────────────────────────────────────────
-    
     def run_escape_sequence(self):
         # convert to state machine
         self.current_screen = cs.SCR_ESCAPE_POD
         match self.escape_sequence:
-             case "ESCAPE_SETUP":
-                 self.flight_speed = 1
-                 self.space.flight_roll = 0
-                 self.space.flight_climb = 0
-             
-                 self.escape_ship = self.swat.add_new_ship(cs.SHIP_COBRA3, 0, 0, 200, None, -127, -127)
-                 self.universe[self.escape_ship].velocity = 7
-                 self.sound.play_sample(cs.SND_LAUNCH)
-                 self.escape_counter = 90
-                 self.escape_sequence = "ESCAPE_FLEE"
-             
-             case "ESCAPE_FLEE":
-                self.escape_counter -= 1
-                if self.escape_counter <= 0:
-                   self.escape_sequence = "ESCAPE_RECOVER"
-                if self.escape_counter == 100:
-                    self.universe[self.escape_ship].flags |= cs.FLG_DEAD
-                    self.universe[self.escape_ship].exploding = True
-                    self.sound.play_sample(cs.SND_EXPLODE)
-                
+            case "ESCAPE_SETUP":
+                self.flight_speed = 1
+                self.space.flight_roll = 0
+                self.space.flight_climb = 0
+            
+                self.escape_ship = self.swat.add_new_ship(cs.SHIP_COBRA3, 0, 0, 200, None, -127, -127)
+                self.universe[self.escape_ship].velocity = 7
+                self.sound.play_sample(cs.SND_LAUNCH)
+                self.escape_counter = 90
+                self.escape_sequence = "ESCAPE_FLEE"
+            
+            case "ESCAPE_FLEE":
+               self.escape_counter -= 1
+               if self.escape_counter <= 0:
+                  self.escape_sequence = "ESCAPE_RECOVER"
+               if self.escape_counter == 100:
+                   self.universe[self.escape_ship].flags |= cs.FLG_DEAD
+                   self.universe[self.escape_ship].exploding = True
+                   self.sound.play_sample(cs.SND_EXPLODE)
+               
+               self.gfx.clear_display()
+               self.stars.update_starfield()
+               self.space.update_universe()
+       
+               self.universe[self.escape_ship].location.x = 0
+               self.universe[self.escape_ship].location.y = 0
+               self.universe[self.escape_ship].location.z += 2
+       
+               self.gfx.display_centre_text(
+                   cs.NUM_LINES - 1,
+                   "Escape pod launched - Ship auto-destruct initiated.",
+                   120, cs.WHITE)
+                  
+               self.gfx.update_screen()
+           
+            case "ESCAPE_RECOVER":
+                if (self.swat.ship_count.get("CORIOLIS", 0)
+                        or self.swat.ship_count.get("DODEC", 0)):
+                    self.escape_sequence == "ESCAPE_DOCK"
+                self.pilot.escape = True
+                self.auto_dock()
+        
+                # if abs(self.flight_roll) < 3 and abs(self.flight_climb) < 3:
+                #    for i in range(cs.MAX_UNIV_OBJECTS):
+                #        if self.universe[i] is not None and self.universe[i].type != 0:
+                #            self.universe[i].location.z -= 1500
+        
+                self.warp_stars = True
                 self.gfx.clear_display()
                 self.stars.update_starfield()
                 self.space.update_universe()
-        
-                self.universe[self.escape_ship].location.x = 0
-                self.universe[self.escape_ship].location.y = 0
-                self.universe[self.escape_ship].location.z += 2
-        
-                self.gfx.display_centre_text(
-                    cs.NUM_LINES - 1,
-                    "Escape pod launched - Ship auto-destruct initiated.",
-                    120, cs.WHITE)
-                   
+                
                 self.gfx.update_screen()
             
-             case "ESCAPE_RECOVER":
-                 if (self.swat.ship_count.get("CORIOLIS", 0)
-                         or self.swat.ship_count.get("DODEC", 0)):
-                     self.escape_sequence == "ESCAPE_DOCK"
-                 self.pilot.escape = True
-                 self.auto_dock()
-         
-                 #if abs(self.flight_roll) < 3 and abs(self.flight_climb) < 3:
-                 #    for i in range(cs.MAX_UNIV_OBJECTS):
-                 #        if self.universe[i] is not None and self.universe[i].type != 0:
-                 #            self.universe[i].location.z -= 1500
-         
-                 self.warp_stars = True
-                 self.gfx.clear_display()
-                 self.stars.update_starfield()
-                 self.space.update_universe()
-                 
-                 self.gfx.update_screen()
-             
-             case "ESCAPE_DOCK":
-                 self.pilot.escape = False
-                 self.swat.abandon_ship(self)
+            case "ESCAPE_DOCK":
+                self.pilot.escape = False
+                self.swat.abandon_ship(self)
         
     # ── Info message ──────────────────────────────────────────────────────────────
     
     def info_message(self, message, color=None):
         self.message_string = message
         self.message_count = 37
+    
+    def info_message_left(self, message, color=None):
+        self.left_message_string = message
+        self.left_message_count = 37
        
     # ── Main input handler ────────────────────────────────────────────────────────
     
@@ -539,8 +544,8 @@ class MainLoop():
         # galactic or short range chart
         self.check_change_screen()
         key = self.kbd.poll()
-        if key:
-            self.parent_scene.msg.text = f'received: {key}'
+        # if key:
+        #    self.parent_scene.msg.text = f'received: {key}'
         match key:
            case None:
                pass
@@ -787,7 +792,7 @@ class MainLoop():
             # if (self.mcount & 3) == 0:
             self.space.countdown_hyperspace()
         
-        if self.univ_status.check():
+        if self.univ_status.check() and cs.UNIVERSE_STATUS:
             self.show_universe_status()
                 
         if self.alt_temp_status.check():
@@ -802,6 +807,8 @@ class MainLoop():
             self.auto_dock()
             # if self.docking_on.check():
             self.info_message(f"Docking Computers On ...{self.pilot.flight_phase} {(self.pilot.distance_to_target/1000):.0f}km")
+        else:
+            self.auto_dock(director_only=True)
  
         self.space.update_universe()
         
@@ -814,6 +821,9 @@ class MainLoop():
  
         if self.message_count > 0:
             self.gfx.display_centre_text(cs.NUM_LINES-1, self.message_string, 120, cs.WHITE)
+            
+        if self.left_message_count > 0:
+            self.gfx.display_text(1, cs.NUM_LINES, self.left_message_string, 120, cs.WHITE)
                    
         self.mcount = (self.mcount - 1) & 255
        
@@ -870,7 +880,7 @@ class MainLoop():
             case 'Cancel Docking':
                 self.pilot.disengage_auto_pilot()
                 self.keypad.key_change(key_name='Cancel Docking',
-                                       name='Docking')                        
+                                       name='Docking')
             case 'ECM':
                 if self.cmdr.ecm:
                     self.swat.activate_ecm(1)
@@ -922,10 +932,10 @@ class MainLoop():
             case 'Compass Planet':
                 self.space.set_compass('sun')
                 self.keypad.key_change('Compass Planet', name='Compass Sun')
-            case 'Compass Sun': 
+            case 'Compass Sun':
                 self.space.set_compass('planet')
                 self.keypad.key_change('Compass Sun', name='Compass Planet')
-            # testing keys  
+            # testing keys
             case 'To Sun' | 'To Planet' | 'To Station':
                 self.space.jump_direct(key)
             case key if key.startswith('->'):
@@ -939,11 +949,13 @@ class MainLoop():
                         'Look Stbd', 'Look Fwd',
                         'Look Aft', 'Fire Laser', 'Compass Planet']:
             self.keypad.key_change(keyname, enabled=enable)
+        for keyname in ['To Sun', 'To Planet', 'To Station']:
+            self.keypad.key_change(keyname, enabled=cs.TELEPORT)
             
         self.keypad.key_change('Cancel Docking', name='Docking')
         self.keypad.key_change('Compass Sun', name='Compass Planet')
         
-        if enable:   
+        if enable:
             self.keypad.key_change('Equip', name='Inventory')
             self.keypad.key_change('Market', name='Target Prices')
             self.keypad.key_change('Trade', name='Cargo')
@@ -1070,22 +1082,24 @@ def loop():
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
                   40: ['Select', '$Xeenle'],
-                  70: ['Launch'],                  
-                  175: ['Hyper Space'],         
-                  190:[], # complete 
-                  200: ['Docking'], 
+                  70: ['Launch'],
+                  # 150: ['To Station'],
+                  # 152: ['Docking'],
+                  175: ['Hyper Space'],
+                  189: [],  # complete
+                  200: ['Docking'],
                   
-                  340: [], # finished align
-                  555:['->974,957'],
-                  #560: ['Cancel Docking'],
-                  #7359: [], # station spawned
-                  #7500: ['Docking']
+                  340: [],  # finished align
+                  555: ['->974,957'],
+                  # 560: ['Cancel Docking'],
+                  # 7359: [], # station spawned
+                  # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(1200):
+    for i in range(36):
        logger.debug(i)
        if i in operations:
-          if i == 555:
+          if i == 189:
              pass
           for command in operations[i]:
               g.input_queue.put(command)
@@ -1096,7 +1110,7 @@ def loop():
                   for obj in g.universe
                   if hasattr(obj, 'model') and obj.model]
         
-       g.parent_scene.renderer.draw(objects, g.parent_scene.camera, g.parent_scene.flight_rect)
+       g.parent_scene.renderer.draw(objects, g.parent_scene.camera, cs.FLIGHT_RECT)
        
         
 if __name__ == '__main__':
@@ -1104,14 +1118,14 @@ if __name__ == '__main__':
     loop()
     # logger.debug('finished')
     #
-    #cProfile.run('loop()')
+    # cProfile.run('loop()')
     
     import pstats
     import io
     
     def my_function():
         # Example workload
-        #loop()
+        # loop()
         pass
     
     # 1. Create a Profile object

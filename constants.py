@@ -22,7 +22,10 @@ def is_debug_level():
     
 # --------Global modes
 WIREFRAME = 0
-YAW_COUPLING = 0.15
+YAW_COUPLING = 0
+TELEPORT = False
+UNIVERSE_STATUS = False
+
 # --------Screen areas
 # flight area, scanner, with scale
 # hud has been split into left and right
@@ -36,6 +39,7 @@ hud_r = Image.open('images/hud_right.png')
 hud_l_w, hud_l_h = hud_l.size
 hud_r_w, hud_r_h = hud_r.size
 W, H = get_screen_size()
+logger.debug(f'{W=} {H=}')
 FRAMERATE = 30
 
 GAME_W = int(0.67 * W)
@@ -47,11 +51,12 @@ FLIGHT_W = GAME_W - 2 * BORDER
 HUD_W = FLIGHT_W
 HUD_H_L = hud_l_h
 HUD_H_R = hud_r_h
-HUD_H = 240
+HUD_H = 300
 HUD_RECT = Rect(BORDER, BORDER,
                 HUD_W, HUD_H + BORDER)
-HUD_LEFT = Rect(BORDER, 2*BORDER,
-                hud_l_w + BORDER, HUD_H_L + BORDER)
+HUD_LEFT = Rect(BORDER, 4*BORDER,
+                hud_l_w + 0* BORDER,
+                HUD_H_L + BORDER)
 
 HUD_RIGHT = Rect(HUD_W - hud_r_w + BORDER, 4*BORDER,
                  hud_r_w + 2 * BORDER, HUD_H_R + BORDER)
@@ -62,7 +67,7 @@ METER_HEIGHT = 10
           
 TOP_H = 0.08 * GAME_H
 FLIGHT_H = GAME_H - HUD_H - 5 * BORDER - TOP_H
-FLIGHT_RECT = Rect(BORDER, HUD_RECT.max_y + 2 * BORDER,
+FLIGHT_RECT = Rect(BORDER, HUD_CENTRE.max_y + 2 * BORDER,
                    FLIGHT_W, FLIGHT_H)
 TOP_RECT = Rect(BORDER, GAME_H - BORDER - TOP_H, FLIGHT_W, TOP_H)
 
@@ -70,7 +75,7 @@ SCANNER_H = HUD_H * 0.75
 SCANNER_RECT = Rect(HUD_CENTRE.x, HUD_CENTRE.y + 0.125 * HUD_CENTRE.h,
                     HUD_CENTRE.w, SCANNER_H)
 
-COMPASS_W = HUD_RECT.height / 3
+COMPASS_W = HUD_RECT.height / 4
 COMPASS_X = SCANNER_RECT.max_x - COMPASS_W/2 +4
 COMPASS_Y = HUD_RECT.max_y - COMPASS_W/2 + 8
 COMPASS_RECT = Rect(COMPASS_X - COMPASS_W/2,
@@ -204,7 +209,7 @@ BEAM_LASER = 2
 MILITARY_LASER = 0x97
 MINING_LASER = 0x32
 NO_OF_SHIPS = 33
-MAX_FUEL = 100 
+MAX_FUEL = 70 
 GFX_SCALEX = FLIGHT_RECT.w / 255   # adjust to taste
 GFX_SCALEY = FLIGHT_RECT.h / 255   # adjust to taste
 MAX_UNIV_OBJECTS = 20
@@ -500,6 +505,9 @@ if __name__ == '__main__':
     ax.add_patch(hud_left)
     ax.add_patch(hud_right)
     ax.add_patch(hud_centre)
+    cx, cy = FLIGHT_RECT.center()
+    # Add Cross at FLIGHT_RECT.centre() 
+    ax.plot(cx, cy, 'x', color='black', markersize=10, markeredgewidth=2)
     # Set axis limits to ensure the rectangle is visible
     ax.set_xlim(0, GAME_W)
     ax.set_ylim(0, GAME_H)

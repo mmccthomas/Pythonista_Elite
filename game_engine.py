@@ -8,13 +8,11 @@
 #              2. game_surface (filled color rectangle) subsurface of 1
 #
 
-from PIL import Image
 import scene
 import math  # for vector mathematics
 import sound
 import ui
 import constants as cs
-from constants import logger
 from image_helpers import set_colorkey, pil_to_ui
 
 
@@ -91,12 +89,12 @@ class SoundComponent:
     def stop_midi(self):
         if self.midi:
             self.midi.stop()
-     
-
+                 
 
 ##############################################################################
 # TEXT COMPONENTS (this is mostly used internally by the game engine)
 #
+
 
 class TextGridArray(scene.Node):
 
@@ -245,8 +243,10 @@ class TextGridArray(scene.Node):
 def swap_colors(sprite, original_color, replacement_color):
      
     sprite.color = replacement_color
-    
+
+        
 # private to game engine #####################################################
+
 class TextCell(scene.Node):
     # Node built from two sprites built from Texture glyph  (with specific colors)
     
@@ -279,7 +279,7 @@ class TextCell(scene.Node):
             
         x = cs.TEXT_X_INCR * c + cs.TEXT_START_X
         # invert as (0,0) is bottom left in Scene
-        y = cs.GAME_H - cs.TEXT_Y_INCR * r -  cs.TEXT_START_Y
+        y = cs.GAME_H - cs.TEXT_Y_INCR * r - cs.TEXT_START_Y
         self.position = (x, y)
 
     @property
@@ -379,7 +379,8 @@ class Point2():
 
         self.x = x
         self.y = y
-    # contained within rectangle  
+                
+    # contained within rectangle
     def in_rect(self, rect):
         if self.x < rect[0]:
            return False
@@ -457,12 +458,12 @@ class Point2():
 
     # ── in-place operators (return new Point2 to stay immutable-friendly) ──────
 
-    def __iadd__(self, other):      return self.__add__(other)
-    def __isub__(self, other):      return self.__sub__(other)
-    def __imul__(self, other):      return self.__mul__(other)
-    def __itruediv__(self, other):  return self.__truediv__(other)
+    def __iadd__(self, other): return self.__add__(other)
+    def __isub__(self, other): return self.__sub__(other)
+    def __imul__(self, other): return self.__mul__(other)
+    def __itruediv__(self, other): return self.__truediv__(other)
     def __ifloordiv__(self, other): return self.__floordiv__(other)
-    def __imod__(self, other):      return self.__mod__(other)
+    def __imod__(self, other): return self.__mod__(other)
 
     # ── equality ──────────────────────────────────────────────────────────────
 
@@ -486,8 +487,8 @@ class Point2():
         return Point2(int(self.x), int(self.y))
         
     def round(self):
-         """Return a new Point2 with both components rounded to int."""
-         return Point2(int(self.x + 0.5), int(self.y + 0.5))
+        """Return a new Point2 with both components rounded to int."""
+        return Point2(int(self.x + 0.5), int(self.y + 0.5))
          
     def as_tuple(self):
         """Return (x, y) as a plain tuple."""
@@ -496,10 +497,11 @@ class Point2():
     def lerp(self, other, t: float):
         """Linear interpolation towards other by factor t (0=self, 1=other)."""
         return Point2(self.x + (other.x - self.x) * t,
-                     self.y + (other.y - self.y) * t)
+                      self.y + (other.y - self.y) * t)
                     
     def hypot(self):
         return math.sqrt(self.x * self.x + self.y * self.y)
+
 
 # Size2 is a synonym for Point2
 Size2 = Point2

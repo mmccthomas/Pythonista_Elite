@@ -11,12 +11,13 @@ import queue
 import traceback
 import ui
 from scene import Scene, run, ShapeNode, LabelNode
-from scene import Rect, Node, SpriteNode, Texture
+from scene import Node, SpriteNode, Texture
 from image_helpers import set_colorkey, pil_to_ui
 import constants as cs
+from constants import logger
 from hud_elite import HudPanel
 from alg_main import MainLoop
-from wireframe_3d import Camera, Vector3, Renderer
+from wireframe_3d_2 import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad
@@ -28,11 +29,6 @@ class EliteScene(Scene):
         W, H = get_screen_size()
         self.paused = True
         self.enable_sound = False
-        self.flight_rect = Rect(cs.BORDER, cs.HUD_H+20,
-                                cs.GAME_W - 2 * cs.BORDER,
-                                cs.GAME_H - cs.HUD_H - 50)
-        self.center_screen = self.flight_rect.center()
-        
         self.input_queue = queue.Queue()
         self.active_touches = {}
         self.keypad = EliteKeypad(frame=cs.KEYBOARD_RECT,
@@ -57,15 +53,17 @@ class EliteScene(Scene):
                                       size=cs.FIRE_BUTTON_RECT.size,
                                       position=cs.FIRE_BUTTON_RECT.center(),
                                       parent=self)
-        # status and edbug messages
+        # status and debug messages
         self.msg = LabelNode('', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50), color=cs.WHITE, anchor_point=(0, 0), parent=self)
-        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 22
-        print(cs.W - cs.FLIGHT_RECT.max_x, fontsize)
-        self.msg2 = LabelNode('123', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y+20), 
-                              color=cs.WHITE, font=('Ubuntu Mono', fontsize),
-                              anchor_point=(0, 0), parent=self)
-        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H), anchor_point=(0,1), color=cs.WHITE, parent=self)
+        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 22        
+        self.msg_right = LabelNode('', position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20),
+                                   color=cs.WHITE, font=('Copperplate', 18),
+                                   anchor_point=(0, 1), parent=self)
+        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H), anchor_point=(0, 1), color=cs.WHITE, parent=self)
         # self.cloud = IsometricCloud(loc=Point(cs.KEYBOARD_X+cs.KEYBOARD_W/2, cs.GAME_H-200))
+        self.msg_left = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H),
+                                  color=cs.WHITE, font=('Copperplate', 18),
+                                  anchor_point=(0, 1), parent=self)
         self.kbd = Keyboard(self)
         # needs player_ship
         self.hud = HudPanel()
@@ -84,8 +82,8 @@ class EliteScene(Scene):
             
         self.moved = False
 
-        self.renderer = Renderer(depth_sort=True)
-        self.renderer.viewport = self.flight_rect  # x, y, w, h
+        self.renderer = Renderer(depth_sort=True, backface_cull=False)
+        self.renderer.viewport = cs.FLIGHT_RECT  # x, y, w, h
         
         self.camera = Camera(
             position=Vector3(0, 0, 0),  # -1000),
@@ -131,30 +129,37 @@ class EliteScene(Scene):
         path.move_to(0, cs.GAME_H - cs.HUD_H_L-15)
         # add lines around console and scanner, with arcs at corners
         
-        #horiz
-        x1 = cs.HUD_LEFT.max_x - cs.RADIUS
-        y1 = cs.GAME_H - cs.HUD_H_L -15
+        # horiz
+        x1 = cs.HUD_LEFT.max_x - cs.RADIUS - B
+        y1 = cs.GAME_H - cs.HUD_H_L - 15
         path.line_to(x1, y1)
         path.add_arc(x1, y1 - cs.RADIUS, cs.RADIUS, math.pi/2,  0, False)
-        #vert
-        x2 = cs.HUD_LEFT.max_x
+        # vert
+        x2 = cs.HUD_LEFT.max_x - B
         y2 = cs.GAME_H - cs.HUD_H-15+cs.RADIUS
         path.line_to(x2, y2)
         path.add_arc(x2 + cs.RADIUS, y2, cs.RADIUS, math.pi, -math.pi/2, True)
-        #hoiz
+        # horiz
         x3 = cs.HUD_CENTRE.max_x-cs.RADIUS
         y3 = cs.GAME_H - cs.HUD_H-15
         path.line_to(x3, y3)
         path.add_arc(x3, y3 + cs.RADIUS, cs.RADIUS, -math.pi/2, 0, True)
-        #vert
+        # vert
         x4 = cs.HUD_CENTRE.max_x
-        y4 = cs.GAME_H - cs.HUD_H_R-cs.RADIUS-15
+        y4 = cs.GAME_H - cs.HUD_H_R - cs.RADIUS-15
         path.line_to(x4, y4)
         path.add_arc(x4 + cs.RADIUS, y4, cs.RADIUS, -math.pi,  math.pi/2, False)
-        #horiz
-        path.line_to(cs.HUD_RIGHT.max_x-15, y4+cs.RADIUS)
-        
-        #path.line_to(cs.FLIGHT_W + 4, cs.GAME_H - cs.HUD_H_R - 15)
+        # horiz
+        path.line_to(cs.HUD_RIGHT.max_x - 15, y4 + cs.RADIUS)
+        y = cs.GAME_H - cs.HUD_LEFT.max_y - cs.HUD_H + cs.HUD_LEFT.h + 0 * B
+        path.append_path(ui.Path.rounded_rect(cs.HUD_LEFT.x - B, y,
+                                              cs.HUD_LEFT.w,
+                                              cs.HUD_H - cs.HUD_LEFT.h + B,
+                                              cs.RADIUS))
+        path.append_path(ui.Path.rounded_rect(cs.HUD_RIGHT.x - B, y,
+                                              cs.HUD_RIGHT.w - 2 * B,
+                                              cs.HUD_H - cs.HUD_RIGHT.h + B,
+                                              cs.RADIUS))
         yellow_line = ShapeNode(path,
                                 fill_color='clear',
                                 stroke_color=cs.YELLOW,
@@ -176,18 +181,18 @@ class EliteScene(Scene):
         # set alpha = 1 to show
         path = ui.Path()
         path.line_width = 2
-        path.move_to(*self.center_screen)
-        path.line_to(32, self.flight_rect.min_y)
-        path.move_to(*self.center_screen)
-        path.line_to(48, self.flight_rect.min_y)
-        path.move_to(*self.center_screen)
-        path.line_to(self.flight_rect.max_x - 48, self.flight_rect.min_y)
-        path.move_to(*self.center_screen)
-        path.line_to(self.flight_rect.max_x - 32, self.flight_rect.min_y)
+        path.move_to(*cs.FLIGHT_RECT.center())
+        path.line_to(32, cs.FLIGHT_RECT.min_y)
+        path.move_to(*cs.FLIGHT_RECT.center())
+        path.line_to(48, cs.FLIGHT_RECT.min_y)
+        path.move_to(*cs.FLIGHT_RECT.center())
+        path.line_to(cs.FLIGHT_RECT.max_x - 48, cs.FLIGHT_RECT.min_y)
+        path.move_to(*cs.FLIGHT_RECT.center())
+        path.line_to(cs.FLIGHT_RECT.max_x - 32, cs.FLIGHT_RECT.min_y)
         laser_lines = ShapeNode(path, stroke_color='white',
                                 fill_color='clear',
                                 anchor_point=(0.5, 0),
-                                position=self.center_screen)
+                                position=cs.FLIGHT_RECT.center())
         laser_lines.alpha = 0
         laser_lines.rotation = math.pi
         laser_lines.name = 'laser lines'
@@ -198,8 +203,8 @@ class EliteScene(Scene):
         # set alpha = 1 to show
         start = 8
         finish = 16
-        x = self.center_screen.x
-        y = self.center_screen.y
+        x = cs.FLIGHT_RECT.center().x
+        y = cs.FLIGHT_RECT.center().y
         path = ui.Path()
         path.line_width = 2
         
@@ -217,7 +222,7 @@ class EliteScene(Scene):
         laser_sight = ShapeNode(path, stroke_color='white',
                                 fill_color='clear',
                                 anchor_point=(0.5, 0.5),
-                                position=self.center_screen)
+                                position=cs.FLIGHT_RECT.center())
         laser_sight.alpha = 0
         laser_sight.name = 'laser sight'
         return laser_sight
@@ -226,7 +231,7 @@ class EliteScene(Scene):
         self.mainloop.game_loop()
         if not cs.WIREFRAME:
             self.mainloop.swat.planet_image.update(self.t)
-            self.mainloop.swat.sun_image.update(0)      
+            self.mainloop.swat.sun_image.update(0)
         self.emit_counter += 1
         if 'joystick' in self.active_touches.values():  # and self.emit_counter >= self.emit_rate:
             
@@ -248,12 +253,16 @@ class EliteScene(Scene):
         elif 'fire' in self.active_touches.values() and self.emit_counter >= self.emit_rate:
             self.emit_counter = 0
             self.input_queue.put('Fire Laser')
-        
             
         # no joystick touched, emit 0,0 at slower rate
         elif self.emit_counter >= 2 * self.emit_rate:
             self.emit_counter = 0
             # self.input_queue.put('>0.00, 0.00')
+        for obj in [obj for obj in self.mainloop.universe
+                    if obj.exploding]:
+            obj.explosion_time += self.dt
+            if obj.explosion_time >= 1.0:
+                obj.flags |= cs.FLG_REMOVE
             
     def draw(self):
         # draw whatever is in mainloop universe
@@ -266,16 +275,11 @@ class EliteScene(Scene):
             if obj.exploding:
                 # Draw the explosion instead of the ship
                 self.renderer.explode(obj.model, self.camera, self.size)
+                
             else:
                 # Draw normal ship (Renderer.draw checks .visible)
-                self.renderer.draw([obj.model], self.camera, self.flight_rect)
-        # self.gfx.draw()
-        # self.cloud.objects = [obj
-        #                      for obj in self.mainloop.universe
-        #                      if hasattr(obj, 'model') and obj.model]
-        
-        # self.cloud.draw()
-        
+                self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
+                
     def key_change(self, key_name, name=None, color=None, enabled=None):
         # change appearance of key
         try:
@@ -318,7 +322,7 @@ class EliteScene(Scene):
         elif cs.FIRE_BUTTON_RECT.contains_point(touch.location):
             self.active_touches[touch.touch_id] = 'fire'
         elif self.obj_status.bbox.contains_point(touch.location):
-            self.active_touches[touch.touch_id] = 'target'  
+            self.active_touches[touch.touch_id] = 'target'
         else:
             self.active_touches[touch.touch_id] = 'screen'
             # print('screen', touch.location)
@@ -355,8 +359,8 @@ class EliteScene(Scene):
             self.joystick_thrust.touch_ended(touch)
         elif control == 'screen' and cs.FLIGHT_RECT.contains_point(touch.location):
             self.input_queue.put(f'#{touch.location.x:.0f},{touch.location.y:.0f}')
-        elif control == 'target'  and self.obj_status.bbox.contains_point(touch.location):
-             self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}') 
+        elif control == 'target' and self.obj_status.bbox.contains_point(touch.location):
+            self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')
         # If the screen was tapped quickly without moving
         elif not self.moved and not self.mainloop.space.safe_mode:
           self.input_queue.put('Fire Laser')
@@ -429,5 +433,4 @@ def run_game():
 
               
 if __name__ == '__main__':
-
  run_game()

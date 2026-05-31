@@ -1,5 +1,6 @@
 # routine to generate good looking rotating planet
-from scene import Scene, SpriteNode, Texture, Shader, get_screen_size, run
+from scene import Scene, SpriteNode, Texture, Shader, run
+from change_screensize import get_screen_size
 import numpy as np
 from PIL import Image, ImageFilter
 import ui
@@ -79,7 +80,7 @@ class AlienPlanet():
      self.color = color  # 0 is red, 0.25 green
      self.sea_level = random.uniform(0.1, 0.8)
      self.blend = 10  # increase to blend more
-     self.blob_size = None
+     self.blob_size = 3
      self.rng = np.random.default_rng(42)
      self.edge_margin = 0.15 # ocean margin at edges
      if seed is None:
@@ -89,7 +90,6 @@ class AlienPlanet():
          
      for k, v in kwargs.items():
          setattr(self, k, v)
-     print(f'{self.blob_size=}')   
      self.compose()
      
   def compose(self):
@@ -353,6 +353,8 @@ class PlanetScene(Scene):
     def setup(self):
         self.planet = Planet(size=500,
                              position=self.size/2,
+                             # y measured from top
+                             #.          x.  y.   w.    h
                              clip_rect=(0.1, 0.1, 0.9, 0.9))
         # image_path='images/sun_texture400.png')
         self.add_child(self.planet.planet)
@@ -401,7 +403,7 @@ class Planet():
 if __name__ == '__main__':
  
     from time import time
-    for i in range(10):
+    for i in range(1):
         t = time()
         color = i/10
         print(color)
