@@ -5,6 +5,8 @@ platforms.
 This was inspired by Mark Moxon's deconstruction and documentation of the
 original 6502 Assembler  https://elite.bbcelite.com
 
+<img src="images/Elite_screen1.png" alt="App Screenshot" width="500">
+
 I wondered if AI would be able to convert this code to Python, and Mark suggested
 that I convert a C version from 2002 by Christian Pinder. https://www.christianpinder.com/games/
 
@@ -80,45 +82,45 @@ significant changes:
     Some keys only enable when equipment is bought,  e.g. ECM
      
 
-15. A major change to the program structure is the use of state machines
+14. A major change to the program structure is the use of state machines
     As each routine may be called 60 times per second we may need another state machine to cover 
      setup section, at least one iteration section and a means to leave.
     we cannot have blocking loops within the routine.
     
-16. Python is all about readability. so prioritise this above sticking rigidly to converted c code
+15. Python is all about readability. so prioritise this above sticking rigidly to converted c code
     example use GalaxySeed x an y rather than d and a 
     
-17. Added colour to planets, based upon galaxy seed s0_hi bits 3-0 
+16. Added colour to planets, based upon galaxy seed s0_hi bits 3-0 
     colour list is cs.COLOUR_LIST, curated to show sensible colours, no primary or dark colours
     Chart views also use planet radius scaled to  9-23 pixels for short range and 3-7 pixels for galactic chart
     colour and size allows you to visually align galactic and short range chart
             
-18. Implemented touch on charts, because it feels natural, rather than having to hold joystick
+17. Implemented touch on charts, because it feels natural, rather than having to hold joystick
 
-19. remove approximations to vector rotation. proper sine, cos are quick. remove tidy_matrix.
+18. remove approximations to vector rotation. proper sine, cos are quick. remove tidy_matrix.
     Ship drawing is handled seperately, so no issue with distortion.
     
-20. To cater for variable screen size, simplify translation of planet space (0-255) to flight rectangle.
+19. To cater for variable screen size, simplify translation of planet space (0-255) to flight rectangle.
     Use Point2 objects to avoid repetition of x, y operations, allowing mathematical operations on x,y pairs
     
-21. Last measured loop time was 4ms, out of budget of 16.6ms , so writing time is not an issue
+20. Last measured loop time was 4ms, out of budget of 16.6ms , so writing time is not an issue
 
-22. I decided to make direction joystick analogue (-1.0 to + 1.0 in each axis)
+21. I decided to make direction joystick analogue (-1.0 to + 1.0 in each axis)
     added Proportional and Integral  control to make more responsive and natural.
 
-23. View change is implemented by changing the camera yaw. This has the effect that not coordinates are changed,
+22. View change is implemented by changing the camera yaw. This has the effect that not coordinates are changed,
     and is much simpler.
     Only in firing lasers do we need to change axis system, and that is simply to check if object in
     crosshairs     
 
-24. Added  IFF as in Elite~A
+23. Added  IFF as in Elite~A
     these have striped vertical bars in scanner for some types
     
-25. Coloured slot and front lines of station yellow to allow visual orientation
+24. Coloured slot and front lines of station yellow to allow visual orientation
 
-26. Allow compass to be switched to sun insread of planet
+25. Allow compass to be switched to sun insread of planet
 
-27. New autopilot for player. used state machine to target planet pole, then
+26. New autopilot for player. used state machine to target planet pole, then
     Initial Point in front of station, then dock to station
 
 28. Configuration parameters control the following:
@@ -138,21 +140,20 @@ Chris `Thomas. April 2026
 
 # TODO list 
 
-make lower border follow hud_left, scanner then hud_r using rounded arcs at corners
-flighr roll and  pitch is still tricky
-allow mode of auto-yaw. Is this 'rotate x then y' routine
-
-
-working on autopilot.
-worked from long distance via planet pole and ip
+autopilot is still not bulletproof
+works from long distance via planet pole and ip
 Need to check entry at all phases.
 
 jump shoukd have some visual indication.
 maybe make stars go fast for 1sec?.
 
 
+Finally:
 
-For completeness I reference the 'Elite - The New Kind' readme
+For completeness I reference the 'Elite - The New Kind' readme file
+Of course, many  of the interface elements are not valid, but logic 
+decisions will be inherited,
+
 https://github.com/davewongillies/newkind/blob/master/README.md
 
 

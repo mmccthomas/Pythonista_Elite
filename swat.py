@@ -152,9 +152,10 @@ class Swat:
         blob_size = 3  # 1 + self.gs.docked_planet.d % 2
         
         img = AlienPlanet(400, 400, colour, seed=self.gs.docked_planet.a,
-                          cloud_threshold=cloud_threshold,
-                          sea_level=sea_level,
-                          blob_size=blob_size).final
+                          # cloud_threshold=cloud_threshold,
+                          # sea_level=sea_level,
+                          # blob_size=blob_size
+                          ).final
         # rel to screen
         clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER) / cs.W,  # left
                      cs.TOP_H / cs.H,   # top

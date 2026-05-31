@@ -28,6 +28,7 @@ class SoundComponent:
         self.music = None
 
         self.sound_effect_dict = {}
+        
 
         self.current_volume = 0.1
         
@@ -63,8 +64,9 @@ class SoundComponent:
             
     @ui.in_background
     def play_sound_effect(self, name):
-        self.sound_effect_dict[name].stop()
-        self.sound_effect_dict[name].play()
+        s = sound.play_effect(name)
+       
+        
 
     def add_music(self, filename):
 

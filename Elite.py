@@ -28,7 +28,7 @@ class EliteScene(Scene):
     def setup(self):
         W, H = get_screen_size()
         self.paused = True
-        self.enable_sound = False
+        self.enable_sound = True
         self.input_queue = queue.Queue()
         self.active_touches = {}
         self.keypad = EliteKeypad(frame=cs.KEYBOARD_RECT,

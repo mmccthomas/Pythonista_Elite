@@ -104,7 +104,7 @@ class Commander:
     ship_x: int = 0x14
     ship_y: int = 0xAD
     galaxy_seed: GalaxySeed = field(default_factory=GalaxySeed)
-    credits: int = 100000  # Credits * 10
+    credits: int = 1000  # Credits * 10
     fuel: int = cs.MAX_FUEL  # Fuel * 10//
     galaxy_number: int = 0
     front_laser: int = cs.PULSE_LASER

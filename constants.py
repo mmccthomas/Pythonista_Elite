@@ -22,9 +22,9 @@ def is_debug_level():
     
 # --------Global modes
 WIREFRAME = 0
-YAW_COUPLING = 0
-TELEPORT = False
-UNIVERSE_STATUS = False
+YAW_COUPLING = 0.15
+TELEPORT = True
+UNIVERSE_STATUS = True
 
 # --------Screen areas
 # flight area, scanner, with scale
