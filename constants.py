@@ -21,10 +21,13 @@ def is_debug_level():
     return logging.getLevelName(logger.getEffectiveLevel()) == 'DEBUG'
     
 # --------Global modes
+SOUND = 0
 WIREFRAME = 0
 YAW_COUPLING = 0.15
 TELEPORT = True
 UNIVERSE_STATUS = True
+INSTANT_DOCK = True
+MAX_FUEL = 120
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -195,6 +198,7 @@ SCR_OUTSIDE = [SCR_FRONT_VIEW, SCR_REAR_VIEW,
 SCR_HYPERSPACE_COMPLETE = 23
 SCR_DOCKING_COMPLETE = 24
 SCR_LAUNCH_COMPLETE = 25
+SCR_MISSION = 26
 # space.py redefines these for laser only
 # SCR_FRONT_VIEW = 1
 # SCR_REAR_VIEW  = 2
@@ -209,7 +213,7 @@ BEAM_LASER = 2
 MILITARY_LASER = 0x97
 MINING_LASER = 0x32
 NO_OF_SHIPS = 33
-MAX_FUEL = 70 
+
 GFX_SCALEX = FLIGHT_RECT.w / 255   # adjust to taste
 GFX_SCALEY = FLIGHT_RECT.h / 255   # adjust to taste
 MAX_UNIV_OBJECTS = 20

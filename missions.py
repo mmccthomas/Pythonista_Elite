@@ -8,18 +8,22 @@ MISSION_1_DEBRIEFED = 3
 MISSION_2_START = 4
 MISSION_2_BRIEFED = 5
 MISSION_2_COMPLETE = 6
+ST_SETUP = 0   # Initialise and setup
+ST_UPDATE = 1  # run rotating ship for intro1
 
 
 class MissionManager:
     def __init__(self, gs):
         self.gs = gs
-        self.cmdr = gs.commander
+        self.cmdr = gs.cmdr
         self.universe = gs.universe
         self.gfx = gs.gfx
         self.kbd = gs.kbd
+        self.car_state = None
+        
         # Mission 1 Text (The Constrictor)
         self.m1_brief_a = (
-            "Greetings Commander, I am Captain Curruthers of "
+            "Greetings Commander, I am Captain Carruthers of "
             "Her Majesty's Space Navy and I beg a moment of your "
             "valuable time. We would like you to do a little job "
             "for us. The ship you see here is a new model, the "
@@ -58,109 +62,189 @@ class MissionManager:
             "THERE'S A REAL DEADLY PIRATE OUT THERE.",
             "BOY ARE YOU IN THE WRONG GALAXY!"
         ]
-
+        self.m2_brief_a = (
+            "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
+            "We have need of your services again. If you would be so good as to go to "
+            "Ceerdi you will be briefed.If succesful, you will be rewarded."
+            "---MESSAGE ENDS.")
+  
+        self.m2_brief_b = (
+            "Good Day Commander. I am Agent Blake of Naval Intelligence. As you know, "
+            "the Navy have been keeping the Thargoids off your ass out in deep space "
+            "for many years now. Well the situation has changed. Our boys are ready "
+            "for a push right to the home system of those murderers.")
+        
+        self.m2_brief_c = (
+            "I have obtained the defence plans for their Hive Worlds. The beetles "
+            "know we've got something but not what. If I transmit the plans to our "
+            "base on Birera they'll intercept the transmission. I need a ship to "
+            "make the run. You're elected. The plans are unipulse coded within "
+            "this transmission. You will be paid. Good luck Commander. ---MESSAGE ENDS.")
+        
+        self.m2_debrief = (
+            "You have served us well and we shall remember. "
+            "We did not expect the Thargoids to find out about you."
+            "For the moment please accept this Navy Extra Energy Unit as payment. "
+            "---MESSAGE ENDS.")
+            
     def get_mission_planet_desc(self, planet_num):
         """
         Returns special mission-related text when visiting specific planets.
         Matches the pnum logic from missions.c
+        called from planets.py in description
         """
-        if self.cmdr.galaxy_number == 0:
-            mapping = {150: 0, 36: 1, 28: 2}
+        if self.gs.cmdr.galaxy_number == 0:
+            mapping = {150: 0, 36: 1, 28: 2}  # Xeer, Reesdice, Arexe
             if planet_num in mapping:
                 return self.m1_pdesc[mapping[planet_num]]
 
-        if self.cmdr.galaxy_number == 1:
+        if self.gs.cmdr.galaxy_number == 1:
             # Clues scattered across Galaxy 2
             g2_clues = [32, 68, 164, 220, 106, 16, 162, 3, 107, 26, 192, 184, 5]
-            if planet_num in g2_clues:
-                return self.m1_pdesc[3]
-            if planet_num == 253:
-                return self.m1_pdesc[4]
-            if planet_num == 79:
-                return self.m1_pdesc[5]
-            if planet_num == 53:
-                return self.m1_pdesc[6]
-            if planet_num == 118:
-                return self.m1_pdesc[7]
-            if planet_num == 193:
-                return self.m1_pdesc[8]
+            #  Bebege, Cearso, Dicela, Eringe, Gexein, Isarin, Letibema,
+            #  Maisso, Onen, Ramaza, Sosole, Tivere,Veriar
+            
+            match planet_num:
+                case _ if planet_num in g2_clues:
+                    return self.m1_pdesc[3]
+                case 253:  # Errius
+                    return self.m1_pdesc[4]
+                case 79:  # Inbibe
+                    return self.m1_pdesc[5]
+                case 53:  # Ausar
+                    return self.m1_pdesc[6]
+                case 118:  # Usleri
+                    return self.m1_pdesc[7]
+                case 193:  # Orarra
+                    return self.m1_pdesc[8]
 
-        if self.cmdr.galaxy_number == 2 and planet_num == 101:
+        if self.gs.cmdr.galaxy_number == 2 and planet_num == 101:
             return self.m1_pdesc[9]
 
         return None
 
     def constrictor_briefing(self):
-        """Displays the scrolling text and rotating ship for Mission 1."""
-        self.cmdr.mission = MISSION_1_HUNT
-        
-        self.gfx.clear_display()
-        self.gfx.draw_centre_text(0, "INCOMING MESSAGE", color="GOLD")
-
-        self.gfx.draw_pretty_text(0, 3, self.m1_brief_a)
-        
-        brief_end = self.m1_brief_b if self.cmdr.galaxy_number == 0 else self.m1_brief_c
-        self.gfx.draw_pretty_text(0, 10, brief_end)
-        self.gfx.draw_centre_text(8, "Press space to continue.", color="GOLD")
-
-        # Set up a rotating Constrictor in the display area
-        self.universe.clear()
-                
-        self.universe.add_new_ship(cs.SHIP_CONSTRICTOR, pos=(200, 90, 600), rot=(-127, -127))
-        # TODO this won't work, split same as intro.py
-        while not self.kbd.is_pressed("space"):
-            # Clear the area where the ship is drawn
-            self.gfx.clear_area(310, 50, 510, 180)
-            self.universe.update()
+        """Displays the scrolling text and rotating ship for Mission 1.
+        State machine handles setup and run states
+        Entry assumes universe has been ckeared previously"""
+        if self.gs.swat.universe[0].type == 0:
+            self.car_state = ST_SETUP
+            
+        if self.car_state == ST_SETUP:
+                        
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
+    
+            self.gfx.display_pretty_text(0, 3, self.m1_brief_a)
+            
+            brief_end = self.m1_brief_b if self.gs.cmdr.galaxy_number == 0 else self.m1_brief_c
+            self.gfx.display_pretty_text(0, 10, brief_end)
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
+    
+            # Set up a rotating Constrictor in the display area
+            self.gs.swat.clear_universe()
+            self.gs.swat.add_new_ship(cs.SHIP_CONSTRICTOR, 0, -50, 600, None, -127, -127)
             # Keep ship at fixed distance for viewing
-            self.universe.objects[0].pos.z = 600
+            self.gs.universe[0].location.z = 600
             self.gfx.update_screen()
-            time.sleep(0.01)
+            self.car_state = ST_UPDATE
+            
+        if self.car_state == ST_UPDATE:
+            # Set a constant roll for the intro effect
+            current_obj = self.universe[0]
+            # Keep ship at fixed distance for viewing
+            self.gs.universe[0].location.z = 600
+            # current_obj.rotx += 0.5  # flight_yaw = 0.5 unit per cycle
+            # current_obj.rotz += 0.5  # flight_roll = 0.5
+            self.gs.space.update_universe()
+            self.gs.swat.update_model(current_obj)
 
-    def check_mission_brief(self, docked_planet_id):
+    def check_mission_brief(self, docked_planet):
         """
         Main logic gate for triggering missions based on score and location.
         """
+        self.cmdr = self.gs.cmdr
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
-
+        docked_planet_id = (docked_planet.x, docked_planet.y)
         # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
         if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
             self.constrictor_briefing()
-            return
+            return MISSION_1_HUNT
 
         # Trigger Mission 1 Debrief
         if self.cmdr.mission == MISSION_1_COMPLETE:
             self.constrictor_debrief()
-            return
+            return MISSION_1_DEBRIEFED
 
         # Trigger Mission 2: score > 1280 and in Galaxy 3
         if self.cmdr.mission == MISSION_1_DEBRIEFED and score >= 1280 and gal_num == 2:
             self.thargoid_brief_1()
-            return
+            return MISSION_2_START
 
         # Trigger Mission 2 Part 2: Reach Ceerdi (Planet 215, 84)
         if self.cmdr.mission == MISSION_2_START and docked_planet_id == (215, 84):
             self.thargoid_brief_2()
-            return
+            return MISSION_2_BRIEFED
 
         # Trigger Mission 2 End: Reach Birera (Planet 63, 72)
         if self.cmdr.mission == MISSION_2_BRIEFED and docked_planet_id == (63, 72):
             self.thargoid_debrief()
             return
-
+            
+        self.gs.current_screen = cs.SCR_COMMANDER
+                                  
     def constrictor_debrief(self):
+        self.cmdr = self.gs.cmdr
         self.cmdr.mission = MISSION_1_DEBRIEFED
         self.cmdr.score += 256
         self.cmdr.credits += 50000  # 5000.0 Credits
         
         self.gfx.clear_display()
-        self.gfx.draw_centre_text(0, "INCOMING MESSAGE", color="GOLD")
-        self.gfx.draw_centre_text(3, "Congratulations Commander!", color="GOLD")
-        self.gfx.draw_pretty_text(0, 5, "There will always be a place for you in Her Majesty's Space Navy.")
+        self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
+        self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
+        self.gfx.display_pretty_text(0, 5, "There will always be a place for you in Her Majesty's Space Navy.")
         self.gfx.update_screen()
-        self.wait_for_space()
+        # self.wait_for_space()
 
     def wait_for_space(self):
         while not self.kbd.is_pressed("space"):
             time.sleep(0.1)
+            
+    def thargoid_brief_1(self):
+       
+        self.gs.cmdr.mission = MISSION_2_START
+        
+        self.gfx.clear_display()
+        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+        self.gfx.display_pretty_text(0, 3, self.m2_brief_a)
+        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+        self.gfx.update_screen()
+        
+        # read_key
+
+    def thargoid_mission_brief_2(self):
+    
+        self.gs.cmdr.mission = MISSION_2_BRIEFED
+        self.gfx.clear_display()
+        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+        self.gfx.display_pretty_text(0, 3, self.m2_brief_b)
+        self.gfx.display_pretty_text(0, 10, self.m2_brief_c)
+        # self.gfx.draw_sprite(IMG_BLAKE, 352, 46)
+        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+        self.gfx.update_screen()
+        # read_key
+    
+    def thargoid_debrief(self):
+        
+        self.gs.cmdr.mission = MISSION_2_COMPLETE
+        self.gs.cmdr.score += 256
+        self.gs.cmdr.energy_unit = 2
+        self.gfx.clear_display()
+        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+        self.gfx.display_centre_text(3, "Well done Commander.", 140, cs.GOLD)
+        self.gfx.display_pretty_text(0, 4, self.m2_debrief)
+        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+        self.gfx.update_screen()
+        # read_key
+

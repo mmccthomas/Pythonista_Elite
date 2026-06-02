@@ -16,8 +16,6 @@ STATION = 1
 SUN = 1
 
 
-
-
 class Space:
     """Flight system and universe management (space.c)."""
 
@@ -225,7 +223,9 @@ class Space:
         gs.myship.altitude = 255
         gs.myship.cabtemp = 30
         gs.on_final_approach = False
+        gs.swat.planet_image.planet.alpha = 0
         self.swat.reset_weapons()
+        gs._entering_dock()
         gs._change_flight_keys(False)
         
     @staticmethod   
@@ -255,7 +255,7 @@ class Space:
         gs = self.gs
         # TODO
         self.gs.info_message('Final Docking')
-        self.gs.pilot.fly_to_docking_bay(self.ship)
+        # self.gs.pilot.fly_to_docking_bay(self.ship)
         if self.is_docking(i):
             self.snd.play_sample(cs.SND_DOCK)
             self.dock_player()
@@ -272,10 +272,11 @@ class Space:
 
     def engage_docking_computer(self):
         gs = self.gs
-        if gs.swat.ship_count[cs.SHIP_CORIOLIS] or gs.swat.ship_count[cs.SHIP_DODEC]:
+        if gs.pilot._station_exists():
             self.snd.play_sample(cs.SND_DOCK)
             self.dock_player()
-            gs.current_screen = cs.SCR_BREAK_PATTERN
+            gs.break_mode = 'docking'
+            # gs.current_screen = cs.SCR_BREAK_PATTERN
     
     # ------- Game over / damage
     
@@ -863,9 +864,9 @@ class Space:
         cmdr = gs.cmdr
         cmdr.galaxy_number = (cmdr.galaxy_number + 1) & 7
         for attr in ('a', 'b', 'c', 'd', 'e', 'f'):
-            setattr(cmdr.galaxy, attr,
-                    self.rotate_byte_left(getattr(cmdr.galaxy, attr)))
-        gs.docked_planet = gs.find_planet(0x60, 0x60)
+            setattr(cmdr.galaxy_seed, attr,
+                    self.rotate_byte_left(getattr(cmdr.galaxy_seed, attr)))
+        gs.docked_planet = gs.planet.find_planet(0x60, 0x60)
         gs.hyperspace_planet = gs.docked_planet
 
     def enter_witchspace(self):

@@ -5,7 +5,7 @@ platforms.
 This was inspired by Mark Moxon's deconstruction and documentation of the
 original 6502 Assembler  https://elite.bbcelite.com
 
-<img src="images/Elite_screen1.png" alt="App Screenshot" width="500">
+<img src="images/Elite_screen1.PNG" alt="App Screenshot" width="500">
 
 I wondered if AI would be able to convert this code to Python, and Mark suggested
 that I convert a C version from 2002 by Christian Pinder. https://www.christianpinder.com/games/
@@ -54,6 +54,7 @@ significant changes:
 5. Graphics are handled by a combination of SpriteNodes for fixed items , and scene drawing for line drawing
 
 6. Load and save use a json file, which makes it human readable (and editable ;)
+   This of course allows the possibility to cheat. But of course you wouldn't do that.
 
 7. we do not need seperate keys for firing laser in 4 directions, use view to control, and laser sight appears only if laser fitted
 
@@ -147,6 +148,7 @@ Need to check entry at all phases.
 jump shoukd have some visual indication.
 maybe make stars go fast for 1sec?.
 
+Test mission code
 
 Finally:
 

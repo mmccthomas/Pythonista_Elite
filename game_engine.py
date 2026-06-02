@@ -327,7 +327,7 @@ class FontManager():
         # 0.5 pixel offset in normalized (0.0 - 1.0) space
         # This ensures we sample from the center of the pixels, not the edges.
         ox = 0.33 / w
-        oy = 0.33 / h
+        oy = 0.5 / h
     
         for i in range(self.GLYPHS_ACROSS * self.GLYPHS_DOWN):
             col = i % self.GLYPHS_ACROSS

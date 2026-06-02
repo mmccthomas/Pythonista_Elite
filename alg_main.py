@@ -1,4 +1,8 @@
-# alg_main.py
+
+# alg_main.py is  a conversion of alg_main.c by C.J.Pinder
+# There are many, many changes, especially to the main loop
+# methods such as escape and break are converted to state machines.
+
 # Elite - The New Kind, Python/Pythonista port
 # Converted from C by C.J.Pinder. Original (C) I.Bell & D.Braben 1984.
 
@@ -135,7 +139,7 @@ class MainLoop():
        self.witchspace = False
        self.hyper_ready = False
        self.detonate_bomb = False
-       self.instant_dock = False
+       self.instant_dock = cs.INSTANT_DOCK
        self.warp_stars = False
             
        self.docked_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
@@ -147,9 +151,7 @@ class MainLoop():
                        
        self.laser_temp = 0
        self.auto_pilot = False
-
-       # Options
-       self.instant_dock = False
+       
                                
        self.flight_speed = 1
        self.rolling = False
@@ -227,21 +229,10 @@ class MainLoop():
        # self.kbd startup handled by Keyboard.poll()
        self.current_screen = cs.SCR_INTRO_ONE
 
-    # -------- functions
-    def interval_trigger(self, seconds):
-        # Calculate how many 1/60s updates fit into N seconds
-        try:
-            ticks_required = seconds / self.parent_scene.dt
-            self.tick_count += 1
-            if self.tick_count >= ticks_required:
-                self.tick_count = 0  # Reset
-                return True
-        except ZeroDivisionError:
-            pass
-        return False
-
+    # -------- General functions    
     @staticmethod
     def set_rand_seed(seed):
+        # setting a fixed seed makes game deterministic
         random.seed(seed)
               
     def restore_saved_commander(self):
@@ -289,7 +280,7 @@ class MainLoop():
     
     def initialise_game(self):
     
-        self.set_rand_seed(0)  # time.time())
+        self.set_rand_seed(0)  # was time.time())
         self.current_screen = cs.SCR_INTRO_ONE
     
         self.restore_saved_commander()
@@ -463,15 +454,8 @@ class MainLoop():
             
     def _entering_dock(self):
         # check mission brief and set keys
-        self.missions.check_mission_brief(self.docked_planet)
-        self.in_dock.display_commander_status()
-        
-        # swap keys for docked mode
-        for keyname in self.flight_keys:
-            self.keypad.key_change(keyname, enabled=False)
-        self.keypad.key_change('Cargo', name='Trade')
-        self.parent_scene.keypad.key_change('Inventory', name='Equip')
-        self.parent_scene.keypad.key_change('Target Prices', name='Market')
+        self.current_screen = cs.SCR_MISSION
+        self.swat.clear_universe()                         
                    
     def launch(self):
         # enable flight keys and launch
@@ -686,6 +670,16 @@ class MainLoop():
         key = self.kbd.poll()
         match key:
             case _ if key is not None:
+                self.current_screen = cs.SCR_COMMANDER
+                self.swat.clear_universe()
+                self.sound.stop_midi()
+                
+    def mission_screen(self):
+        mission_phase = self.missions.check_mission_brief(self.docked_planet)
+        key = self.kbd.poll()
+        match key:
+            case 'OK':
+                self.cmdr.mission = mission_phase
                 self.current_screen = cs.SCR_COMMANDER
                 self.swat.clear_universe()
                 self.sound.stop_midi()
@@ -1035,6 +1029,8 @@ class MainLoop():
               self.first_intro_screen()
           case cs.SCR_INTRO_TWO:
               self.second_intro_screen()
+          case cs.SCR_MISSION:
+              self.mission_screen()
           case cs.SCR_COMMANDER | cs.SCR_CMDR_STATUS:
               self.in_dock.display_commander_status()
           case cs.SCR_LAUNCH:
@@ -1081,25 +1077,26 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
-                  40: ['Select', '$Xeenle'],
+                  40: ['Select', '$Ra'],
                   70: ['Launch'],
                   # 150: ['To Station'],
                   # 152: ['Docking'],
-                  175: ['Hyper Space'],
+                  # 100: ['Hyper Space'],
                   189: [],  # complete
-                  200: ['Docking'],
+                  199: [],
+                  300: ['Docking'],
                   
                   340: [],  # finished align
-                  555: ['->974,957'],
+                  # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
                   # 7359: [], # station spawned
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(36):
+    for i in range(500):
        logger.debug(i)
        if i in operations:
-          if i == 189:
+          if i == 300:
              pass
           for command in operations[i]:
               g.input_queue.put(command)

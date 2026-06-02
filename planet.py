@@ -1,6 +1,7 @@
 from elite import GalaxySeed
 from types import SimpleNamespace
 import math
+import constants as cs
 
 
 class PlanetGenerator:
@@ -59,7 +60,17 @@ class PlanetGenerator:
         self.rnd_b = 0
         self.rnd_c = 0
         self.rnd_d = 0
+        
+    def next_galaxy(self, seed: GalaxySeed):
 
+        def rotate_byte_left(x):
+             return ((x << 1) | (x >> 7)) & 0xFF
+        new_seed = seed.copy()
+        for attr in ('a', 'b', 'c', 'd', 'e', 'f'):
+            setattr(new_seed, attr,
+                    rotate_byte_left(getattr(seed, attr)))
+        return new_seed
+        
     def gen_rnd_number(self) -> int:
         """The classic 6502 8-bit random number generator."""
         x = (self.rnd_a * 2) & 0xFF
@@ -181,6 +192,19 @@ class PlanetGenerator:
         """Entry point for full planet description."""
         self.rnd_a, self.rnd_b = seed.c, seed.d
         self.rnd_c, self.rnd_d = seed.e, seed.f
+        planets = self.get_planet_list()
+        try:  # to allow testing
+            # clues to mission 1
+            if self.gs.cmdr.mission == 1:
+                  for index, planet in enumerate(planets):
+                      if seed == planet.glx:
+                         mission_text = self.gs.missions.get_mission_planet_desc(index)
+                         if mission_text != None:
+                             self.gs.in_dock.incoming_message = 'Check Messages on planet data'
+                             return mission_text                       
+            self.gs.in_dock.incoming_message = ''     
+        except AttributeError:
+            pass
         
         name = self.get_planet_name(seed)
         description = self.expand_description("<14> is <22>.", name)
@@ -201,7 +225,28 @@ class PlanetGenerator:
             for _ in range(4):
                 glx.waggle()              
         return planet
-
+        
+    def get_planet_list(self, seed=None):
+        # list all 256 systems
+        if seed is None:
+           glx = GalaxySeed().copy()
+        else:
+            glx = seed.copy()
+        planets = []
+        for i in range(256):
+            planet = {}
+            name = self.get_planet_name(glx)
+            planet['name'] = name
+            planet['glx'] = glx.copy()
+            for _ in range(4):
+                glx.waggle()
+        
+            planet['x'] = planet['glx'].x
+            planet['y'] = planet['glx'].y
+            
+            planets.append(SimpleNamespace(**planet))
+        return planets
+            
     def get_closest_planets(self, current_glx, max_distance=None):
         # list all 256 systems
         glx = GalaxySeed().copy()
@@ -352,3 +397,13 @@ if __name__ == '__main__':
     # Initial seed for Galaxy 1 (Tibedied / System 0)
     tibedied_seed = (0x5A4A, 0x0248, 0xB753)
     
+    planets = gen.get_planet_list()
+    for i, planet in enumerate(planets):
+        print(i, planet.name)
+    
+    new_seed = gen.next_galaxy(GalaxySeed())
+    print(new_seed)
+    planets = gen.get_planet_list(new_seed)
+    for i, planet in enumerate(planets):
+        print(i, planet.name)
+

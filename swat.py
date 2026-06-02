@@ -480,7 +480,7 @@ class Swat:
         gs.sound.play_sample(cs.SND_EXPLODE)
         # self.universe[un].flags |= cs.FLG_REMOVE
         if self.universe[un].type == cs.SHIP_CONSTRICTOR:
-            gs.cmdr.mission = 2
+            gs.cmdr.mission = 2  # MISSION_1_COMPLETE
         self.universe[un].exploding = True
         self.universe[un].explosion_time = 0.0
         

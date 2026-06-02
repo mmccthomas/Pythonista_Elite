@@ -125,6 +125,7 @@ class Docked:
         self.EQUIP_START_ROW = 3
         self.equip_stock = _make_equip_stock()
         self.item_count = 1
+        self.incoming_message = ''
         # self.galactic_frame = Rect()
     
     # Fuel circle / cross
@@ -382,7 +383,7 @@ class Docked:
         gfx.clear_display()
         gs.swat.clear_universe()
         gfx.display_centre_text(0, f"COMMANDER {cmdr.name}", 140, cs.GOLD)
-        
+        gfx.display_centre_text(1, self.incoming_message, 140, cs.GOLD)
         line_no = 4
         gfx.display_colour_text(0, line_no, "Present System:", cs.GREEN)
         if not gs.witchspace:    # self.gs.ship_x, self.gs.cmdr.ship_y)
