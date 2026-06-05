@@ -50,17 +50,16 @@ class MissionManager:
         )
 
         self.m1_pdesc = [
-            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.",
-            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.",
-            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.",
-            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.",
-            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.",
-            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.",
-            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD ",
-            "POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.",
-            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.",
-            "THERE'S A REAL DEADLY PIRATE OUT THERE.",
-            "BOY ARE YOU IN THE WRONG GALAXY!"
+            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.", # 0
+            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.", # 1
+            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.", # 2
+            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.", # 3
+            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.", # 4
+            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.", # 5
+            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD. POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.", #6
+            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.", #7
+            "THERE'S A REAL DEADLY PIRATE OUT THERE.", #8
+            "BOY ARE YOU IN THE WRONG GALAXY!" #9
         ]
         self.m2_brief_a = (
             "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
@@ -102,7 +101,7 @@ class MissionManager:
             # Clues scattered across Galaxy 2
             g2_clues = [32, 68, 164, 220, 106, 16, 162, 3, 107, 26, 192, 184, 5]
             #  Bebege, Cearso, Dicela, Eringe, Gexein, Isarin, Letibema,
-            #  Maisso, Onen, Ramaza, Sosole, Tivere,Veriar
+            #  Maisso, Onen, Ramaza, Sosole, Tivere,Veriar. -> Errius
             
             match planet_num:
                 case _ if planet_num in g2_clues:
@@ -192,7 +191,7 @@ class MissionManager:
             self.thargoid_debrief()
             return
             
-        self.gs.current_screen = cs.SCR_COMMANDER
+        self.gs.current_screen = cs.SCR_PLANET_DATA
                                   
     def constrictor_debrief(self):
         self.cmdr = self.gs.cmdr

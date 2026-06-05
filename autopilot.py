@@ -6,7 +6,7 @@
 # if docking computer not fitted/ enabled,
 # guidance cross will show directions
 
-# TODO needs more development to achieve entry at 
+# TODO needs more development to achieve entry at
 # any location.
 
 import math
@@ -383,7 +383,7 @@ class Pilot:
             gfx.draw_colour_line(tx, ty - arm, tx, ty - gap, colour, width=3)
             gfx.draw_colour_line(tx, ty + gap, tx, ty + arm, colour, width=3)
         else:
-            # find tx, ty closest to flight_rect edge and 
+            # find tx, ty closest to flight_rect edge and
             # plot only T shape within rect
             # 1. Calculate the vector from the center to the target
             dx = tx - cx
@@ -405,19 +405,19 @@ class Pilot:
             # 3. Draw the T-shape based on the edge
             # Determine orientation based on the original dx, dy vectors
             if abs(dx * (fh / 2)) > abs(dy * (fw / 2)):
-                if dx > 0: # Right
+                if dx > 0:  # Right
                     gfx.draw_colour_line(tx, ty - arm, tx, ty + arm, colour, width=3)
                     gfx.draw_colour_line(tx, ty, tx - arm, ty, colour, width=3)
                 else:      # Left
                     gfx.draw_colour_line(tx, ty - arm, tx, ty + arm, colour, width=3)
                     gfx.draw_colour_line(tx, ty, tx + arm, ty, colour, width=3)
             else:
-                if dy > 0: # Bottom (assuming Y-down, check your coord system)
+                if dy > 0:  # Bottom (assuming Y-down, check your coord system)
                     gfx.draw_colour_line(tx - arm, ty, tx + arm, ty, colour, width=3)
                     gfx.draw_colour_line(tx, ty, tx, ty - arm, colour, width=3)
                 else:      # Top
                     gfx.draw_colour_line(tx - arm, ty, tx + arm, ty, colour, width=3)
-                    gfx.draw_colour_line(tx, ty, tx, ty + arm, colour, width=3)    
+                    gfx.draw_colour_line(tx, ty, tx, ty + arm, colour, width=3)
                 return sx, sy, tx, ty
     
     # Target geometry helpers
@@ -433,8 +433,10 @@ class Pilot:
 
     def ip_waypoint(self):
         """Point IP_DIST ahead of station nose."""
-        station = self.universe[1]
-        return station.location + station.rotmat[NOSEV] * IP_DIST
+        if self._station_exists():
+           station = self.universe[1]
+           return station.location + station.rotmat[NOSEV] * IP_DIST
+        return Vector(0,0,0)
 
     def _dist_to(self, ship, point):
         return (point - ship.location).magnitude
@@ -617,9 +619,9 @@ class Pilot:
         min_distance = 1000000
         min_phase = None
         closest = None
-        phases = ['TO_PLANET_POLE', 'FIND_IP']
+        phases = ['FIND_POLE', 'FIND_IP']
         if not self._station_exists():
-            return targets[0], phases[0]
+            return self._pole_waypoint(), 'FIND_POLE'
           
         for target, phase in zip(targets, phases):
             distance = self._dist_to(ship, target)
@@ -633,7 +635,7 @@ class Pilot:
                min_phase = phase
         logger.debug(f'closest is  {phase} {min_distance}')
         if closest is None:
-            return targets[0], phases[0]
+            return self._pole_waypoint(), 'FIND_POLE'
         return closest, min_phase
        
     # Main state machine

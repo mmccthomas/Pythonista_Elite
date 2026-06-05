@@ -64,7 +64,7 @@ class PlanetGenerator:
     def next_galaxy(self, seed: GalaxySeed):
 
         def rotate_byte_left(x):
-             return ((x << 1) | (x >> 7)) & 0xFF
+            return ((x << 1) | (x >> 7)) & 0xFF
         new_seed = seed.copy()
         for attr in ('a', 'b', 'c', 'd', 'e', 'f'):
             setattr(new_seed, attr,
@@ -192,17 +192,18 @@ class PlanetGenerator:
         """Entry point for full planet description."""
         self.rnd_a, self.rnd_b = seed.c, seed.d
         self.rnd_c, self.rnd_d = seed.e, seed.f
-        planets = self.get_planet_list()
+        
         try:  # to allow testing
+            planets = self.get_planet_list(self.gs.galaxy_seed)
             # clues to mission 1
             if self.gs.cmdr.mission == 1:
-                  for index, planet in enumerate(planets):
-                      if seed == planet.glx:
-                         mission_text = self.gs.missions.get_mission_planet_desc(index)
-                         if mission_text != None:
-                             self.gs.in_dock.incoming_message = 'Check Messages on planet data'
-                             return mission_text                       
-            self.gs.in_dock.incoming_message = ''     
+                for index, planet in enumerate(planets):
+                    if seed == planet.glx:
+                        mission_text = self.gs.missions.get_mission_planet_desc(index)
+                        if mission_text is not None:
+                            self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
+                            return mission_text
+            self.gs.in_dock.incoming_message = ''
         except AttributeError:
             pass
         
@@ -210,28 +211,26 @@ class PlanetGenerator:
         description = self.expand_description("<14> is <22>.", name)
         return description
 
-    def find_planet(self, cx, cy):
+    def find_planet(self, cx, cy, galaxy_seed):
 
         min_dist = 10000
   
-        glx = GalaxySeed()
+        glx = galaxy_seed.copy()
         for i in range(256):
             dx = abs(cx - glx.x)
             dy = abs(cy - glx.y)
-            distance = math.hypot(dx, dy)            
+            distance = math.hypot(dx, dy)
             if distance < min_dist:
                 min_dist = distance
                 planet = glx.copy()
             for _ in range(4):
-                glx.waggle()              
+                glx.waggle()
         return planet
         
-    def get_planet_list(self, seed=None):
+    def get_planet_list(self, seed):
         # list all 256 systems
-        if seed is None:
-           glx = GalaxySeed().copy()
-        else:
-            glx = seed.copy()
+        
+        glx = seed.copy()
         planets = []
         for i in range(256):
             planet = {}
@@ -247,9 +246,9 @@ class PlanetGenerator:
             planets.append(SimpleNamespace(**planet))
         return planets
             
-    def get_closest_planets(self, current_glx, max_distance=None):
+    def get_closest_planets(self, galaxy_seed, current_glx, max_distance=None):
         # list all 256 systems
-        glx = GalaxySeed().copy()
+        glx = galaxy_seed.copy()
         planets = []
         for i in range(256):
             planet = {}
@@ -351,18 +350,24 @@ if __name__ == '__main__':
     print()
     # closest to Lave
     current_glx = GalaxySeed(0xAD, 0x38, 0x14, 0x9c, 0x15, 0x1d)
-    closest = gen.get_closest_planets(current_glx, max_distance=None)
+    closest = gen.get_closest_planets(GalaxySeed(), current_glx, max_distance=None)
     [print(planet) for planet in closest]
     x_locs = [planet.x for planet in closest]
     y_locs = [planet.y for planet in closest]
     print(f'{min(x_locs)=}, {max(x_locs)=}, {np.mean(x_locs)=:.0f}')
     print(f'{min(y_locs)=}, {max(y_locs)=}, {np.mean(y_locs)=:.0f}')
+    new_seed = gen.next_galaxy(GalaxySeed())
+    
+    closest = gen.get_closest_planets(new_seed, new_seed, max_distance=None)
+    print('Galaxy 2')
+    [print(planet) for planet in closest]
+    seed = gen.find_planet(0x60, 0x60, new_seed)
+    print(gen.get_planet_name(seed))
+    
     # sorted_planets = dict(sorted(planets.items(), key=lambda x: x[1].distance))
     # print(sorted_planets.keys())
     # get planet name ab]nd coords at each corner
-    
-    
-
+        
     def get_extremities(points):
         import numpy as np
         # points should be an array of shape (N, 2)
@@ -376,7 +381,7 @@ if __name__ == '__main__':
         # 2. Bottom-Right: Largest sum (x + y)
         extremities[2] = pts[np.argmax(s)]
     
-        # 3. Top-Right: Smallest difference (x - y) 
+        # 3. Top-Right: Smallest difference (x - y)
         # (Or largest x - y depending on coordinate orientation)
         diff = np.diff(pts, axis=1)
         extremities[1] = pts[np.argmin(diff)]
@@ -390,14 +395,14 @@ if __name__ == '__main__':
     names = [item.name for item in closest]
     extremities = get_extremities(points)
     for p in extremities:
-        seed = gen.find_planet(*p)
+        seed = gen.find_planet(*p, GalaxySeed())
         name = gen.get_planet_name(seed)
         print(f"{name} at ({p[0]}, {p[1]}")
              
     # Initial seed for Galaxy 1 (Tibedied / System 0)
     tibedied_seed = (0x5A4A, 0x0248, 0xB753)
     
-    planets = gen.get_planet_list()
+    planets = gen.get_planet_list(GalaxySeed())
     for i, planet in enumerate(planets):
         print(i, planet.name)
     

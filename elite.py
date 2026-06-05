@@ -3,9 +3,10 @@ import dataclasses
 from typing import List, Optional
 import json
 import constants as cs
-from pathlib import Path
+# from pathlib import Path
 from constants import logger
-        
+
+                
 @dataclass
 class GalaxySeed:
     """The 6-byte seed used to generate an entire galaxy."""
@@ -72,8 +73,8 @@ class GalaxySeed:
     def color(self):
         return self.a & 15
         
-    @property       
-    def name(self):      
+    @property
+    def name(self):
         """
         seed: A list of 3 16-bit integers [w0, w1, w2]
         representing the planet's unique state.
@@ -82,7 +83,7 @@ class GalaxySeed:
         syllables = ["AL", "LE", "XE", "GE", "ZA", "CE", "BI", "SO",
                      "US", "ES", "AR", "MA", "IN", "DI", "RE", "A?",
                      "ER", "AT", "EN", "BE", "RA", "LA", "VE", "TI",
-                     "ED", "OR", "QU", "AN", "TE", "IS", "RI", "ON"]        
+                     "ED", "OR", "QU", "AN", "TE", "IS", "RI", "ON"]
         name = ""
         # A planet name is built from 3 or 4 syllables
         length = 3 if (seed.b & 0x40) == 0 else 4
@@ -95,8 +96,9 @@ class GalaxySeed:
                syllable = syllable.replace('?', '')
                name += syllable
             seed.waggle()
-        return name.capitalize()                   
-                                                
+        return name.capitalize()
+
+                                                                                                
 @dataclass
 class Commander:
     name: str = "JAMESON"
@@ -186,8 +188,8 @@ class EliteState:
 
         # Find the planet Jameson is currently at based on coordinates
         self.docked_planet = planet_manager.find_planet(
-            self.cmdr.ship_x, self.cmdr.ship_y
-        )
+            self.cmdr.ship_x, self.cmdr.ship_y, 
+            self.cmdr.galaxy_seed)
         self.hyperspace_planet = self.docked_planet
 
         # Generate the world and market
@@ -212,7 +214,7 @@ def get_file_name():
 
 def save_game_json(cmdr, file_name):
     # Save all variable data to human readable json file
-    path = file_name # Path("files") / Path(file_name).with_suffix(".json")
+    path = file_name  # Path("files") / Path(file_name).with_suffix(".json")
     logger.debug(cmdr)
     try:
         cmdr.name = path.stem.upper()
@@ -229,7 +231,7 @@ def save_game_json(cmdr, file_name):
 def load_game_json(cmdr, file_name):
     logger.debug(f'loading {file_name}')
     # Load all variable data from human readable json file
-    path = file_name #Path("files") / Path(file_name).with_suffix(".json")
+    path = file_name
     try:
         with open(path, "r") as input_file:
             data = json.load(input_file)

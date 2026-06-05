@@ -520,8 +520,8 @@ class Swat:
                         univ.energy -= self.laser // 4
                 else:
                     univ.energy -= self.laser
-            self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
-            logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
+            # self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
+            # logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
             if univ.energy <= 0:
                 self.explode_object(un)
                 if univ.type == cs.SHIP_ASTEROID:

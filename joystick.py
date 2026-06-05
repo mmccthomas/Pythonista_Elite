@@ -89,6 +89,7 @@ class Joystick(Node):
         )
         if show_xy:
             self.add_child(self.output_label)
+            
     @property
     def touched(self):
         return self._is_touched
@@ -96,6 +97,20 @@ class Joystick(Node):
     @touched.setter
     def touched(self, state):
         self._is_touched = state
+        
+    def set_position(self, x=0.0, y=0.0):
+        """ Make position match existing value only really possible without autoreturn """
+        if not self.autoreturn:
+            scale = (self.joystick_radius - self.thumbstick_radius)
+            match self.mode:
+                case 'NS':                    
+                    self.inner_joystick.position = Point(0, y) * scale + self.outer_joystick.position 
+                case 'EW':
+                    self.inner_joystick.position = Point(x, 0) * scale + self.outer_joystick.position 
+                case 'ALL':                    
+                    self.inner_joystick.position = Point(x, y) * scale + self.outer_joystick.position
+            self.update()
+        
         
     def touch_began(self, touch):
         """Called when a touch starts."""        
@@ -177,8 +192,8 @@ class Joystick(Node):
 class MyScene(Scene):
   def setup(self):
      self.background_color='green'
-     self.joystick = Joystick(position=Point(500, 200), mode='NS', autoreturn=True)
-     self.add_child(self.joystick)
+     self.joystick = Joystick(position=Point(500, 200), mode='NS', autoreturn=False)
+     self.add_child(self.joystick)     
      
   def update(self):
     self.joystick.update()

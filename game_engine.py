@@ -22,16 +22,10 @@ from image_helpers import set_colorkey, pil_to_ui
 class SoundComponent:
 
     def __init__(self):
-
         self.music_list = []
-        
         self.music = None
-
         self.sound_effect_dict = {}
-        
-
         self.current_volume = 0.1
-        
         self.add_all_sound_effects()
         
     def add_all_sound_effects(self):
@@ -64,9 +58,7 @@ class SoundComponent:
             
     @ui.in_background
     def play_sound_effect(self, name):
-        s = sound.play_effect(name)
-       
-        
+        sound.play_effect(name)
 
     def add_music(self, filename):
 
@@ -185,7 +177,6 @@ class TextGridArray(scene.Node):
         # check if there is already an existing character at this
         # location, if there is, remove the old object (3rd argument)
         
-        # TODO does this need to change if centred?
         # 1. Define a small margin to prevent 'crowding'
         collision_margin = -2, -2  # Negative shrinks the hit-box, Positive expands it
         
@@ -216,7 +207,6 @@ class TextGridArray(scene.Node):
        
         # check if there is already an existing character at this
         # location, if there is, remove the old object
-        # TODO does this need to change if centred?
         for text in self.text_group[:]:
             if text.frame.intersects(letter.frame):
                 self.text_group.remove(text)

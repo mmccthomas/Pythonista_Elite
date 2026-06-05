@@ -14,7 +14,7 @@ from scene import Scene, run, ShapeNode, LabelNode
 from scene import Node, SpriteNode, Texture
 from image_helpers import set_colorkey, pil_to_ui
 import constants as cs
-from constants import logger
+# from constants import logger
 from hud_elite import HudPanel
 from alg_main import MainLoop
 from wireframe_3d_2 import Camera, Vector3, Renderer
@@ -46,7 +46,7 @@ class EliteScene(Scene):
                                         show_xy=False,
                                         msg='',
                                         mode='NS',
-                                        autoreturn=True,
+                                        autoreturn=False,
                                         radius=cs.JOYSTICK_2_RADIUS)
         image = pil_to_ui(set_colorkey('Fire2.png'))
         self.fire_button = SpriteNode(Texture(image),
@@ -55,11 +55,11 @@ class EliteScene(Scene):
                                       parent=self)
         # status and debug messages
         self.msg = LabelNode('', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50), color=cs.WHITE, anchor_point=(0, 0), parent=self)
-        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 22        
+        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
         self.msg_right = LabelNode('', position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20),
                                    color=cs.WHITE, font=('Copperplate', 18),
                                    anchor_point=(0, 1), parent=self)
-        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H), anchor_point=(0, 1), color=cs.WHITE, parent=self)
+        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H), anchor_point=(0, 1), font=('Copperplate', fontsize), color=cs.WHITE, parent=self)
         # self.cloud = IsometricCloud(loc=Point(cs.KEYBOARD_X+cs.KEYBOARD_W/2, cs.GAME_H-200))
         self.msg_left = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H),
                                   color=cs.WHITE, font=('Copperplate', 18),
@@ -342,11 +342,12 @@ class EliteScene(Scene):
         elif control == 'thrust':
             self.joystick_thrust.touch_moved(touch)
             self.joystick_thrust.update()
-            for key in self.joystick_thrust.keys_pressed:
-                if key == 'up':
-                   self.input_queue.put('inc_speed')
-                elif key == 'down':
-                    self.input_queue.put('dec_speed')
+            self.input_queue.put(f'<{self.joystick_thrust.y}')
+            # for key in self.joystick_thrust.keys_pressed:
+            #    if key == 'up':
+            #       self.input_queue.put('inc_speed')
+            #    elif key == 'down':
+            #        self.input_queue.put('dec_speed')
     
     def touch_ended(self, touch):
         """Cleans up the specific touch and handles 'tap' logic for the queue."""

@@ -107,7 +107,7 @@ class Graphics():
        self.text_grid = game_engine.TextGridArray(cs.GAME_W, cs.GAME_W)
        self.screen_rect = cs.FLIGHT_RECT
        self.centre_screen = self.screen_rect.center()
-       self.X_CENTRE, self.Y_CENTRE = self.centre_screen              
+       self.X_CENTRE, self.Y_CENTRE = self.centre_screen
        
        # page_text is a 3d array holding ascii_code, color_of text, color of background
        # this allows instant comparison, and iteration
@@ -378,8 +378,7 @@ class Graphics():
         # used in place of keyboard-based  function
         from console import alert
         return alert(prompt, '', 'OK')
-        
-       
+               
     # --------Unused methods
     def start_render(self):
         pass

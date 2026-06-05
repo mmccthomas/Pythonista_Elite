@@ -26,8 +26,8 @@ WIREFRAME = 0
 YAW_COUPLING = 0.15
 TELEPORT = True
 UNIVERSE_STATUS = True
-INSTANT_DOCK = True
-MAX_FUEL = 120
+INSTANT_DOCK = False
+MAX_FUEL = 100
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -220,7 +220,7 @@ MAX_UNIV_OBJECTS = 20
 
 PLANET_RADIUS = 65535
 STATION_RADIUS = 180
-
+JUMP_ANIMATION = 0.6
 # Unit Constants
 TONNES = 0
 KILOGRAMS = 1
@@ -261,23 +261,9 @@ SND_PULSE = "pulse"
 SND_INCOMMING_FIRE_1 = "incom1"
 SND_INCOMMING_FIRE_2 = "incom2"
 
-# define FLG_DEAD			(1)
-# define	FLG_REMOVE			(2)
-# define FLG_EXPLOSION		(4)
-# define FLG_ANGRY			(8)
-# define FLG_FIRING			(16)
-# define FLG_HAS_ECM			(32)
-# define FLG_HOSTILE			(64)
-# define FLG_CLOAKED			(128)
-# define FLG_FLY_TO_PLANET	(256)
-# define FLG_FLY_TO_STATION	(512)
-# define FLG_INACTIVE		(1024)
-# define FLG_SLOW			(2048)
-# define FLG_BOLD			(4096)
-# define FLG_POLICE			(8192)
 # Ship Flags
 FLG_DEAD = 0x01
-FLG_REMOVE = 0x02  # TODO this may not be right
+FLG_REMOVE = 0x02
 FLG_SLOW = 0x04
 FLG_ANGRY = 0x08
 FLG_BOLD = 0x10

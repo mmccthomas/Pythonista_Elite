@@ -42,8 +42,8 @@ significant changes:
    The keyboard keys are reconfigured depending on mode
    
 2. 2 joysticks, one for roll, pitch, the other for thrust
-    Thrust is direct and will stay set when not touched. initially keep it as it was,
-    with up.down to increase or decrease
+    Thrust is direct and will stay set when not touched.
+    It will change when thrust is controlled by autopilot.
     Fire button fires whenever held
     
 3. Screen can be varied. Hud left and right sections are fixed size. Scanner width changes with screen size
@@ -137,18 +137,21 @@ significant changes:
 
              
                                        
-Chris `Thomas. April 2026
+Chris `Thomas. June 2026
 
 # TODO list 
 
 autopilot is still not bulletproof
 works from long distance via planet pole and ip
 Need to check entry at all phases.
+after teleporting to Sun, next long distance
+autopilot locks to sun instead of planet
+issue is flight loop starting before completing hyperspace, so a/p finds station
+hyperspace countdown should be before break
 
-jump shoukd have some visual indication.
-maybe make stars go fast for 1sec?.
+Debug explosion animation vs FLG_REMOVE status
+ships simply disappear
 
-Test mission code
 
 Finally:
 

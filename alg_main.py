@@ -145,14 +145,14 @@ class MainLoop():
        self.docked_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.hyperspace_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.current_planet_data = None
+       self.galaxy_seed = GalaxySeed(0x5A, 0x4A, 0x02, 0x48, 0xB7, 0x53)
 
        # Flight Variables
        self.game_over = False
                        
        self.laser_temp = 0
        self.auto_pilot = False
-       
-                               
+                                      
        self.flight_speed = 1
        self.rolling = False
        self.climbing = False
@@ -202,6 +202,7 @@ class MainLoop():
            self.camera = parent_scene.camera
            self.gfx = Graphics(parent_scene)
            self.sound = Sound(parent_scene.enable_sound)
+           
        except AttributeError:
            pass
        # Stub universe array
@@ -229,7 +230,7 @@ class MainLoop():
        # self.kbd startup handled by Keyboard.poll()
        self.current_screen = cs.SCR_INTRO_ONE
 
-    # -------- General functions    
+    # -------- General functions
     @staticmethod
     def set_rand_seed(seed):
         # setting a fixed seed makes game deterministic
@@ -344,6 +345,9 @@ class MainLoop():
         if not director_only:
            # flight speed tracks velocity
            self.flight_speed = min(22 * (1 + 4 * self.pilot.escape), self.ship.velocity)
+           y = 2 * self.flight_speed / self.myship.max_speed - 1.0
+           
+           self.parent_scene.joystick_thrust.set_position(y=y)
              
     # ── Escape sequence ───────────────────────────────────────────────────────────
     def run_escape_sequence(self):
@@ -441,7 +445,7 @@ class MainLoop():
     def find_planet(self):
         # Find planet by name.
         # pops up a list dialog populated with sorted planet names
-        glx = GalaxySeed().copy()
+        glx = self.cmdr.galaxy_seed.copy()
         planet_names = []
         for _ in range(256):
             planet_names.append(self.planet.name_planet(glx))
@@ -455,7 +459,7 @@ class MainLoop():
     def _entering_dock(self):
         # check mission brief and set keys
         self.current_screen = cs.SCR_MISSION
-        self.swat.clear_universe()                         
+        self.swat.clear_universe()
                    
     def launch(self):
         # enable flight keys and launch
@@ -721,7 +725,13 @@ class MainLoop():
             self.gfx.update_screen()
             self.restore_saved_commander()
         self.set_commander_name(self.current_name)
-        self.docked_planet = self.planet.find_planet(self.cmdr.ship_x, self.cmdr.ship_y)
+        
+
+        self.docked_planet = self.planet.find_planet(self.cmdr.ship_x,
+                                                     self.cmdr.ship_y,
+                                                     self.cmdr.galaxy_seed)
+        self.hyperspace_planet = self.docked_planet
+        self.galaxy_seed = self.cmdr.galaxy_seed
         self.saved_cmdr = self.cmdr
         # self.space.update_console()
     
@@ -749,7 +759,7 @@ class MainLoop():
         self.flight_climb = 0
         self.swat.clear_universe()
     
-        newship = self.swat.add_new_ship(cs.SHIP_COBRA3, 0, 0, -400, None, 0, 0)
+        newship = self.swat.add_new_ship(cs.SHIP_COBRA3, 0, 0, -1000, None, 0, 0)
         self.universe[newship].flags |= cs.FLG_DEAD
         
         stype = cs.SHIP_CARGO if (self.rand255() & 1) else cs.SHIP_ALLOY
@@ -781,6 +791,9 @@ class MainLoop():
         if self.message_count > 0:
             self.message_count -= 1
             
+        if self.parent_scene.t > (self.space.jump_start + cs.JUMP_ANIMATION):
+           self.stars.speedup = 1
+            
         if self.space.hyper_ready:
             self.space.display_hyper_status()
             # if (self.mcount & 3) == 0:
@@ -802,7 +815,8 @@ class MainLoop():
             # if self.docking_on.check():
             self.info_message(f"Docking Computers On ...{self.pilot.flight_phase} {(self.pilot.distance_to_target/1000):.0f}km")
         else:
-            self.auto_dock(director_only=True)
+            if not self.space.hyper_ready:
+                self.auto_dock(director_only=True)
  
         self.space.update_universe()
         
@@ -848,6 +862,9 @@ class MainLoop():
                 self.space.roll_pitch_control(None)
             case key if key.startswith('>'):
                 self.space.roll_pitch_control(key)
+            case key if key.startswith('<'):
+                self.flight_speed = (float(key.removeprefix('<')) + 1.0) * 0.5 * self.myship.max_speed
+                    
             case 'Look Fwd':
                 self.current_screen = cs.SCR_FRONT_VIEW
                 self.stars.flip_stars()
@@ -901,6 +918,7 @@ class MainLoop():
             case 'dec_speed':
                 if self.flight_speed > 0:
                     self.flight_speed -= 1
+            
             case 'Up':
                 self.space.increase_flight_climb()
                 self.climbing = True
@@ -996,6 +1014,7 @@ class MainLoop():
            # could use hyper_ready, docked
            # launch will be docked = false
            # docking is docked = True
+           logger.debug('finished break')
            match self.break_mode:
                case 'launch':
                    self.current_screen = cs.SCR_LAUNCH
@@ -1077,12 +1096,13 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
-                  40: ['Select', '$Ra'],
+                  40: ['Select', '$Onen'],
                   70: ['Launch'],
                   # 150: ['To Station'],
                   # 152: ['Docking'],
-                  # 100: ['Hyper Space'],
-                  189: [],  # complete
+                  100: ['Hyper Space'],
+                  131: [],
+                  132: [],  # complete
                   199: [],
                   300: ['Docking'],
                   
@@ -1096,8 +1116,8 @@ def loop():
     for i in range(500):
        logger.debug(i)
        if i in operations:
-          if i == 300:
-             pass
+          if i == 131:
+              pass
           for command in operations[i]:
               g.input_queue.put(command)
           print(i, g.docked_planet, command)

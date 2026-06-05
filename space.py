@@ -2,10 +2,9 @@
 import math
 import random
 import constants as cs
-from vector import Vector, Matrix, unit_vector, set_init_matrix, vector_dot_product, tidy_matrix
+from vector import Vector, Matrix, unit_vector, set_init_matrix, tidy_matrix
 from constants import logger
 from swat import Ship
-from wireframe_3d_2 import Vector3
 import traceback
 
 NOSEV = 2
@@ -31,7 +30,7 @@ class Space:
         self.destination_planet = None
         self.hyper_ready = False
         self.safe_mode = False
-        self.hyper_countdown = 0
+        self.hyper_countdown = 60
         self.hyper_name = ""
         self.hyper_distance = 0
         self.hyper_galactic = False
@@ -60,6 +59,7 @@ class Space:
         ship.is_player = True
         self.ship = ship
         self.compass_target = PLANET
+        self.jump_start = 0
         
     # ------- Rotation helpers
     @staticmethod
@@ -128,8 +128,8 @@ class Space:
         # convert control inputs to radians
         # max roll is 31, so 0.144 radians 8 degrees
         alpha = self.flight_roll / 256.0 / 8
-        beta = self.flight_climb / 256.0 / 8        
-        x, y, z = obj.location.to_tuple # obj.location.x, obj.location.y, obj.location.z
+        beta = self.flight_climb / 256.0 / 8
+        x, y, z = obj.location.to_tuple
         
         if not (obj.flags & cs.FLG_DEAD):
             if obj.velocity != 0:
@@ -151,10 +151,9 @@ class Space:
         
         cos_b, sin_b = math.cos(beta), math.sin(beta)
         y, z = y * cos_b - z * sin_b, z * cos_b + y * sin_b
-        # bring everything forward by player speed        
+        # bring everything forward by player speed
          
         z -= gs.flight_speed
-        
            
         # Auto-yaw: couple roll into lateral X movement ---
         # Yaw naturally follows bank — rolling right drifts nose right
@@ -228,7 +227,7 @@ class Space:
         gs._entering_dock()
         gs._change_flight_keys(False)
         
-    @staticmethod   
+    @staticmethod
     def _cos(deg):
         return math.cos(math.radians(deg))
         
@@ -280,9 +279,9 @@ class Space:
     
     # ------- Game over / damage
     
-    def do_game_over(self):        
+    def do_game_over(self):
         # debug crashes
-        logger.debug(traceback.format_exc())        
+        logger.debug(traceback.format_exc())
         self.snd.play_sample(cs.SND_GAMEOVER)
         self.gs.game_over = True
 
@@ -367,7 +366,6 @@ class Space:
             return
 
         loc = gs.universe[1].location
-        dist_ = loc.magnitude
         x = abs(int(loc.x))
         y = abs(int(loc.y))
         z = abs(int(loc.z))
@@ -383,7 +381,7 @@ class Space:
             return
 
         dist ^= 255
-        gs.myship.cabtemp = dist + 30        
+        gs.myship.cabtemp = dist + 30
         if gs.myship.cabtemp > 255:
             gs.myship.cabtemp = 255
             self.do_game_over()
@@ -454,11 +452,11 @@ class Space:
                 self.swat.tactics(i)
                 
             self.move_univ_object(obj)
-            tidy_matrix(obj.rotmat) 
+            tidy_matrix(obj.rotmat)
             self.change_view()
             obj.sync_model()
             # give time for explosion
-            # remove after exploded     
+            # remove after exploded
             if obj.flags & cs.FLG_REMOVE:
                 if type == cs.SHIP_VIPER:
                     gs.cmdr.legal_status |= 64
@@ -481,7 +479,7 @@ class Space:
             if type == cs.SHIP_PLANET:
                 if (not gs.swat.ship_count[cs.SHIP_CORIOLIS]
                         and not gs.swat.ship_count[cs.SHIP_DODEC]
-                        and obj.distance < 65792):  # TODO check this number
+                        and obj.distance < 65792):
                     self.make_station_appear()
                 # obj.sync_model()
                 continue
@@ -539,10 +537,6 @@ class Space:
             x1 = x
             y1 = dir * z // 4
             y2 = y1 - y // 2
-            # TODO should apply scaling here
-            # assumes y +-28, x +-50
-            # if y2 < -28 or y2 > 28 or x1 < -50 or x1 > 50:
-            #    continue
 
             x1 += cs.SCANNER_RECT.center().x
             y1 += cs.SCANNER_RECT.center().y
@@ -560,24 +554,24 @@ class Space:
                 cs.SHIP_VIPER:    cs.GREY_2,  # very light grey
             }.get(obj.type, colour)
             colours = {
-             #.       Dot. Stick2 
-             0: [cs.GREEN, cs.GREEN], #clean
-             cs.FLG_POLICE : [cs.YELLOW, cs.YELLOW], # tracked
-             cs.FLG_INACTIVE : [cs.GREEN, cs.YELLOW], # debris
-             cs.FLG_MISSILE: [cs.YELLOW, cs.RED], # missile
-             cs.FLG_BOLD | cs.FLG_ANGRY: [cs.GREEN, cs.RED]} #pirate/bounty hunter
+             #        Dot. Stick2
+             0: [cs.GREEN, cs.GREEN],  # clean
+             cs.FLG_POLICE: [cs.YELLOW, cs.YELLOW],  # tracked
+             cs.FLG_INACTIVE: [cs.GREEN, cs.YELLOW],  # debris
+             cs.FLG_MISSILE: [cs.YELLOW, cs.RED],  # missile
+             cs.FLG_BOLD | cs.FLG_ANGRY: [cs.GREEN, cs.RED]}  # pirate/bounty hunter
             for k, v in colours.items():
                 if obj.flags & k:
                     colour = v
                     break
             else:
                colour = colours[0]
-            # use scene drawing as its every frame            
-            gfx.draw_colour_line(x1, y2, x1+5, y2, colour[0], width=5) # top
+            # use scene drawing as its every frame
+            gfx.draw_colour_line(x1, y2, x1+5, y2, colour[0], width=5)  # top
             # this allows striped stalks
             dy = (y2 - y1) / 4
-            for i in range(4):                
-                gfx.draw_colour_line(x1, y1 + i * dy, x1, y1 + (i + 1) * dy, colour[i%2], width=3)
+            for i in range(4):
+                gfx.draw_colour_line(x1, y1 + i * dy, x1, y1 + (i + 1) * dy, colour[i % 2], width=3)
                 
         gfx.set_clip_region(*cs.FLIGHT_RECT)
         
@@ -613,7 +607,6 @@ class Space:
         gfx.set_clip_region(*cs.COMPASS_RECT)
         gfx.plot_pixel(cx, cy, color, 10)
         gfx.set_clip_region(*cs.FLIGHT_RECT)
-        
 
     def display_speed(self, sx, sy):
         gs = self.gs
@@ -787,7 +780,7 @@ class Space:
         speed = attack if abs(target_climb) > abs(self.flight_climb) else decay
             
         # Standard Linear Interpolation (LERP) formula
-        self.flight_climb += (target_climb - self.flight_climb) * speed        
+        self.flight_climb += (target_climb - self.flight_climb) * speed
         # Cleanup for floating point jitter
         if abs(self.flight_climb) < stop_threshold:
             self.flight_climb = 0
@@ -803,11 +796,11 @@ class Space:
         if self.flight_roll > -self.gs.myship.max_roll:
             self.flight_roll -= sensitivity * units
     
-    def increase_flight_climb(self, units=1):       
+    def increase_flight_climb(self, units=1):
         if self.flight_climb < self.gs.myship.max_climb:
             self.flight_climb += units
 
-    def decrease_flight_climb(self, units=1):        
+    def decrease_flight_climb(self, units=1):
         if self.flight_climb > -self.gs.myship.max_climb:
             self.flight_climb -= units
     
@@ -819,6 +812,7 @@ class Space:
 
     def start_hyperspace(self):
         gs = self.gs
+        logger.debug('start hyperspace')
         if self.hyper_ready:
             return
         # planet_name = gs.planet.get_planet_name(gs.hyperspace_planet)
@@ -831,6 +825,7 @@ class Space:
         self.hyper_name = gs.planet.name_planet(self.destination_planet).title()
         self.hyper_ready = True
         self.hyper_countdown = 15
+        
         self.hyper_galactic = False
         self.pilot.disengage_auto_pilot()
 
@@ -866,7 +861,8 @@ class Space:
         for attr in ('a', 'b', 'c', 'd', 'e', 'f'):
             setattr(cmdr.galaxy_seed, attr,
                     self.rotate_byte_left(getattr(cmdr.galaxy_seed, attr)))
-        gs.docked_planet = gs.planet.find_planet(0x60, 0x60)
+        gs.galaxy_seed = cmdr.galaxy_seed
+        gs.docked_planet = gs.planet.find_planet(0xe5, 0x9f, gs.galaxy_seed)
         gs.hyperspace_planet = gs.docked_planet
 
     def enter_witchspace(self):
@@ -882,6 +878,7 @@ class Space:
         gs.swat.clear_universe()
         for _ in range((gs.rand16bit() & 3) + 1):
             self.swat.create_thargoid()
+        gs.info_message('Witch Space!!')
         gs.current_screen = cs.SCR_BREAK_PATTERN
         self.snd.play_sample(cs.SND_HYPERSPACE)
     
@@ -942,7 +939,7 @@ class Space:
         gs = self.gs
         self.hyper_ready = False
         gs.witchspace = False
-        
+        logger.debug('completed hyperspace')
         if self.hyper_galactic:
             gs.cmdr.galactic_hyperdrive = 0
             self.enter_next_galaxy()
@@ -954,7 +951,7 @@ class Space:
                 self.enter_witchspace()
                 return
             gs.docked_planet = self.destination_planet
-            logger.debug(f'Completed hyperspace')
+            logger.debug('Completed hyperspace')
         gs.cmdr.market_rnd = gs.rand255()
         gs.current_planet_data = gs.planet.generate_planet_stats(gs.docked_planet)
         self.trade.generate_stock_market(gs.current_planet_data.economy)
@@ -964,24 +961,9 @@ class Space:
         self.flight_climb = 0
         self.stars.create_new_stars()
         gs.swat.clear_universe()
-        gs.swat.generate_landscape()        
+        gs.swat.generate_landscape()
         planet_vector, sun_vector = self.get_solar_system_vectors(gs.docked_planet)
-        
-        FIST = gs.cmdr.legal_status
-        a = gs.docked_planet.a
-        pz = ((a & 7) + 6 + FIST & 1) // 2
-        px = py = pz // 2
-        px <<= 16
-        py <<= 16
-        pz <<= 16
-        if (a & 1) == 0:
-            px = -px
-            py = -py
-        
         gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
-
-        pz = -(((gs.docked_planet.d & 7) | 1) << 16)
-        px = ((gs.docked_planet.f & 3) << 16) | ((gs.docked_planet.f & 3) << 8)
         gs.swat.add_new_ship(cs.SHIP_SUN, *sun_vector, None, 0, 0)
 
         gs.current_screen = cs.SCR_BREAK_PATTERN
@@ -1018,7 +1000,7 @@ class Space:
         look_dir = unit_vector(target.location - ship.location)
         # 2. Build the new rotation matrix
         # Standard 'up' vector for the world
-        world_up = Vector(0, 1, 0) 
+        world_up = Vector(0, 1, 0)
         
         # If looking straight up/down, avoid a zero cross-product
         if abs(look_dir.y) > 0.99:
@@ -1039,12 +1021,12 @@ class Space:
         self.gs.msg_left.text = f"Jump to {target.name} Complete"
         
     def jump_direct(self, key):
-      
+      """ A massive cheat, jump instantly to point"""
       if key == 'To Sun':
           sun = self.gs.universe[1]
           if sun.name == 'SUN':
               self.teleport(sun, height=60000)
-              self.swat.sun_image.planet.alpha=1
+              self.swat.sun_image.planet.alpha = 1
               self.update_universe()
       elif key == 'To Planet':
           # move to location outside planets  atmosphere, on vector to station
@@ -1063,7 +1045,7 @@ class Space:
           station = self.gs.universe[1]
           if station.name in ('CORIOLIS', 'DODO'):
               self.teleport(station, height=3000, axis=NOSEV)
-              #self.update_universe()
+              # self.update_universe()
                 
     def jump_warp(self):
         gs = self.gs
@@ -1089,6 +1071,8 @@ class Space:
 
         gs.warp_stars = True
         gs.mcount &= 63
+        self.jump_start = gs.parent_scene.t
+        gs.stars.speedup = 50
         gs.in_battle = False
 
     def launch_player(self):

@@ -134,10 +134,13 @@ class Docked:
      
         gfx = self.gfx
         # TODO fix this
+        # scale local chart to fuel limit.
+        # fuel limit circle should fill screen
+        # adjust zoom_scale to fit
         
         # gfx.set_clip_region(cs.FLIGHT_RECT.x, cs.FLIGHT_RECT.y, cs.FLIGHT_RECT.w, cs.FLIGHT_RECT.h - cs.FLIGHT_RECT.y)
-        radius = 2.5 * self.gs.cmdr.fuel / 10 * self.scale * self.zoom_scale
-        # radius = self.gs.cmdr.fuel / 4 * self.zoom_scale * self.SCALE
+        radius = 1.9 * self.gs.cmdr.fuel / 10 * self.scale * self.zoom_scale
+        
         # logger.debug(f'{radius=} {self.gs.cmdr.fuel=}')
         cross_size = 1 * self.zoom_scale * self.SCALE
         cx, cy = c.as_tuple()
@@ -169,7 +172,7 @@ class Docked:
         
         # ,without any change px, py shoukd be   0x9c  0x38 (156, 56)
         # scene.rect(0,0,0,0)([0xAD38, 0x149C, 0x151D], 'Lave'),
-        planet = gs.planet.find_planet(*p.as_tuple())
+        planet = gs.planet.find_planet(*p.as_tuple(), gs.galaxy_seed)
         # logger.debug(f'{px=} {py=} {gs.hyperspace_planet}')
         planet_name = gs.planet.name_planet(planet)
         gs.hyperspace_planet = planet
@@ -184,7 +187,7 @@ class Docked:
     def find_planet_by_name(self, find_name):
         gfx = self.gfx
         gs = self.gs
-        glx = GalaxySeed().copy()
+        glx = self.gs.cmdr.galaxy_seed.copy()
 
         for _ in range(256):
             planet_name = gs.planet.name_planet(glx)
@@ -219,7 +222,7 @@ class Docked:
         x, y = key.removeprefix('#').split(',')
         # x, y are in screen coordinates
         p = self._to_planet(Point2(int(x), int(y)))
-        planet = gs.planet.find_planet(*p.as_tuple())
+        planet = gs.planet.find_planet(*p.as_tuple(), gs.galaxy_seed)
         # centre cross on nearest planet
         self.cross = self.old_cross = Point2(planet.x, planet.y)
         # gs.msg.text = f'{x=}, {y=},   {planet.x},{planet.y}'
@@ -262,7 +265,7 @@ class Docked:
         gs = self.gs
         gfx = self.gfx
         
-        sorted_planets = gs.planet.get_closest_planets(gs.docked_planet, max_distance=self.gs.cmdr.fuel)
+        sorted_planets = gs.planet.get_closest_planets(gs.galaxy_seed, gs.docked_planet, max_distance=self.gs.cmdr.fuel)
         for planet in sorted_planets:
             coord = self._to_screen(Point2(planet.x, planet.y)).round()
             
@@ -274,8 +277,9 @@ class Docked:
             for i in [0, -1, 1]:
                 if self.gfx.is_empty_text(row + i, col, len(planet_name)):
                     r, c = row + i, col
-                    gfx.display_text(c, r, planet_name)
-                    break
+                    if r >= 3:
+                       gfx.display_text(c, r, planet_name)
+                       break
                     
             # planet seed has property radius
             blob_size = round(planet.glx.radius / 300)
@@ -292,7 +296,12 @@ class Docked:
         # this version will scale to flight_rect
         gfx = self.gfx
         gs = self.gs
-        self.zoom_scale = 5
+        # scale with fuel circle self.scale is
+        
+        # logger.debug(f'{fuel_radius=} {cs.FLIGHT_H=}')
+        
+        self.zoom_scale = 5 * 70 / cs.MAX_FUEL
+        
         self.offset = Point2(*cs.FLIGHT_RECT.center())
         self.baseline = Point2(gs.docked_planet.x, gs.docked_planet.y)
         if self.old_cross.x == -1:
@@ -466,7 +475,6 @@ class Docked:
     # -------Markets
     def display_stock_price(self, i):
         gfx = self.gfx
-        cmdr = self.gs.cmdr
         sm = self.gs.trade.stock_market
         row = i + self.START_ROW
 
@@ -477,7 +485,7 @@ class Docked:
         qty = sm[i]['current_quantity']
         gfx.display_text(28, row, f"{qty}{UNIT_NAMES[sm[i]['units']]}" if qty > 0 else "-")
 
-        held = cmdr.current_cargo[i]
+        held = self.gs.cmdr.current_cargo[i]
         gfx.display_text(37, row, f"{held}{UNIT_NAMES[sm[i]['units']]}" if held > 0 else "-")
                 
     def highlight_stock(self, i):
