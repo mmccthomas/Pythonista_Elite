@@ -43,7 +43,7 @@ class EliteKeypad(ui.View):
             [('Launch', 1, 'cyan'), ('Trade', 1, 'cyan'), ('Equip', 1, 'cyan'),
              ('Status', 1, 'cyan'), ('Local Chart', 1, 'cyan'), ('Galaxy Chart', 1, 'cyan'),
              ('Data', 1, 'cyan')],
-            [('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1, '#fb9bff'),(' ', 2, '#fb9bff'),
+            [('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1.25, '#fb9bff'),(' ', 1.75, '#fb9bff'),
              ('Find', 1, 'cyan'), (' ', 1, 'cyan')],
             [('Jump', 1, 'lightgreen'), ('Hyper Space', 1, 'lightgreen'), ('Escape', 1, 'lightgreen'),
              ('ECM', 1, 'lightgreen'), ('Bomb', 1, 'lightgreen'), ('Target', 1, 'lightgreen'),
@@ -94,7 +94,7 @@ class EliteKeypad(ui.View):
         label.text = text
         label.name = 'label'
         label.frame = btn.frame
-        label.font = ('Avenir Next', 10)
+        label.font = ('Copperplate', 12) # was Avenir Next
         label.text_color = 'black'
         label.alignment = ui.ALIGN_CENTER
         label.number_of_lines = 0  # 0 allows unlimited lines
@@ -173,7 +173,7 @@ class EliteKeypad(ui.View):
                 w = unit_w * weight
                 btn.frame = (current_x, y, w, row_h)
                 # btn['label'].frame = btn.frame
-                btn['label'].font = ('Arial Rounded MT Bold', max(10, row_h * 0.125))
+                btn['label'].font = ('Copperplate', max(10, row_h * 0.28)) # was Arial Rounded MT Bold
                 
                 current_x += w + pad
 

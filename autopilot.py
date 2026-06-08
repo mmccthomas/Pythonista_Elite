@@ -15,7 +15,8 @@ from scene import Point
 from vector import Vector, unit_vector, vector_dot_product
 from wireframe_3d import Vector3
 import constants as cs
-from constants import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def _cos(deg):
@@ -42,7 +43,7 @@ IP2_DIST = 6000    # outer waypoint, used when approaching from wrong side
 # Arrival thresholds
 CLOSE_TO_POLE = 200
 CLOSE_TO_IP = 200
-CLOSE_TO_STATION = 600
+CLOSE_TO_STATION = 1000
 DOCKED_DIST = 160
                 
 # Alignment thresholds (cosines)
@@ -120,7 +121,7 @@ class Pilot:
         
         # invert z to get correct direction
         space = self.gs.space
-        nvec = unit_vector(vec) * Vector(1, 1, -1)
+        nvec = unit_vector(vec)
         dist = vec.magnitude
             
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])
@@ -436,7 +437,7 @@ class Pilot:
         if self._station_exists():
            station = self.universe[1]
            return station.location + station.rotmat[NOSEV] * IP_DIST
-        return Vector(0,0,0)
+        return Vector(0, 0, 0)
 
     def _dist_to(self, ship, point):
         return (point - ship.location).magnitude
@@ -495,7 +496,7 @@ class Pilot:
             ship.acceleration = 0
             self.gs.flight_speed = 0
         vec = target - ship.location
-        nvec = unit_vector(vec) * Vector(1, 1, -1)
+        nvec = unit_vector(vec)
         target_roll, target_climb = self.steer_to_origin(nvec, fast=True)
         
         # up_dot = vector_dot_product(nvec, ship.rotmat[ROOFV])  # target above
@@ -503,7 +504,10 @@ class Pilot:
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
         self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
-
+        # logger.debug(f'{fwd_dot}, {self.distance_to_target:.0f} {self.angle:+.1f}')
+        cr = '\n'
+        self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
+                                  f'{cr}D:{self.distance_to_target:.0f} A:{self.angle:+.1f} V:{self.gs.flight_speed:.1f}')
         # already aligned
         if fwd_dot >= aligned:
            space.flight_climb = space.flight_roll = 0
@@ -589,15 +593,15 @@ class Pilot:
         
         if cross_z < 0:
             angle_err = -angle_err
-
-        MAX_ROLL = 12
+        
+        MAX_ROLL = 31
         self.gs.space.flight_roll = max(min(-angle_err * 10, MAX_ROLL), -MAX_ROLL)
         
         # ship.rotz = max(min(angle_err * 5.0, MAX_ROLL), -MAX_ROLL)
         ship.rotx = 0
         ship.acceleration = 0
 
-        return abs(angle_err) < math.radians(5)
+        return abs(angle_err) < math.radians(5), math.degrees(angle_err)
 
     def change_phase(self, ship, new_phase):
         """Transition to a new flight phase, zeroing rates."""
@@ -730,6 +734,7 @@ class Pilot:
                     return
                                 
                 aligned = self.orient_to_target(ship, self.target_loc, director_only=director_only)
+                # logger.debug(f'{aligned=}')
                 if aligned:
                     self.change_phase(ship, 'TO_IP')
             
@@ -747,7 +752,7 @@ class Pilot:
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
                 if not director_only:
-                    self.fly_to_target(ship, self.target_loc, max_velocity=20)
+                    self.fly_to_target(ship, self.target_loc, max_velocity=50)
                     
             case 'TO_DETOUR':
                 # the rare case when target is blocked
@@ -780,6 +785,7 @@ class Pilot:
                                                 unit_vector(diff))
                 if dir_to_bay < ON_SLOT_AXIS:
                     self.change_phase(ship, 'FIND_IP')
+                    logger.debug('not on axis')
                     return
     
                 if self.distance_to_target < CLOSE_TO_STATION:
@@ -796,18 +802,23 @@ class Pilot:
                     ship.flags |= cs.FLG_REMOVE
                     self.gs.break_mode = 'docking'
                     self.gs.current_screen = cs.SCR_BREAK_PATTERN
-                    self.gs.space.dock_player()
+                    # self.gs.space.dock_player()
                     self.change_phase(ship, None)  # reset for next time
                     self.gs.yaw_coupling = cs.YAW_COUPLING
                     return
                 if not director_only:
-                   rolled = self.roll_to_match_station(ship)
+                   rolled, error = self.roll_to_match_station(ship)
                    if rolled:
                        # Aligned — crawl forward
                        ship.rotz = 0
                        ship.acceleration = 1
-                       ship.velocity = 1
-            
+                       ship.velocity = 2
+                   
+                   # logger.debug(f'{rolled=} {error=:.1f}')
+                   cr = '\n'
+                   self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
+                                             f'{cr}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')
+                       
     def vector_func(self, target, roll, pitch, speed=0):
         # minimised function from move universe
         # return modified target from roll, pitch and speed

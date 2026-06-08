@@ -7,7 +7,8 @@ import ui
 import io
 import colorsys
 import random
-from constants import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def pil_to_ui(img):
@@ -108,7 +109,7 @@ class AlienPlanet():
       self.final = final.filter(ImageFilter.UnsharpMask(radius=1, percent=40, threshold=3))
       out_path = 'images/planet_texture.png'
       self.final.save(out_path, 'PNG')
-      logger.debug(f"Saved {self.final.size} texture to {out_path}")
+      # logger.debug(f"Saved {self.final.size} texture to {out_path}")
       
   def build_terrain(self, seed=7, warp_strength=0.3):
    

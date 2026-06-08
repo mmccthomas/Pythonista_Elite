@@ -1,6 +1,8 @@
 import random
 # Unit Constants
 import constants as cs
+import logging
+logger = logging.getLogger(__name__)
 
 
 class TradeManager:
@@ -93,7 +95,7 @@ class TradeManager:
         Handles the logic for fuel-scooping cargo canisters or debris.
         """
         obj = universe[universe_obj_index]
-        
+        logger.debug(f'{obj}')
         if obj.flags & cs.FLG_DEAD:
             return
 

@@ -3,9 +3,11 @@ import math
 import random
 import constants as cs
 from vector import Vector, Matrix, unit_vector, set_init_matrix, tidy_matrix
-from constants import logger
+
 from swat import Ship
 import traceback
+import logging
+logger = logging.getLogger(__name__)
 
 NOSEV = 2
 ROOFV = 1
@@ -48,14 +50,13 @@ class Space:
         self.in_corona = False
     
         ship = Ship()
-        ship.location = Vector(0.0, 0.0, 0.0)
+        # ship.location = Vector(0.0, 0.0, 0.0)
         ship.rotmat = set_init_matrix()
+        # make nose point forward, unlike all other ships
+        ship.rotmat[NOSEV].z = 1
         ship.type = -96
         ship.velocity = self.gs.flight_speed
-        ship.acceleration = 0
-        ship.bravery = 0
-        ship.rotz = 0
-        ship.rotx = 0
+        
         ship.is_player = True
         self.ship = ship
         self.compass_target = PLANET
@@ -214,6 +215,8 @@ class Space:
         gs.cmdr.ship_x = gs.docked_planet.x
         gs.cmdr.ship_y = gs.docked_planet.y
         gs.flight_speed = 0
+        y = 2 * gs.flight_speed / gs.myship.max_speed - 1.0
+        gs.parent_scene.joystick_thrust.set_position(y=y)
         self.flight_roll = 0
         self.flight_climb = 0
         gs.front_shield = 255
@@ -222,9 +225,10 @@ class Space:
         gs.myship.altitude = 255
         gs.myship.cabtemp = 30
         gs.on_final_approach = False
-        gs.swat.planet_image.planet.alpha = 0
+        self.hide_planet()        
         self.swat.reset_weapons()
-        gs._entering_dock()
+        self.swat.clear_universe()
+        # gs._entering_dock()
         gs._change_flight_keys(False)
         
     @staticmethod
@@ -233,39 +237,51 @@ class Space:
         
     def is_docking(self, sn):
         gs = self.gs
+        # logger.debug('checking dock')
         if gs.auto_pilot:
             return True
             
         # approach angle
         fz = gs.universe[sn].rotmat[NOSEV].z
-        if fz > self._cos(154):
+        # logger.debug(f'{fz=}')
+        if fz < self._cos(26):
             return False
             
         # cone of safe approach
         vec = unit_vector(gs.universe[sn].location)
+        # logger.debug(f'{vec=}')
         if vec.z < self._cos(22):
             return False
             
         # rotation
         ux = abs(gs.universe[sn].rotmat[ROOFV].x)
-        return ux >= self._cos(33)
+        # logger.debug(f'{ux=}')
+        if ux < 0:
+           ux = -ux
+        if ux < self._cos(33):
+            return False
+        
+        return True
 
     def check_docking(self, i):
         gs = self.gs
-        # TODO
         self.gs.info_message('Final Docking')
+        logger.debug('final docking')
+        gs.on_final_approach = True
         # self.gs.pilot.fly_to_docking_bay(self.ship)
         if self.is_docking(i):
             self.snd.play_sample(cs.SND_DOCK)
             self.dock_player()
+            self.gs.break_mode = 'docking'
             gs.current_screen = cs.SCR_BREAK_PATTERN
             return
 
         if gs.flight_speed >= 5:
-            self.do_game_over()
+            self.do_game_over('speed')
             return
         if gs.energy_status.check():
             gs.flight_speed = 1
+            logger.debug('ship damage 5')
             self.damage_ship(5, gs.universe[i].location.z > 0)
             self.snd.play_sample(cs.SND_CRASH)
 
@@ -279,16 +295,17 @@ class Space:
     
     # ------- Game over / damage
     
-    def do_game_over(self):
+    def do_game_over(self, reason=''):
         # debug crashes
-        logger.debug(traceback.format_exc())
+        traceback.print_stack()
+        logger.debug(reason)
         self.snd.play_sample(cs.SND_GAMEOVER)
         self.gs.game_over = True
 
     def decrease_energy(self, amount):
         self.gs.energy += amount
         if self.gs.energy <= 0:
-            self.do_game_over()
+            self.do_game_over('no energy')
 
     def damage_ship(self, damage, front):
         if damage <= 0:
@@ -352,7 +369,7 @@ class Space:
         dist = math.sqrt(dist)
         if dist < 1:
             gs.myship.altitude = 0
-            self.do_game_over()
+            self.do_game_over('altitude')
             return
 
         gs.myship.altitude = dist
@@ -362,38 +379,50 @@ class Space:
         gs.myship.cabtemp = 30
         if gs.witchspace:
             return
-        if gs.swat.ship_count[cs.SHIP_CORIOLIS] or gs.swat.ship_count[cs.SHIP_DODEC]:
-            return
-
-        loc = gs.universe[1].location
-        x = abs(int(loc.x))
-        y = abs(int(loc.y))
-        z = abs(int(loc.z))
-        if x > 65535 or y > 65535 or z > 65535:
-            return
-        
-        x //= 256
-        y //= 256
-        z //= 256
-        dist = (x*x + y*y + z*z) // 256
-        if dist > 255:
-            gs.myship.cabtemp = 30
-            return
-
-        dist ^= 255
-        gs.myship.cabtemp = dist + 30
-        if gs.myship.cabtemp > 255:
-            gs.myship.cabtemp = 255
-            self.do_game_over()
-            return
+        object = self.gs.universe[1]
+        if object.type == cs.SHIP_SUN:                          
+            loc = object.location
+            x = abs(int(loc.x))
+            y = abs(int(loc.y))
+            z = abs(int(loc.z))
+            if x > 65535 or y > 65535 or z > 65535:
+                return
             
-        self.in_corona = gs.myship.cabtemp >= 224
-        
-        if self.in_corona and gs.cmdr.fuel_scoop:
-            gs.cmdr.fuel = min(gs.cmdr.fuel + gs.flight_speed // 2,
-                               gs.myship.max_fuel)
-            gs.info_message("Fuel Scoop On")
+            x //= 256
+            y //= 256
+            z //= 256
+            dist = (x*x + y*y + z*z) // 256
+            if dist > 255:
+                gs.myship.cabtemp = 30
+                return
     
+            dist ^= 255
+            gs.myship.cabtemp = dist + 30
+            if gs.myship.cabtemp > 255:
+                gs.myship.cabtemp = 255
+                self.do_game_over('cabin temp')
+                return
+                
+            self.in_corona = gs.myship.cabtemp >= 224
+            
+            if self.in_corona and gs.cmdr.fuel_scoop:
+                gs.cmdr.fuel = min(gs.cmdr.fuel + gs.flight_speed // 2,
+                                   gs.myship.max_fuel)
+                gs.info_message("Fuel Scoop On")
+                
+    # --------Planet 
+    def hide_planet(self):
+       try:
+           self.gs.swat.planet_image.planet.alpha = 0
+       except AttributeError:
+           pass
+       
+    def show_planet(self):
+       try:
+           self.gs.swat.planet_image.planet.alpha = 1
+       except AttributeError:
+           pass
+       
     # ------- Station
     
     def make_station_appear(self):
@@ -462,9 +491,9 @@ class Space:
                     gs.cmdr.legal_status |= 64
                 bounty = obj.model.header['Bounty']  # gs.ship_list[type].bounty
                 if bounty and not gs.witchspace:
-                    gs.cmdr.credits += bounty
+                    gs.cmdr.credits += bounty * 10
                     gs.info_message(
-                        f"{gs.cmdr.credits // 10}.{gs.cmdr.credits % 10} CR")
+                        f"Bounty {bounty} CR")
                 gs.swat.remove_ship(i)
                 continue
 
@@ -482,12 +511,20 @@ class Space:
                         and obj.distance < 65792):
                     self.make_station_appear()
                 # obj.sync_model()
+                # if obj.location.z <0:
+                #   self.hide_planet()
+                # else:
+                #   self.show_planet()
                 continue
 
             if type == cs.SHIP_SUN:
                 # obj.sync_model()
                 continue
-
+            # limit speed within 5k of station
+            if type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC) and obj.distance < 5000:
+                gs.myship.max_speed = 5
+            else:
+                gs.myship.max_speed = 50
             if obj.distance < 170:
                 if type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
                     self.check_docking(i)
@@ -498,7 +535,9 @@ class Space:
                 elif type == cs.SHIP_MISSILE:
                     continue
                 else:
+                    # this should be one time only, not every cycle
                     self.trade.scoop_item(i, gs.universe)
+                    gs.universe[i].type = 0
                 # continue
 
             if obj.distance > 57344:
@@ -614,8 +653,9 @@ class Space:
         colour = (cs.RED
                   if gs.flight_speed > gs.myship.max_speed * 2 // 3
                   else cs.GOLD)
-        self.display_dial_bar(length, sx, sy, colour)
-
+        self.display_dial_bar(length, sx, sy, colour)        
+        self.gs.gfx.draw_text(f'{gs.flight_speed:.0f}', sx+length*cs.METER_LENGTH / 64, sy, font_size=15, alignment=6)
+         
     def display_dial_bar(self, length, x, y, colour=cs.YELLOW):
         # length 0-64
         if length < 0:
@@ -1026,7 +1066,10 @@ class Space:
           sun = self.gs.universe[1]
           if sun.name == 'SUN':
               self.teleport(sun, height=60000)
-              self.swat.sun_image.planet.alpha = 1
+              try:
+                  self.swat.sun_image.planet.alpha = 1
+              except AttributeError:
+                  pass
               self.update_universe()
       elif key == 'To Planet':
           # move to location outside planets  atmosphere, on vector to station
@@ -1076,20 +1119,19 @@ class Space:
         gs.in_battle = False
 
     def launch_player(self):
+        logger.debug('launching player')
         gs = self.gs
         gs.docked = False
         gs.flight_speed = 12
         self.flight_roll = -15
         self.flight_climb = 0
+        gs.on_final_approach = False
         gs.cmdr.legal_status |= self.trade.carrying_contraband()
         self.stars.create_new_stars()
         gs.swat.clear_universe()
         gs.swat.generate_landscape()
         gs.swat.add_new_ship(cs.SHIP_PLANET, 0, 0, 65536, None, 0, 0)
-        rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
-        rotmat[NOSEV].x *= -1
-        rotmat[NOSEV].y *= -1
-        rotmat[NOSEV].z *= -1
+        rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, -1)]
         gs.swat.add_new_station(0, 0, -256, rotmat)
         
         gs.current_screen = cs.SCR_FRONT_VIEW

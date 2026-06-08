@@ -97,7 +97,7 @@ def new_sprite(image, parent=None, **kwargs):
 
                           
 if __name__ == '__main__':
-   img = set_colorkey('asteroid.png')
+   img = set_colorkey('sun_texture400.png')
    img.show()
    img = create_circle(100, 'red')
    img.show()

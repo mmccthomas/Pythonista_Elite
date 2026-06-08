@@ -21,6 +21,12 @@ from wireframe_3d_2 import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad
+import logging
+target_logger = logging.getLogger('PIL.PngImagePlugin')
+target_logger.setLevel('ERROR')
+
+logger = logging.getLogger(__name__)
+EXPLOSION_SPEED = 0.4
 
 
 class EliteScene(Scene):
@@ -260,8 +266,9 @@ class EliteScene(Scene):
             # self.input_queue.put('>0.00, 0.00')
         for obj in [obj for obj in self.mainloop.universe
                     if obj.exploding]:
-            obj.explosion_time += self.dt
+            obj.explosion_time += self.dt * EXPLOSION_SPEED
             if obj.explosion_time >= 1.0:
+                obj.exploding = False
                 obj.flags |= cs.FLG_REMOVE
             
     def draw(self):

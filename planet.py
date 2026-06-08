@@ -410,5 +410,10 @@ if __name__ == '__main__':
     print(new_seed)
     planets = gen.get_planet_list(new_seed)
     for i, planet in enumerate(planets):
-        print(i, planet.name)
+        print(i, planet.name, planet.glx.tech)
+    new_seed = gen.next_galaxy(new_seed)
+    print(new_seed)
+    planets = gen.get_planet_list(new_seed)
+    for i, planet in enumerate(planets):
+        print(i, planet.name, planet.glx.tech)
 

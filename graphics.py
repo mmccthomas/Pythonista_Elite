@@ -21,7 +21,6 @@
 # wireframe drawing
 
 import game_engine
-from constants import logger
 import ui
 import scene
 import constants as cs
@@ -30,6 +29,8 @@ import numpy as np
 import textwrap
 from PIL import Image
 import pathlib
+import logging
+logger = logging.getLogger(__name__)
 
 CHAR = 0
 FG = 1
@@ -344,6 +345,10 @@ class Graphics():
         #                    position=self.centre_screen + Point(x, y))
         # if self.parent_scene:
         #    self.screen.add_child(sprite)
+        
+    def draw_text(self, text, x, y, font_name='Copperplate', font_size=10, colour=cs.WHITE, alignment=4):
+        # scene drawing text
+        scene.text(text, font_name=font_name,  font_size=font_size, x=x, y=y, alignment=alignment)
         
     # -----------Animations
     def launch_animation(self):

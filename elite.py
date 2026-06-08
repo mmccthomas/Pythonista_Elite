@@ -4,8 +4,8 @@ from typing import List, Optional
 import json
 import constants as cs
 # from pathlib import Path
-from constants import logger
-
+import logging
+logger = logging.getLogger(__name__)
                 
 @dataclass
 class GalaxySeed:
@@ -67,12 +67,22 @@ class GalaxySeed:
         
     @property
     def colour(self):
-        return self.a & 15
-        
+        # colour will indicate government
+        return (self.d // 8) & 7
+                
     @property
     def color(self):
-        return self.a & 15
+        return (self.d // 8) & 7
         
+    @property
+    def tech(self):
+        # 0 - 14
+        gov = (self.d // 8) & 7
+        econ = self.a & 7
+        if gov < 2:
+            econ |= 2            
+        return (econ ^ 7) + (self.c & 3) + (gov // 2) + (gov & 1)
+             
     @property
     def name(self):
         """
@@ -242,7 +252,7 @@ def load_game_json(cmdr, file_name):
             else:
                 setattr(cmdr, k, v)
                                                          
-        cmdr.name = path.stem.upper()
+        cmdr.name = path.stem.upper()        
     except FileNotFoundError:
         return False, "SAVE FILE NOT FOUND"
     except KeyError as e:

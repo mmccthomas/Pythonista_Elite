@@ -1,5 +1,6 @@
-import time
 import constants as cs
+import logging
+logger = logging.getLogger(__name__)
 # Mission State Constants
 MISSION_NONE = 0
 MISSION_1_HUNT = 1
@@ -19,7 +20,7 @@ class MissionManager:
         self.universe = gs.universe
         self.gfx = gs.gfx
         self.kbd = gs.kbd
-        self.car_state = None
+        self.state = 0
         
         # Mission 1 Text (The Constrictor)
         self.m1_brief_a = (
@@ -50,16 +51,16 @@ class MissionManager:
         )
 
         self.m1_pdesc = [
-            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.", # 0
-            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.", # 1
-            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.", # 2
-            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.", # 3
-            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.", # 4
-            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.", # 5
-            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD. POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.", #6
-            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.", #7
-            "THERE'S A REAL DEADLY PIRATE OUT THERE.", #8
-            "BOY ARE YOU IN THE WRONG GALAXY!" #9
+            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.",  # 0
+            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.",  # 1
+            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.",  # 2
+            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.",  # 3
+            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.",  # 4
+            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.",  # 5
+            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD. POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.",  # 6
+            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.",  # 7
+            "THERE'S A REAL DEADLY PIRATE OUT THERE.",  # 8
+            "BOY ARE YOU IN THE WRONG GALAXY!"  # 9
         ]
         self.m2_brief_a = (
             "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
@@ -127,9 +128,9 @@ class MissionManager:
         State machine handles setup and run states
         Entry assumes universe has been ckeared previously"""
         if self.gs.swat.universe[0].type == 0:
-            self.car_state = ST_SETUP
+            self.state = ST_SETUP
             
-        if self.car_state == ST_SETUP:
+        if self.state == ST_SETUP:
                         
             self.gfx.clear_display()
             self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
@@ -146,9 +147,9 @@ class MissionManager:
             # Keep ship at fixed distance for viewing
             self.gs.universe[0].location.z = 600
             self.gfx.update_screen()
-            self.car_state = ST_UPDATE
+            self.state = ST_UPDATE
             
-        if self.car_state == ST_UPDATE:
+        if self.state == ST_UPDATE:
             # Set a constant roll for the intro effect
             current_obj = self.universe[0]
             # Keep ship at fixed distance for viewing
@@ -166,6 +167,7 @@ class MissionManager:
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
         docked_planet_id = (docked_planet.x, docked_planet.y)
+        # logger.debug(f'{self.cmdr.mission=}')
         # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
         if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
             self.constrictor_briefing()
@@ -173,6 +175,7 @@ class MissionManager:
 
         # Trigger Mission 1 Debrief
         if self.cmdr.mission == MISSION_1_COMPLETE:
+            logger.debug(f'{self.state=}')
             self.constrictor_debrief()
             return MISSION_1_DEBRIEFED
 
@@ -183,6 +186,7 @@ class MissionManager:
 
         # Trigger Mission 2 Part 2: Reach Ceerdi (Planet 215, 84)
         if self.cmdr.mission == MISSION_2_START and docked_planet_id == (215, 84):
+            
             self.thargoid_brief_2()
             return MISSION_2_BRIEFED
 
@@ -194,56 +198,61 @@ class MissionManager:
         self.gs.current_screen = cs.SCR_PLANET_DATA
                                   
     def constrictor_debrief(self):
-        self.cmdr = self.gs.cmdr
-        self.cmdr.mission = MISSION_1_DEBRIEFED
-        self.cmdr.score += 256
-        self.cmdr.credits += 50000  # 5000.0 Credits
         
-        self.gfx.clear_display()
-        self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
-        self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
-        self.gfx.display_pretty_text(0, 5, "There will always be a place for you in Her Majesty's Space Navy.")
-        self.gfx.update_screen()
-        # self.wait_for_space()
-
-    def wait_for_space(self):
-        while not self.kbd.is_pressed("space"):
-            time.sleep(0.1)
+        if self.state == ST_SETUP:
+            logger.debug('')
+            # self.gs.cmdr.mission = MISSION_1_DEBRIEFED
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.credits += 50000  # 5000.0 Credits
+            self.state = ST_UPDATE
+            
+        if self.state == ST_UPDATE:
+            logger.debug('')
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
+            self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
+            self.gfx.display_pretty_text(0, 5, "There will always be a place for you in Her Majesty's Space Navy.")
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
+            self.gfx.update_screen()
             
     def thargoid_brief_1(self):
-       
-        self.gs.cmdr.mission = MISSION_2_START
         
-        self.gfx.clear_display()
-        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-        self.gfx.display_pretty_text(0, 3, self.m2_brief_a)
-        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-        self.gfx.update_screen()
+        if self.state == ST_SETUP:
+            self.state = ST_UPDATE
+        if self.state == ST_UPDATE:
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+            self.gfx.display_pretty_text(0, 3, self.m2_brief_a)
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+            self.gfx.update_screen()
         
         # read_key
 
-    def thargoid_mission_brief_2(self):
+    def thargoid_brief_2(self):
     
-        self.gs.cmdr.mission = MISSION_2_BRIEFED
-        self.gfx.clear_display()
-        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-        self.gfx.display_pretty_text(0, 3, self.m2_brief_b)
-        self.gfx.display_pretty_text(0, 10, self.m2_brief_c)
-        # self.gfx.draw_sprite(IMG_BLAKE, 352, 46)
-        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-        self.gfx.update_screen()
+        if self.state == ST_SETUP:
+            self.state = ST_UPDATE
+        if self.state == ST_UPDATE:
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+            self.gfx.display_pretty_text(0, 3, self.m2_brief_b)
+            self.gfx.display_pretty_text(0, 10, self.m2_brief_c)
+            # self.gfx.draw_sprite(IMG_BLAKE, 352, 46)
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+            self.gfx.update_screen()
         # read_key
     
     def thargoid_debrief(self):
-        
-        self.gs.cmdr.mission = MISSION_2_COMPLETE
-        self.gs.cmdr.score += 256
-        self.gs.cmdr.energy_unit = 2
-        self.gfx.clear_display()
-        self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-        self.gfx.display_centre_text(3, "Well done Commander.", 140, cs.GOLD)
-        self.gfx.display_pretty_text(0, 4, self.m2_debrief)
-        self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-        self.gfx.update_screen()
+        if self.state == ST_SETUP:
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.energy_unit = 2
+            self.state = ST_UPDATE
+        if self.state == ST_UPDATE:
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+            self.gfx.display_centre_text(3, "Well done Commander.", 140, cs.GOLD)
+            self.gfx.display_pretty_text(0, 4, self.m2_debrief)
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+            self.gfx.update_screen()
         # read_key
 

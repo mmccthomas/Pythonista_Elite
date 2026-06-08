@@ -4,9 +4,10 @@
 # These have mostly been created using AI and are not original code
 
 from vector import set_init_matrix
-from constants import logger
 import constants as cs
 import math
+import logging
+logger = logging.getLogger(__name__)
 
 ELITE_TEXT = "./elitetx3.png"
 # Constants for the carousel

@@ -11,11 +11,13 @@ from wireframe_3d_2 import load_wireframes_from_json, WireframeObject, WireSpher
 from wireframe_3d_2 import WireCube, Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
-from constants import logger
+import logging
+logger = logging.getLogger(__name__)
 NOSEV = 2
 ROOFV = 1
 SIDEV = 0
 PLANET = 0
+MIN_FIRING_DISTANCE = 16384  # 8192
 
 
 def rand255():
@@ -77,7 +79,10 @@ Ship = UnivObject
 
 class Swat:
     """Special Weapons And Tactics — space combat manager """
- 
+    @staticmethod
+    def _cos(deg):
+        return math.cos(math.radians(deg))
+        
     def __init__(self, game_state):
         self.gs = game_state          # holds cmdr, ship_list, gfx, snd, etc.
 
@@ -163,7 +168,9 @@ class Swat:
                      (cs.FLIGHT_RECT.h + 4 * cs.BORDER) / cs.H)  # height
         try:
             self.planet_image.planet.remove_from_parent()
-        except AttributeError as e:
+        except AttributeError:
+            pass
+        except Exception as e:
             logger.debug(f'{e}')
         self.planet_image = Planet(size=500, position=cs.FLIGHT_RECT.center(), clip_rect=clip_rect)
         img = self.planet_image.planet
@@ -185,7 +192,9 @@ class Swat:
                      (cs.FLIGHT_RECT.h + 4 * cs.BORDER) / cs.H)  # height
         try:
             self.sun_image.planet.remove_from_parent()
-        except AttributeError as e:
+        except AttributeError:
+            pass
+        except Exception as e:
             logger.debug(f'{e}')
         self.sun_image = Planet(size=800, position=cs.FLIGHT_RECT.center(),
                                 clip_rect=clip_rect,
@@ -273,12 +282,11 @@ class Swat:
                     self.ship_count[ship_type] = self.ship_count.get(ship_type, 0) + 1
                 elif obj.type == cs.SHIP_PLANET:
                     # generate planet colour, matches charts
-                    logger.debug('gen planet')
                     try:
                         # spin on its axis
                         obj.roty = -127
-                        if cs.WIREFRAME:
-                            obj.model.color = cs.COLOUR_LIST[self.gs.docked_planet.colour]
+                        #if cs.WIREFRAME:
+                        #    obj.model.color = cs.COLOUR_LIST[self.gs.docked_planet.colour]
                     except (AttributeError, IndexError):
                         pass
                 return i
@@ -473,7 +481,7 @@ class Swat:
 
     def explode_object(self, un: int):
         gs = self.gs
-        logger.debug('exploding')
+        # logger.debug('exploding')
         gs.cmdr.score += 1
         if (gs.cmdr.score & 255) == 0:
             gs.info_message("Right On Commander!")
@@ -580,7 +588,7 @@ class Swat:
         gs = self.gs
         if (self.ship_count.get(cs.SHIP_TRANSPORTER, 0) != 0
                 or self.ship_count.get(cs.SHIP_SHUTTLE, 0) != 0
-                or rand255() < 253 or gs.auto_pilot):
+                or rand255() < 253 or gs.auto_pilot or gs.on_final_approach):
             return
         ship_type = cs.SHIP_SHUTTLE if rand255() & 1 else cs.SHIP_TRANSPORTER
         self.launch_enemy(1, ship_type, cs.FLG_HAS_ECM | cs.FLG_FLY_TO_PLANET, 113)
@@ -613,12 +621,14 @@ class Swat:
         missile = self.universe[un]
         gs = self.gs
         cnt2 = 0.223
-
+        # If E.C.M. is active, destroy the missile
         if self.ecm_active:
             gs.sound.play_sample(cs.SND_EXPLODE)
             missile.flags |= cs.FLG_DEAD
             return
-
+        #  If the missile is hostile towards us, then check how close it is. If it
+        # hasn't reached us, jump to part 3 so it can streak towards us, otherwise
+        # we've been hit, so process a large amount of damage to our ship
         if missile.target == 0:
             if missile.distance < 256:
                 missile.flags |= cs.FLG_DEAD
@@ -627,6 +637,10 @@ class Swat:
                 return
             vec = Vector(missile.location.x, missile.location.y, missile.location.z)
         else:
+            # Otherwise see how close the missile is to its target. If it has not yet
+            # reached its target, give the target a chance to activate its E.C.M. if it
+            # has one, otherwise jump to TA19 with K3 set to the vector from the target
+            # to the missile
             target = self.universe[missile.target]
             vec = Vector(
                 missile.location.x - target.location.x,
@@ -662,7 +676,35 @@ class Swat:
             missile.acceleration = 3
         elif rand255() >= 200:
             missile.acceleration = -2
-
+            
+    def ship_fire(self, ship):
+        gs = self.gs
+        gfx = self.gs.gfx
+        # Draw laser line from ship toward player (origin)
+        # Project ship position to screen
+        if ship.location.z > 0:
+            scale = gs.renderer.focal_length / ship.location.z
+            sx = gs.screen_cx + ship.location.x * scale
+            sy = gs.screen_cy - ship.location.y * scale
+            # Nose vector points toward us (negative z), so laser fires from
+            # ship toward origin — extend in nosev direction to screen edge
+            nose = ship.rotmat[NOSEV]
+            # A large step along the nose direction in view space
+            far = 10000.0
+            ex = ship.location.x + nose.x * far
+            ey = ship.location.y + nose.y * far
+            ez = ship.location.z + nose.z * far
+            if ez > 0:
+                escale = gs.renderer.focal_length / ez
+                ex_screen = gs.screen_cx + ex * escale
+                ey_screen = gs.screen_cy - ey * escale
+            else:
+                # Line passes through or behind camera — aim at screen centre
+                ex_screen = gs.screen_cx
+                ey_screen = gs.screen_cy
+            gfx.draw_line(sx, sy, ex_screen, ey_screen,
+                          colour=cs.WHITE, width=2)
+                          
     def tactics(self, un: int):
         gs = self.gs
         ship = self.universe[un]
@@ -676,7 +718,7 @@ class Swat:
             return
         if flags & cs.FLG_INACTIVE:
             return
-
+        # If this is a missile, jump up to the missile code in part 1.
         if ship_type == cs.SHIP_MISSILE:
             if flags & cs.FLG_ANGRY:
                 self.missile_tactics(un)
@@ -684,11 +726,15 @@ class Swat:
 
         if ((un ^ gs.mcount) & 7) != 0:
             return
-
+        # If this is the space station and it is hostile, consider spawning a cop
+        # (6.2% chance, up to a maximum of seven) and we're done
         if ship_type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
             if gs.pilot.auto_pilot_active and gs.space.safe_mode:
                 # dont spawn if on autopilot  its just rude
                 return
+            # If this is the space station and it is not hostile, consider spawning
+            #  (0.8% chance if there are no Transporters around) a Transporter or Shuttle
+            # (equal odds of each type) and we're done
             if flags & cs.FLG_ANGRY:
                 if (random.randint(0, 255)) < 240:
                     return
@@ -698,47 +744,58 @@ class Swat:
             else:
                 self.launch_shuttle()
             return
-
+        # If this is a rock hermit, consider spawning (22% chance) a highly
+        # aggressive and hostile Sidewinder, Mamba, Krait, Adder or Gecko (equal
+        # odds of each type) and we're done
         if ship_type == cs.SHIP_HERMIT:
             if rand255() > 200:
                 self.launch_enemy(un, cs.SHIP_SIDEWINDER + (rand255() & 3),
                                   cs.FLG_ANGRY | cs.FLG_HAS_ECM, 113)
                 ship.flags |= cs.FLG_INACTIVE
             return
-
+        # Recharge the ship's energy banks by 1
         if ship.energy < self.ship_list[ship_type].energy:
             ship.energy += 1
-
+        # If this is a lone Thargon without a mothership, set it adrift aimlessly
+        # and we're done
         if ship_type == cs.SHIP_THARGLET and self.ship_count.get(cs.SHIP_THARGOID, 0) == 0:
             ship.flags = 0
             ship.velocity //= 2
             return
-
+        # If this is a trader, 80% of the time we're done, 20% of the time the
+        # trader performs the same checks as the bounty hunter
         if flags & cs.FLG_SLOW:
             if rand255() > 50:
                 return
-
+        #  If this is a bounty hunter (or one of the 20% of traders) and we have been
+        # really bad (i.e. a fugitive or serious offender), the ship becomes hostile
+        #  (if it isn't already)
         if flags & cs.FLG_POLICE:
             if gs.cmdr.legal_status >= 64:
                 flags |= cs.FLG_ANGRY
                 ship.flags = flags
-
+        # If the ship is not hostile, then either perform docking manoeuvres (if
+        # it's docking) or fly towards the planet (if it isn't docking) and we're
+        # done
         if not (flags & cs.FLG_ANGRY):
             if (flags & cs.FLG_FLY_TO_PLANET) or (flags & cs.FLG_FLY_TO_STATION):
                 gs.pilot.auto_pilot_ship(self.universe[un])
             return
 
         # Ship is angry — attack!
+        #  If the ship is hostile, and a pirate, and we are within the space station
+        # safe zone, stop the pirate from attacking by removing all its aggression
         if self.ship_count.get(cs.SHIP_CORIOLIS, 0) or self.ship_count.get(cs.SHIP_DODEC, 0):
             if not (flags & cs.FLG_BOLD):
                 ship.bravery = 0
-
+        # If this is an Anaconda, consider spawning (22% chance) a Worm (61% of the
+        # time) or a Sidewinder (39% of the time)
         if ship_type == cs.SHIP_ANACONDA:
             if rand255() > 200:
                 spawn = cs.SHIP_WORM if rand255() > 100 else cs.SHIP_SIDEWINDER
                 self.launch_enemy(un, spawn, cs.FLG_ANGRY | cs.FLG_HAS_ECM, 113)
                 return
-
+        # Rarely (2.5% chance) roll the ship by a noticeable amount
         if rand255() >= 250:
             ship.rotz = rand255() | 0x68
             if ship.rotz > 127:
@@ -746,14 +803,21 @@ class Swat:
 
         maxeng = self.ship_list[ship_type].energy
         energy = ship.energy
-
+        # If the ship has at least half its energy banks full, jump to part 6 to
+        # consider firing the lasers
         if energy < maxeng // 2:
+            # If the ship is into the last 1/8th of its energy, and this ship type has
+            # an escape pod fitted, then rarely (10% chance) the ship launches an escape
+            # pod and is left drifting in space
             if energy < maxeng // 8 and rand255() > 230 and ship_type != cs.SHIP_THARGOID:
                 ship.flags &= ~cs.FLG_ANGRY
                 ship.flags |= cs.FLG_INACTIVE
                 self.launch_enemy(un, cs.SHIP_ESCAPE_CAPSULE, 0, 126)
                 return
-
+            # If the ship is not into the last 1/8th of its energy, jump to part 5 to
+            # consider firing a missile
+            # Randomly decide whether to fire a missile (or, in the case of Thargoids,
+            # release a Thargon), and if we do, we're done
             if (ship.missiles != 0 and self.ecm_active == 0
                     and ship.missiles >= (rand255() & 31)
                     and not ship.has_fired):
@@ -765,16 +829,27 @@ class Swat:
                     self.launch_enemy(un, cs.SHIP_MISSILE, cs.FLG_ANGRY, 126)
                     gs.info_message("INCOMING MISSILE")
                 return
-
+        # Calculate the dot product of the ship's nose vector (i.e. the direction it
+        # is pointing) with the vector between us and the ship. This value will help
+        # us work out later on whether the enemy ship is pointing towards us, and
+        # therefore whether it can hit us with its lasers.
         nvec = unit_vector(ship.location)
         direction = vector_dot_product(nvec, ship.rotmat[NOSEV])
-
-        if (ship.distance < 8192 and direction <= -0.833
+        # If the ship is not pointing at us, skip to the next part
+        if (ship.distance < MIN_FIRING_DISTANCE and direction <= -0.833  # self._cos(146.4)
                 and self.ship_list[ship_type].laser_strength != 0):
-            if direction <= -0.917:
+            # If the ship is pointing at us but not accurately, fire its laser at us and
+            # skip to the next part
+            if direction <= -0.917:  # self._cos(156.5)
                 ship.flags |= cs.FLG_FIRING | cs.FLG_HOSTILE
-            if direction <= -0.972:
-                gs.msg.text = f'{ship.name} firing '
+                gs.msg_left.text = f'{ship.name} firing '
+                self.ship_fire(ship)
+            # If we are in the ship's crosshairs, register some damage to our ship, slow
+            # down the attacking ship, make the noise of us being hit by laser fire, and
+            # we're done
+            if direction <= -0.972:  # self._cos(166.4)
+                gs.msg_left.text = f'{ship.name} firing '
+                self.ship_fire(ship)
                 gs.space.damage_ship(self.ship_list[ship_type].laser_strength,
                                      ship.location.z >= 0.0)
                 ship.acceleration -= 1
@@ -819,7 +894,7 @@ class Swat:
                 ship.acceleration = -1
             return
 
-        if direction <= -0.167:
+        if direction <= -0.167:  # self._cos(99.6)
             ship.acceleration = -1
         elif direction >= cnt2:
             ship.acceleration = 3
@@ -874,7 +949,7 @@ class Swat:
         gs = self.gs
         cmdr = gs.cmdr
         if (cmdr.mission == 1 and cmdr.galaxy_number == 1
-                and gs.docked_planet.d == 144 and gs.docked_planet.b == 33
+                and gs.docked_planet.x == 144 and gs.docked_planet.y == 33
                 and self.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
             ship_type = cs.SHIP_CONSTRICTOR
         else:
@@ -914,8 +989,10 @@ class Swat:
             self.universe[newship].bravery = ((rand255() * 2) | 64) & 127
 
     def check_for_others(self):
+        """spawn other ship """
         gov = self.gs.current_planet_data.government
         rnd = rand255()
+        # skip if not anarchy
         if gov != 0 and (rnd >= 90 or (rnd & 7) < gov):
             return
         if rand255() < 100:

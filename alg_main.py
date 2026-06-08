@@ -25,9 +25,11 @@ from docked import Docked
 from intro import EliteIntro
 from missions import MissionManager
 import constants as cs
-from constants import logger
+import logging
+#from constants import logger
 from vector import unit_vector
-
+cs.setup_logging()
+logger = logging.getLogger(__name__)
 
 ESCAPE_SETUP = 1
 ESCAPE_FLEE = 2
@@ -82,7 +84,7 @@ class Sound():
 
 
 class MyShip:
-    max_speed = 40
+    max_speed = 50
     max_roll = 31
     max_climb = 8
     max_fuel = cs.MAX_FUEL
@@ -141,7 +143,7 @@ class MainLoop():
        self.detonate_bomb = False
        self.instant_dock = cs.INSTANT_DOCK
        self.warp_stars = False
-            
+       
        self.docked_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.hyperspace_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.current_planet_data = None
@@ -205,6 +207,7 @@ class MainLoop():
            
        except AttributeError:
            pass
+       cs.setup_logging()
        # Stub universe array
        self.universe = [None] * cs.MAX_UNIV_OBJECTS
        self.ship_count = {}
@@ -344,9 +347,9 @@ class MainLoop():
         self.pilot.auto_pilot_ship_(self.ship, director_only=director_only)   # modifies ship in-place
         if not director_only:
            # flight speed tracks velocity
-           self.flight_speed = min(22 * (1 + 4 * self.pilot.escape), self.ship.velocity)
-           y = 2 * self.flight_speed / self.myship.max_speed - 1.0
-           
+           self.flight_speed = min(50 * (1 + 4 * self.pilot.escape), self.ship.velocity)
+           # control joystick
+           y = 2 * self.flight_speed / self.myship.max_speed - 1.0           
            self.parent_scene.joystick_thrust.set_position(y=y)
              
     # ── Escape sequence ───────────────────────────────────────────────────────────
@@ -458,7 +461,8 @@ class MainLoop():
             
     def _entering_dock(self):
         # check mission brief and set keys
-        self.current_screen = cs.SCR_MISSION
+        # self.current_screen = cs.SCR_MISSION
+        logger.debug('')        
         self.swat.clear_universe()
                    
     def launch(self):
@@ -476,6 +480,7 @@ class MainLoop():
                 self.break_mode = 'launch'
                 if self.docked:
                    self.swat.clear_universe()
+                   logger.debug('clearing universe after launch')
                    self.current_screen = cs.SCR_BREAK_PATTERN
                 else:
                     self.current_screen = cs.SCR_FRONT_VIEW
@@ -508,7 +513,13 @@ class MainLoop():
             case 'Menu':
                 self.game_paused = True
                 self.menu_screen()
-    
+                
+        if self.current_screen in cs.SCR_OUTSIDE:
+               pass
+               #self.space.show_planet()
+        else:
+                self.space.hide_planet()
+                
     #  -------Screens
     def equipment_screen(self):
         self.in_dock.equip_ship()
@@ -680,12 +691,15 @@ class MainLoop():
                 
     def mission_screen(self):
         mission_phase = self.missions.check_mission_brief(self.docked_planet)
+        # logger.debug('')
         key = self.kbd.poll()
         match key:
             case 'OK':
                 self.cmdr.mission = mission_phase
                 self.current_screen = cs.SCR_COMMANDER
+                self.missions.state = 0
                 self.swat.clear_universe()
+                self.space.dock_player()
                 self.sound.stop_midi()
                 
     def save_commander_screen(self):
@@ -813,10 +827,10 @@ class MainLoop():
         if self.pilot.auto_pilot_active:
             self.auto_dock()
             # if self.docking_on.check():
-            self.info_message(f"Docking Computers On ...{self.pilot.flight_phase} {(self.pilot.distance_to_target/1000):.0f}km")
-        else:
-            if not self.space.hyper_ready:
-                self.auto_dock(director_only=True)
+            # self.info_message(f"Docking Computers On ...{self.pilot.flight_phase} {(self.pilot.distance_to_target/1000):.0f}km")
+        # else:
+        #    if not self.space.hyper_ready:
+        #        self.auto_dock(director_only=True)
  
         self.space.update_universe()
         
@@ -864,6 +878,7 @@ class MainLoop():
                 self.space.roll_pitch_control(key)
             case key if key.startswith('<'):
                 self.flight_speed = (float(key.removeprefix('<')) + 1.0) * 0.5 * self.myship.max_speed
+                # logger.debug(f'speed {self.flight_speed}')
                     
             case 'Look Fwd':
                 self.current_screen = cs.SCR_FRONT_VIEW
@@ -962,20 +977,17 @@ class MainLoop():
                         'Look Aft', 'Fire Laser', 'Compass Planet']:
             self.keypad.key_change(keyname, enabled=enable)
         for keyname in ['To Sun', 'To Planet', 'To Station']:
-            self.keypad.key_change(keyname, enabled=cs.TELEPORT)
+            self.keypad.key_change(keyname, enabled=cs.TELEPORT and enable)
             
         self.keypad.key_change('Cancel Docking', name='Docking')
         self.keypad.key_change('Compass Sun', name='Compass Planet')
-        
-        if enable:
-            self.keypad.key_change('Equip', name='Inventory')
-            self.keypad.key_change('Market', name='Target Prices')
-            self.keypad.key_change('Trade', name='Cargo')
-        else:
-            self.keypad.key_change('Inventory', name='Equip')
+        self.keypad.key_change('Equip', enabled=not enable)
+        self.keypad.key_change('Trade', enabled=not enable)
+        if enable:            
+            self.keypad.key_change('Market', name='Target Prices')            
+        else:            
             self.keypad.key_change('Target Prices', name='Market')
-            self.keypad.key_change('Cargo', name='Trade')
-        
+                    
         self.additional_items = {'ecm': 'ECM',
                                  'energy_bomb': 'Bomb',
                                  'docking_computer': 'Docking',
@@ -1014,16 +1026,16 @@ class MainLoop():
            # could use hyper_ready, docked
            # launch will be docked = false
            # docking is docked = True
-           logger.debug('finished break')
+           logger.debug(f'finished break {self.break_mode}')
            match self.break_mode:
                case 'launch':
                    self.current_screen = cs.SCR_LAUNCH
                case 'docking':
-                   self.current_screen = cs.SCR_CMDR_STATUS
+                   self.current_screen = cs.SCR_MISSION
                case 'hyperspace':
                    self.current_screen = cs.SCR_FRONT_VIEW
                case _:
-                   self.current_screen = cs.SCR_CMDR_STATUS
+                   self.current_screen = cs.SCR_MISSION
                    
            # self.gfx.launch_animation()
            self.launch_sequence = LAUNCH_SETUP
@@ -1099,13 +1111,14 @@ def loop():
                   40: ['Select', '$Onen'],
                   70: ['Launch'],
                   # 150: ['To Station'],
-                  # 152: ['Docking'],
-                  100: ['Hyper Space'],
-                  131: [],
+                  #120: ['Docking'],
+                  # 100: ['Hyper Space'],
+                  
+                  140: ['Status'],
                   132: [],  # complete
                   199: [],
-                  300: ['Docking'],
-                  
+                  #300: ['Docking'],
+                  142: ['Launch'],
                   340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
@@ -1113,11 +1126,11 @@ def loop():
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(500):
+    for i in range(5000):
        logger.debug(i)
        if i in operations:
-          if i == 131:
-              pass
+          if i == 140:
+               pass
           for command in operations[i]:
               g.input_queue.put(command)
           print(i, g.docked_planet, command)

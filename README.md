@@ -43,8 +43,8 @@ significant changes:
    
 2. 2 joysticks, one for roll, pitch, the other for thrust
     Thrust is direct and will stay set when not touched.
-    It will change when thrust is controlled by autopilot.
-    Fire button fires whenever held
+    It will react when thrust is controlled by autopilot.
+    Fire button fires whenever held, so can continuously fire.
     
 3. Screen can be varied. Hud left and right sections are fixed size. Scanner width changes with screen size
    flight window fills screen. Watch out if original code uses fixed window
@@ -91,9 +91,9 @@ significant changes:
 15. Python is all about readability. so prioritise this above sticking rigidly to converted c code
     example use GalaxySeed x an y rather than d and a 
     
-16. Added colour to planets, based upon galaxy seed s0_hi bits 3-0 
+16. Added colour to planets, based upon government galaxy seed s1_lo bits 7-4
     colour list is cs.COLOUR_LIST, curated to show sensible colours, no primary or dark colours
-    Chart views also use planet radius scaled to  9-23 pixels for short range and 3-7 pixels for galactic chart
+    Chart views also use planet tech level scaled to  9-23 pixels for short range and 3-7 pixels for galactic chart
     colour and size allows you to visually align galactic and short range chart
             
 17. Implemented touch on charts, because it feels natural, rather than having to hold joystick
@@ -145,13 +145,15 @@ autopilot is still not bulletproof
 works from long distance via planet pole and ip
 Need to check entry at all phases.
 after teleporting to Sun, next long distance
-autopilot locks to sun instead of planet
-issue is flight loop starting before completing hyperspace, so a/p finds station
-hyperspace countdown should be before break
+autopilot wanders off course
 
 Debug explosion animation vs FLG_REMOVE status
 ships simply disappear
 
+Check endgame mission 1
+
+Add laser lines to firing ships
+they dont seem to fire at present
 
 Finally:
 

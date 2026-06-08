@@ -2,12 +2,10 @@ import math
 from dataclasses import dataclass
 import constants as cs
 from game_engine import Point2
-from constants import logger
 from elite import GalaxySeed
-# Ratings and Equipment Types
-
-# LASER_NAMES = {0: "None", 1: "Pulse", 2: "Beam", 3: "Military", 4: "Mining"}
 from constants import PULSE_LASER, BEAM_LASER, MILITARY_LASER, MINING_LASER
+import logging
+logger = logging.getLogger(__name__)
 
 # Economy and government type strings
 ECONOMY_TYPES = [
@@ -281,8 +279,9 @@ class Docked:
                        gfx.display_text(c, r, planet_name)
                        break
                     
-            # planet seed has property radius
-            blob_size = round(planet.glx.radius / 300)
+            # planet seed has property tech 0-14
+            blob_size = round(planet.glx.tech / 3 + 2) * 4
+            
             colour = cs.COLOUR_LIST[planet.glx.colour]
             gfx.plot_pixel(*coord.as_tuple(), colour, blob_size)
             
@@ -336,9 +335,10 @@ class Docked:
         
         for _ in range(256):
             p = self._to_screen(Point2(glx.x, glx.y))
-            size = round(glx.radius / 1000)
+            # 0-14 -> 2-6
+            blob_size = round(glx.tech/ 3 + 2) * 1.5
             colour = cs.COLOUR_LIST[glx.colour]
-            gfx.plot_pixel(*p.as_tuple(), colour, size)
+            gfx.plot_pixel(*p.as_tuple(), colour, blob_size)
             self._next_planet(glx)
         
         self.move_if_changed()
@@ -376,10 +376,10 @@ class Docked:
     def laser_type(strength):
         
         mapping = {
-            cs.PULSE_LASER:    LASER_NAMES[0],
-            cs.BEAM_LASER:     LASER_NAMES[1],
-            cs.MILITARY_LASER: LASER_NAMES[2],
-            cs.MINING_LASER:   LASER_NAMES[3],
+            PULSE_LASER:    LASER_NAMES[0],
+            BEAM_LASER:     LASER_NAMES[1],
+            MILITARY_LASER: LASER_NAMES[2],
+            MINING_LASER:   LASER_NAMES[3],
         }
         return mapping.get(strength, LASER_NAMES[4])
 
@@ -390,7 +390,7 @@ class Docked:
         gs.current_screen = cs.SCR_CMDR_STATUS
 
         gfx.clear_display()
-        gs.swat.clear_universe()
+        # gs.swat.clear_universe()
         gfx.display_centre_text(0, f"COMMANDER {cmdr.name}", 140, cs.GOLD)
         gfx.display_centre_text(1, self.incoming_message, 140, cs.GOLD)
         line_no = 4
@@ -469,7 +469,15 @@ class Docked:
         ]:
             if mount:
                 item(f"{label} {self.laser_type(mount)} Laser")
-
+        # Add inventory here as it makes sense       
+        gfx.display_text(0, line_no, "INVENTORY", 140, cs.WHITE)
+        line_no += 1
+        for i in range(17):
+            if cmdr.current_cargo[i] > 0:
+                sm = gs.trade.stock_market[i]                
+                gfx.display_text(x, line_no, f"{sm['name']} {cmdr.current_cargo[i]}{UNIT_NAMES[sm['units']]}")
+                line_no += 1
+                
         self.gfx.text_render()
         
     # -------Markets

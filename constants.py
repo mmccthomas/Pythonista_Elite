@@ -6,16 +6,17 @@ from scene import Rect
 from PIL import Image
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    # Added .%(msecs)03d after the timestamp
-    format='[%(asctime)s.%(msecs)03d] %(levelname)s in %(funcName)s (line %(lineno)d): %(message)s',
-    datefmt='%H:%M:%S'
-)
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s.%(msecs)03d] %(levelname)s in %(name)s/%(funcName)s (line %(lineno)d): %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    # Set the root level, or specific package level
+    logging.getLogger().setLevel(logging.DEBUG)
+
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Set root logger level to DEBUG
-
 
 def is_debug_level():
     return logging.getLevelName(logger.getEffectiveLevel()) == 'DEBUG'
@@ -23,11 +24,12 @@ def is_debug_level():
 # --------Global modes
 SOUND = 0
 WIREFRAME = 0
-YAW_COUPLING = 0.15
+YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True
 INSTANT_DOCK = False
 MAX_FUEL = 100
+FLIGHT_DIRECTOR = False
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -164,9 +166,13 @@ YELLOW = (1.0, 1.0, 0)
 KHAKI = (1.0, 1.0, 0.5)
 WHITE = (1.0, 1.0, 1.0)
 GREY_2 = (0.67, 0.67, 0.67)  # scanner
-# 15 colours for planets
-COLOUR_LIST = [FOREST_GREEN, TEAL, BLUE_GREEN, PALE_GREEN,
-               CYAN, MAROON, PURPLE,  OLIVE,
+# 7 colours for planets
+GOVERNMENT_TYPES = [
+    "Anarchy", "Feudal", "Multi-Government", "Dictatorship",
+    "Communist", "Confederacy", "Democracy", "Corporate State"
+]
+COLOUR_LIST = [ORANGE, CORAL, FOREST_GREEN, TEAL, BLUE_GREEN, PALE_GREEN,
+               CYAN, MAROON, KHAKI, PURPLE,  OLIVE,
                SAND_BLUE, POND_SCUM, AQUA, BARBIE,
                MAGENTA, ORANGE, CORAL, KHAKI]
 
