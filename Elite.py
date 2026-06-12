@@ -10,6 +10,7 @@ import math
 import queue
 import traceback
 import ui
+import logging
 from scene import Scene, run, ShapeNode, LabelNode
 from scene import Node, SpriteNode, Texture
 from image_helpers import set_colorkey, pil_to_ui
@@ -21,7 +22,8 @@ from wireframe_3d_2 import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad
-import logging
+# turn off logging for this module.
+# it seems to be on by default
 target_logger = logging.getLogger('PIL.PngImagePlugin')
 target_logger.setLevel('ERROR')
 
@@ -273,19 +275,20 @@ class EliteScene(Scene):
             
     def draw(self):
         # draw whatever is in mainloop universe
-        objects = [obj
-                   for obj in self.mainloop.universe
-                   if obj.type != 0]
-        
-        # Draw all objects
-        for obj in objects:
-            if obj.exploding:
-                # Draw the explosion instead of the ship
-                self.renderer.explode(obj.model, self.camera, self.size)
-                
-            else:
-                # Draw normal ship (Renderer.draw checks .visible)
-                self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
+        if self.mainloop.current_screen in cs.SCR_OUTSIDE:     
+            objects = [obj
+                       for obj in self.mainloop.universe
+                       if obj.type != 0]
+            
+            # Draw all objects
+            for obj in objects:
+                if obj.exploding:
+                    # Draw the explosion instead of the ship
+                    self.renderer.explode(obj.model, self.camera, self.size)
+                    
+                else:
+                    # Draw normal ship (Renderer.draw checks .visible)
+                    self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
                 
     def key_change(self, key_name, name=None, color=None, enabled=None):
         # change appearance of key

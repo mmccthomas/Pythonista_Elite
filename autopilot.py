@@ -30,6 +30,10 @@ def sgn(x):
         return -1
     return 0
 
+
+PLANET = 0
+STATION = 1
+SUN = 2
         
 NOSEV = 2
 ROOFV = 1
@@ -45,7 +49,7 @@ CLOSE_TO_POLE = 200
 CLOSE_TO_IP = 200
 CLOSE_TO_STATION = 1000
 DOCKED_DIST = 160
-                
+             
 # Alignment thresholds (cosines)
 ALIGNED_TIGHT = _cos(5)    # 0.9962 - good enough to accelerate
 ALIGNED_LOOSE = _cos(15)   # 0.9659 - broadly pointing at target
@@ -68,11 +72,6 @@ class Pilot:
         self.target_loc = Vector()
         self.angle = 0
         self.distance_to_target = 0
-        
-        self.integral_roll = 0
-        self.prev_error_roll = 0
-        self.integral_climb = 0
-        self.prev_error_climb = 0
         self.escape = False
    
     # Experimental functions
@@ -88,6 +87,7 @@ class Pilot:
                                                            
     def steer_to_origin(self, target, fast=False):
         """Return (roll, pitch) to steer target unit vector toward (0, 0, -1)."""
+        MAX_PITCH = 8
         x, y, z = unit_vector(target).to_tuple
     
         # Invert the rotation formulas for small angles:
@@ -97,7 +97,7 @@ class Pilot:
         # logger.debug(f'{x=:.3f} {y=:.3f} {z=:.3f}')
         # alpha = -(x/y)
         # beta = (x*x + y*y)/ (y *z)
-        if math.isclose(x, 0, abs_tol=0.01) and math.isclose(y, 0, abs_tol=0.01):
+        if math.isclose(x, 0, abs_tol=0.001) and math.isclose(y, 0, abs_tol=0.001):
             alpha = 0
         else:
             alpha = -atan2(x, y)  # radians needed to null out x
@@ -106,7 +106,7 @@ class Pilot:
         # Convert back to control units: alpha = roll / 256 / 8
         if fast:
             roll = int(max(-31, min(31, -alpha * 256 * 8)))
-            pitch = int(max(-8, min(8, beta * 256 * 8)))
+            pitch = int(max(-MAX_PITCH, min(MAX_PITCH, beta * 256 * 8)))
         else:
             roll = -alpha
             pitch = beta
@@ -146,7 +146,7 @@ class Pilot:
            
         # self.gs.msg.text = f'AP control inputs {space.flight_climb:+.3f}, {space.flight_roll:+.3f}'
          
-        # --- Velocity profile ---
+        # --- Velocity profile
         # Distance at which we should be down to minimum speed
         STOP_DIST = 100
         # Distance at which we start braking (half-way heuristic,
@@ -170,163 +170,41 @@ class Pilot:
         else:
             ship.velocity = MIN_SPEED
             
+    # ------ AI ship autopilot        
     def fly_to_vector__(self, ship, vec):
-        """
-        Used for ai ship only
-        Calculates the necessary rotation and acceleration for a ship
-        to point toward and move to a specific vector.
-        """
-        rat = 3
-        rat2 = _cos(80)
-        # cnt2 = _cos(36)
-
-        # Get normalized vector to target
-        nvec = unit_vector(vec)
-                
-        # Tells us if the target is in front of or behind us
-        direction = vector_dot_product(nvec, ship.rotmat[NOSEV])
-        
-        if direction < _cos(131):
-            rat2 = 0
-
-        dir_up = vector_dot_product(nvec, ship.rotmat[ROOFV])
-
-        # If target is far behind, perform a hard turn
-        if direction < _cos(149):
-            ship.rotx = -7 * dir_up  # make roll proportional
-            ship.rotz = 0
-            # self.gs.msg2.text = f'Accn:{ship.acceleration} Rotx:{ship.rotx:.3f} Rotz:{ship.rotz:.3f}'
-            return
-
-        ship.rotx = 0
-        # Pitch control
-        if (abs(dir_up) * 2) >= rat2:
-            ship.rotx = -rat * dir_up  # proportional control
-            
-        # Roll control
-        if abs(ship.rotz) < 16:
-            # dot product with ship side vector (rotmat[SIDEV])
-            dir_side = vector_dot_product(nvec, ship.rotmat[SIDEV])
-            ship.rotz = 0
-
-            if (abs(dir_side) * 2) >= rat2:
-                ship.rotz = -rat * dir_side  # < 0 else -rat
-                if ship.rotx < 0:
-                    ship.rotz = -ship.rotz
-
-        # Acceleration control
-        # if direction <= -0.167:
-        #    ship.acceleration = -1
-        # elif direction >= cnt2:
-        #    ship.acceleration = 3
-        # self.gs.msg2.text = f'Accn:{ship.acceleration} Rotx:{ship.rotx:.3f} Rotz:{ship.rotz:.3f}'
+        """ Used for ai ship only
+            to point toward and move to a specific vector.
+        """                      
+        ship.rotmat[NOSEV] = unit_vector(vec) 
+        ship.rotx = ship.rotz = 0                
 
     def fly_to_planet(self, ship):
-        """Points the ship toward the planet (Universe object 0)."""
-        H = 25000
-        planet = self.universe[0]
-        
-        # fly to North Pole
-        north_pole = planet.location + planet.rotmat[ROOFV] * H
-        vec = north_pole - ship.location
-        # self.target = north_pole
-        self.fly_to_vector__(ship, vec)
-
-    def fly_to_initial_point(self, ship):
-        """
-        Points the ship toward a spot 768 (8*96)units in front
-        of the station's docking bay.
-        """
-        station = self.universe[1]
-        vec = station.location - ship.location
-        # Offset target point using the station's forward orientation (rotmat[NOSEV])
-        vec = vec + station.rotmat[NOSEV] * 768
-        # self.target = station.location + station.rotmat[NOSEV] * 768
+        """Points the ship toward the planet."""
+        vec = self.universe[PLANET].location - ship.location     
+        if vec.magnitude  < 25000:
+            ship.flags &= ~cs.FLG_FLY_TO_PLANET  # clears bit
+            ship.flags |= cs.FLG_FLY_TO_STATION
+            return
         self.fly_to_vector__(ship, vec)
 
     def fly_to_station(self, ship):
         """Points the ship directly toward the space station."""
-        station = self.universe[1]
-        vec = station.location - ship.location
-        # self.control_accn(ship, station)
-        # self.target = station.location
-        self.fly_to_vector__(ship, vec)
-
-    def fly_to_docking_bay(self, ship):
-        """Final docking stage: Fly straight into the slot."""
-        station = self.universe[1]
-        diff = ship.location - station.location
-        vec = unit_vector(diff)
-        # self.target = station.location
-        ship.rotx = 0
-        
-        # Logic for NPC ships or player during final approach
-        if ship.is_player or ship.type < 0:
-            ship.rotz = 1
-            if (vec.x >= 0 and vec.y >= 0) or (vec.x < 0 and vec.y < 0):
-                ship.rotz = -ship.rotz
-
-            if abs(vec.x) >= 0.0625:
-                ship.acceleration = 0
-                ship.velocity = 1
-                return
-
-            if abs(vec.y) > 0.002436:
-                ship.rotx = -1 if vec.y < 0 else 1
-
-            if abs(vec.y) >= 0.0625:
-                ship.acceleration = 0
-                ship.velocity = 1
-                return
-
-        ship.rotz = 0
-        # Check alignment with the bay's slot
-        dir_align = vector_dot_product(ship.rotmat[SIDEV], station.rotmat[ROOFV])
-
-        if abs(dir_align) >= 0.9166:
-            ship.acceleration += 1
-            ship.rotz = 127  # Rapid roll to match station rotation
-            return
-
-        ship.acceleration = 0
-        ship.rotz = 0
-        
-    def auto_pilot_ship(self, ship):
-        """The main decision engine for an automated ship.
-        """
-        # If no station exists or forced to fly to planet
-        if (ship.flags & cs.FLG_FLY_TO_PLANET) or self.universe[1].type not in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
-            # logger.debug('ai flying')
-            self.fly_to_planet(ship)
-            return
-        # station is now present
-        station = self.universe[1]
-        diff = ship.location - station.location
-        dist_ = diff.magnitude
-
-        # If very close, the ship has officially 'docked'
-        if dist_ < 160:
+        vec = self.universe[STATION].location - ship.location
+        if vec.magnitude < 160:
             ship.flags |= cs.FLG_REMOVE
-            # self.gs.msg2.text = 'Docked'
             return
+        self.fly_to_vector__(ship, vec)
         
-        vec = unit_vector(diff)
-        # dir_to_bay: check if we are positioned in front of the bay slot
-        dir_to_bay = vector_dot_product(station.rotmat[NOSEV], vec)
-        
-        if dir_to_bay < _cos(13):
-            self.fly_to_initial_point(ship)
-            return
-
-        # Check if ship is facing the station
-        dir_facing = vector_dot_product(ship.rotmat[NOSEV], vec)
-
-        if dir_facing < _cos(160):
-            self.fly_to_docking_bay(ship)
-            return
-        
-        self.fly_to_station(ship)
-                
+    def auto_pilot_ship(self, un):
+        """Automated ship runs to planet and back to station
+        """
+        ship = self.universe[un]        
+        if (ship.flags & cs.FLG_FLY_TO_PLANET):
+            self.fly_to_planet(ship)            
+        else:
+            self.fly_to_station(ship)
+    
+    # --------  Engage/ disengage                     
     def engage_auto_pilot(self):
         """Activates the docking computer and plays Blue Danube."""
         # Condition checks: not already on, not in witchspace, etc.
@@ -383,6 +261,14 @@ class Pilot:
             gfx.draw_colour_line(tx + gap, ty, tx + arm, ty, colour, width=3)
             gfx.draw_colour_line(tx, ty - arm, tx, ty - gap, colour, width=3)
             gfx.draw_colour_line(tx, ty + gap, tx, ty + arm, colour, width=3)
+            distance = self.target_loc.magnitude
+            if distance < 5000:
+                distance_text = f'{distance:.0f}'
+            elif distance < 10000:
+                distance_text = f'{(distance / 1000):.1f}k'
+            else:
+                distance_text = f'{(distance // 1000):.0f}k'
+            gfx.draw_text(distance_text, tx + arm, ty, font_size=15, alignment=6)
         else:
             # find tx, ty closest to flight_rect edge and
             # plot only T shape within rect
@@ -423,21 +309,16 @@ class Pilot:
     
     # Target geometry helpers
     
-    def _station_exists(self):
-        station = self.gs.universe[1]
-        return station.type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC)
-        
     def _pole_waypoint(self):
         """Point POLE_ALTITUDE above planet north pole."""
-        planet = self.universe[0]
+        planet = self.universe[PLANET]
         return planet.location + Vector(0, 1, 0) * POLE_ALTITUDE
 
     def ip_waypoint(self):
         """Point IP_DIST ahead of station nose."""
-        if self._station_exists():
-           station = self.universe[1]
-           return station.location + station.rotmat[NOSEV] * IP_DIST
-        return Vector(0, 0, 0)
+        station = self.universe[STATION]
+        return station.location + station.rotmat[NOSEV] * IP_DIST
+        # return Vector(0, 0, 0)
 
     def _dist_to(self, ship, point):
         return (point - ship.location).magnitude
@@ -467,43 +348,37 @@ class Pilot:
         # dist = vec.magnitude
         unit_dir = unit_vector(vec)
     
-        #
-        planet = self.universe[0]
         PLANET_RADIUS = cs.PLANET_RADIUS   # or a hardcoded value e.g. 6000
-        if self._ray_blocks_sphere(origin, unit_dir, planet.location, PLANET_RADIUS):
-            return False, planet
+        if self._ray_blocks_sphere(origin, unit_dir, self.universe[PLANET].location, PLANET_RADIUS):
+            return False, self.universe[PLANET]
     
         # Station (treat as a sphere with a generous radius)
-        station = self.universe[1]
-        if station.type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
-            STATION_RADIUS = 160   # roughly the docking exclusion zone
-            if self._ray_blocks_sphere(origin, unit_dir, station.location, STATION_RADIUS):
-                return False, station
+        STATION_RADIUS = 160   # roughly the docking exclusion zone
+        if self._ray_blocks_sphere(origin, unit_dir, self.universe[STATION].location, STATION_RADIUS):
+            return False, self.universe[STATION]
     
         return True, None
     
     # Primitive manoeuvres
 
-    def orient_to_target(self, ship, target, MAX_ROT=4.0, P_GAIN=2, smoothing=0.2, director_only=False, aligned=_cos(5)):
+    def orient_to_target(self, ship, target, MAX_ROT=4.0, P_GAIN=2, smoothing=0.2, aligned=_cos(5)):
         """
         Rotate toward target with no thrust — used during orientation phase.
         Returns True when aligned within ALIGNED_TIGHT.
         """
-        
         space = self.gs.space
-        if not director_only:
-            ship.velocity = 0
-            ship.acceleration = 0
-            self.gs.flight_speed = 0
+        
+        ship.velocity = 0
+        ship.acceleration = 0
+        self.gs.flight_speed = 0
         vec = target - ship.location
         nvec = unit_vector(vec)
         target_roll, target_climb = self.steer_to_origin(nvec, fast=True)
         
-        # up_dot = vector_dot_product(nvec, ship.rotmat[ROOFV])  # target above
-        # side_dot = vector_dot_product(nvec, ship.rotmat[SIDEV])  # target left
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
         self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
+        # logger.debug(f'{target_roll=}, {target_climb=}')
         # logger.debug(f'{fwd_dot}, {self.distance_to_target:.0f} {self.angle:+.1f}')
         cr = '\n'
         self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
@@ -513,21 +388,15 @@ class Pilot:
            space.flight_climb = space.flight_roll = 0
            return True
         
-        if not director_only:
-            # Simple linear interpolation (LERP) toward the target
-            ship.smooth_climb += (target_climb - ship.smooth_climb) * smoothing
-            ship.smooth_roll += (target_roll - ship.smooth_roll) * smoothing
-    
-            # Apply the smoothed values
-            space.flight_climb = ship.smooth_climb
-            space.flight_roll = ship.smooth_roll
-            # space.flight_climb = target_climb  # space.gs.myship.max_climb / MAX_ROT
-            # space.flight_roll = target_roll  # space.gs.myship.max_roll / MAX_ROT
-            # logger.debug(f'climb {space.flight_climb:.2f} roll {space.flight_roll:.2f}')
-            
-            # txt = f'Angle {self.angle:.1f} Aligned:{fwd_dot}'
-            # logger.debug(txt)
-            return False  # fwd_dot >= ALIGNED_TIGHT
+        # Simple linear interpolation (LERP) toward the target
+        ship.smooth_climb += (target_climb - ship.smooth_climb) * smoothing
+        ship.smooth_roll += (target_roll - ship.smooth_roll) * smoothing
+
+        # Apply the smoothed values
+        space.flight_climb = ship.smooth_climb
+        space.flight_roll = ship.smooth_roll
+        
+        return False  # fwd_dot >= ALIGNED_TIGHT
 
     def fly_to_target(self, ship, target, max_velocity=3, pgain=30):
         """
@@ -542,49 +411,48 @@ class Pilot:
 
         vec = target - ship.location
         self.fly_to_vector(ship, vec, max_velocity, pgain=pgain)
-        
-    def _fly_around(self, ship, target, blocker):
+
+    def _fly_around(self, ship, blocker):
         """
-        Calculates a detour waypoint around a blocking object and commands
-        the ship to fly toward that waypoint.
+        Calculates a detour waypoint perpendicular to the blocker-ship line
+        to steer around the obstacle.
         """
-        # 1. Get the vector from the blocker to the ship
-        # This gives us a reliable direction to step away from the blocker's center
+        # 1. Vector from blocker to ship
         blocker_to_ship = ship.location - blocker.location
         
-        # Avoid division by zero if the ship is exactly at the blocker's center
+        # Avoid division by zero
         if blocker_to_ship.magnitude == 0:
-            # Fallback: pick an arbitrary perpendicular or offset direction
-            # Assuming 2D or 3D vectors; adjustments might be needed based on your vector class
-            blocker_to_ship = Vector(1, 0, 0)  # replace with your vector initialization if needed
+            blocker_to_ship = Vector(1, 0, 0)
             
-        # 2. Normalize the vector to get the direction
-        avoidance_direction = unit_vector(blocker_to_ship)
+        # 2. Normalize the direction
+        direction = unit_vector(blocker_to_ship)
         
-        # 3. Calculate a safe distance to clear the obstacle
-        # We add a safety buffer (e.g., 10-20% or a fixed amount) so the ship doesn't scrape the edge
-        if blocker.type == cs.SHIP_PLANET:
-           radius = cs.PLANET_RADIUS
-        else:
-           radius = cs.STATION_RADIUS
-        safety_buffer = 1.2
-        detour_distance = radius * safety_buffer
+        # 3. Calculate radius with safety buffer
+        radius = cs.PLANET_RADIUS if blocker.type == cs.SHIP_PLANET else cs.STATION_RADIUS
+        detour_distance = radius * 20
         
-        # 4. Determine the waypoint location
-        # Place the waypoint outside the blocker's perimeter, biased toward the ship's current side
-        waypoint = blocker.location + (avoidance_direction * detour_distance)
+        # 4. Calculate a perpendicular vector (the "tangent")
+        # For 2D: If direction is (x, y), a perpendicular is (-y, x) or (y, -x)
+        # This steers the ship to the side instead of moving directly away
+        perp_direction = Vector(0, 1, 0)
         
-        self.target_location = waypoint - ship.location
-
-        logger.debug(f"Detour calculated. Heading to waypoint: {self.target_location}")
-        self.change_phase(ship, 'TO_DETOUR')
+        # 5. Determine the waypoint
+        # We place the waypoint at the edge of the radius, but offset to the side
+        waypoint = blocker.location + (direction * radius * 0.5) + (perp_direction * detour_distance)
+        
+        target = waypoint - ship.location
+    
+        logger.debug(f"Detour calculated. Steering to the side of {blocker.type}")
+        self.change_phase(ship, 'FIND_DETOUR')
+        logger.debug(f'{target=}')
+        return target
         
     def roll_to_match_station(self, ship):
         """
         Roll the ship to align its SIDEV with station ROOFV.
         Returns True when roll error < 5 degrees.
         """
-        station = self.universe[1]
+        station = self.universe[STATION]
         roll_align = vector_dot_product(ship.rotmat[SIDEV], station.rotmat[ROOFV])
         angle_err = math.acos(max(-1.0, min(1.0, roll_align)))
         
@@ -624,7 +492,7 @@ class Pilot:
         min_phase = None
         closest = None
         phases = ['FIND_POLE', 'FIND_IP']
-        if not self._station_exists():
+        if not self.gs.space.close_to_planet():
             return self._pole_waypoint(), 'FIND_POLE'
           
         for target, phase in zip(targets, phases):
@@ -644,7 +512,7 @@ class Pilot:
        
     # Main state machine
 
-    def auto_pilot_ship_(self, ship, director_only=False):
+    def auto_pilot_ship_(self, ship):
         """
         Docking state machine.
 
@@ -690,8 +558,7 @@ class Pilot:
                 # orient to arbitrary target, usually a ship
                 distance = self._dist_to(ship, self.target.location)
                 self.gs.msg_left.text = f'Target \n {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
-                if not director_only:
-                    self.fly_to_target(ship, self.target.location, max_velocity=8, pgain=80)
+                self.fly_to_target(ship, self.target.location, max_velocity=8, pgain=80)
                 if self.target.type == 0:
                    self.gs.msg_left.text = 'Target Lost'
                    self.disengage_auto_pilot()
@@ -699,7 +566,7 @@ class Pilot:
                     
             case 'FIND_POLE':
                 self.target_loc = self._pole_waypoint()
-                aligned = self.orient_to_target(ship, self.target_loc, director_only=director_only)
+                aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:
                     logger.debug('finished align')
                     self.change_phase(ship, 'TO_PLANET_POLE')
@@ -709,8 +576,7 @@ class Pilot:
                 self.target_loc = self._pole_waypoint()
                 
                 # divert if station visible
-                if self._station_exists():
-                    station = self.universe[1]
+                if self.gs.space.close_to_planet():
                     clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
                     if True:
                         self.change_phase(ship, 'FIND_IP')
@@ -720,68 +586,74 @@ class Pilot:
                     self.change_phase(ship, 'FIND_IP')
                     return
                       
-                if not director_only:
-                    self.fly_to_target(ship, self.target_loc, max_velocity=50)
+                self.fly_to_target(ship, self.target_loc, max_velocity=self.gs.myship.max_speed)
             
             case 'AT_POLE' | 'FIND_IP':
                 # PHASE: at pole, or elsewhere,  orient to IP before flying there
                 self.target_loc = self.ip_waypoint()
-                clear, blocker = self._has_line_of_sight(ship, self.target_loc)
-                if False:  # not clear:
-                    logger.debug(f'Phase {phase}, has blocker {blocker.name}')
-                    self.gs.msg_left.text = f'Phase {phase}, has blocker {blocker.name}'
-                    self._fly_around(ship, self.target_loc, blocker)
-                    return
+                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)
+                
+                # logger.debug(f'{clear=} {self.blocker=}')
+                # logger.debug(f'{self.get_angles(*self.target_loc.to_tuple)}')
+                clear = True
+                if not clear:
+                    # logger.debug(f'Phase {self.flight_phase}, has blocker {self.blocker.name}')
+                    self.gs.msg_left.text = f'IP has blocker {self.blocker.name}'
+                    self.target_loc = self._fly_around(ship, self.blocker)
                                 
-                aligned = self.orient_to_target(ship, self.target_loc, director_only=director_only)
+                aligned = self.orient_to_target(ship, self.target_loc)
                 # logger.debug(f'{aligned=}')
                 if aligned:
                     self.change_phase(ship, 'TO_IP')
-            
+                    
+            case 'FIND_DETOUR':
+                # PHASE: orient to DETOUR before flying there
+                # TODO DOESNT UPDATE
+                self.target_loc = self._fly_around(ship, self.blocker)
+                # logger.debug(f'{self.target_loc=}')
+                aligned = self.orient_to_target(ship, self.target_loc)
+                # logger.debug(f'{aligned=}')
+                if aligned:
+                    self.change_phase(ship, 'TO_DETOUR')
+                    
             case 'TO_IP':
                 # PHASE: fly to IP (ahead of station nose)
+                # dont deviate until within distance
                 self.target_loc = self.ip_waypoint()
-                # self.climb_av.size = self.roll_av.size = 4
-                station = self.universe[1]
-    
-                # Check we are on the correct side of the station
-                diff = ship.location - station.location
-                dir_to_bay = vector_dot_product(station.rotmat[NOSEV],
-                                                unit_vector(diff))
-    
+                       
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
-                if not director_only:
-                    self.fly_to_target(ship, self.target_loc, max_velocity=50)
+                
+                self.fly_to_target(ship, self.target_loc, max_velocity=self.gs.myship.max_speed)
                     
             case 'TO_DETOUR':
                 # the rare case when target is blocked
                 # divert  to ip possible
-                if self._station_exists():
-                    station = self.universe[1]
+                if self.gs.close_to_planet():
                     clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
+                    clear = True
                     if clear:
-                        self.change_phase(ship, 'TO_IP')
+                        self.change_phase(ship, 'FIND_IP')
                         return
-                if not director_only:
-                    vec = self.target_loc - ship.location
-                    self.fly_to_vector(ship, vec, max_velocity=20)
-                    # self.fly_to_target(ship, self.target_loc, max_velocity=20)
+                
+                vec = self.target_loc - ship.location
+                self.fly_to_vector(ship, vec, max_velocity=20)
+                # self.fly_to_target(ship, self.target_loc, max_velocity=20)
                     
             case 'FIND_STATION':
-                # # At the IP orient to station
-                self.target_loc = self.universe[1].location
-                aligned = self.orient_to_target(ship, self.target_loc, director_only=director_only)
+                # At the IP orient to station
+                self.target_loc = self.universe[STATION].location
+                aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:
                     self.change_phase(ship, 'TO_STATION')
                         
             case 'TO_STATION':
                 # PHASE: on axis, fly toward station face
-                self.target_loc = self.universe[1].location
+                self.target_loc = self.universe[STATION].location
                 
                 # Verify still on axis; if not, go back to IP
                 diff = ship.location - self.target_loc
-                dir_to_bay = vector_dot_product(self.universe[1].rotmat[NOSEV],
+                dir_to_bay = vector_dot_product(self.universe[STATION].rotmat[NOSEV],
                                                 unit_vector(diff))
                 if dir_to_bay < ON_SLOT_AXIS:
                     self.change_phase(ship, 'FIND_IP')
@@ -791,12 +663,12 @@ class Pilot:
                 if self.distance_to_target < CLOSE_TO_STATION:
                     self.change_phase(ship, 'TO_DOCK')
                     return
-                if not director_only:
-                    self.fly_to_target(ship, self.target_loc, max_velocity=2)
+                
+                self.fly_to_target(ship, self.target_loc, max_velocity=2)
             
             case 'TO_DOCK':
                 # PHASE: final roll and crawl into slot
-                self.target_loc = self.universe[1].location
+                self.target_loc = self.universe[STATION].location
                 self.gs.yaw_coupling = 0
                 if self.distance_to_target < DOCKED_DIST:
                     ship.flags |= cs.FLG_REMOVE
@@ -806,18 +678,18 @@ class Pilot:
                     self.change_phase(ship, None)  # reset for next time
                     self.gs.yaw_coupling = cs.YAW_COUPLING
                     return
-                if not director_only:
-                   rolled, error = self.roll_to_match_station(ship)
-                   if rolled:
-                       # Aligned — crawl forward
-                       ship.rotz = 0
-                       ship.acceleration = 1
-                       ship.velocity = 2
-                   
-                   # logger.debug(f'{rolled=} {error=:.1f}')
-                   cr = '\n'
-                   self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
-                                             f'{cr}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')
+                
+                rolled, error = self.roll_to_match_station(ship)
+                if rolled:
+                    # Aligned — crawl forward
+                    ship.rotz = 0
+                    ship.acceleration = 1
+                    ship.velocity = 2
+                
+                # logger.debug(f'{rolled=} {error=:.1f}')
+                cr = '\n'
+                self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
+                                          f'{cr}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')
                        
     def vector_func(self, target, roll, pitch, speed=0):
         # minimised function from move universe

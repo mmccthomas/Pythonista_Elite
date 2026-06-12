@@ -26,7 +26,6 @@ from intro import EliteIntro
 from missions import MissionManager
 import constants as cs
 import logging
-#from constants import logger
 from vector import unit_vector
 cs.setup_logging()
 logger = logging.getLogger(__name__)
@@ -338,19 +337,19 @@ class MainLoop():
                             
     # ── Auto-dock ─────────────────────────────────────────────────────────────────
     
-    def auto_dock(self, director_only=False):
+    def auto_dock(self):
            
         # self.yaw_coupling = 0
         self.ship = self.space.ship
         if self.mcount == 0:
             logger.debug(f' Dist: {self.pilot.distance_to_target:.0f}km')
-        self.pilot.auto_pilot_ship_(self.ship, director_only=director_only)   # modifies ship in-place
-        if not director_only:
-           # flight speed tracks velocity
-           self.flight_speed = min(50 * (1 + 4 * self.pilot.escape), self.ship.velocity)
-           # control joystick
-           y = 2 * self.flight_speed / self.myship.max_speed - 1.0           
-           self.parent_scene.joystick_thrust.set_position(y=y)
+        self.pilot.auto_pilot_ship_(self.ship)   # modifies ship in-place
+        
+        # flight speed tracks velocity
+        self.flight_speed = min(self.myship.max_speed * (1 + 4 * self.pilot.escape), self.ship.velocity)
+        # control joystick
+        y = 2 * self.flight_speed / self.myship.max_speed - 1.0           
+        self.parent_scene.joystick_thrust.set_position(y=y)
              
     # ── Escape sequence ───────────────────────────────────────────────────────────
     def run_escape_sequence(self):
@@ -393,8 +392,7 @@ class MainLoop():
                self.gfx.update_screen()
            
             case "ESCAPE_RECOVER":
-                if (self.swat.ship_count.get("CORIOLIS", 0)
-                        or self.swat.ship_count.get("DODEC", 0)):
+                if self.space.close_to_planet():                        
                     self.escape_sequence == "ESCAPE_DOCK"
                 self.pilot.escape = True
                 self.auto_dock()
@@ -438,8 +436,8 @@ class MainLoop():
             # Vertical angle (Elevation) in radians
             elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
             textline.append(f'{obj.name:<9} {obj.distance/1000:.1f}k ({azimuth:.0f}, {elevation:.0f})')
-        self.obj_status.text = '\n'.join(textline)
-                                       
+        self.obj_status.text = '\n'.join(textline)        
+                                            
     def set_commander_name(self, path):
         return
         fname = self.get_filename(path)
@@ -458,13 +456,7 @@ class MainLoop():
         name = self.gfx.list_files(planet_names)
         if name:
             self.in_dock.find_planet_by_name(name)
-            
-    def _entering_dock(self):
-        # check mission brief and set keys
-        # self.current_screen = cs.SCR_MISSION
-        logger.debug('')        
-        self.swat.clear_universe()
-                   
+                                   
     def launch(self):
         # enable flight keys and launch
         self._change_flight_keys()
@@ -479,8 +471,7 @@ class MainLoop():
             case 'Launch':
                 self.break_mode = 'launch'
                 if self.docked:
-                   self.swat.clear_universe()
-                   logger.debug('clearing universe after launch')
+                   # logger.debug('clearing universe after launch')
                    self.current_screen = cs.SCR_BREAK_PATTERN
                 else:
                     self.current_screen = cs.SCR_FRONT_VIEW
@@ -671,7 +662,7 @@ class MainLoop():
                 self.sound.stop_midi()
                 self.swat.clear_universe()
                 self.load_commander_screen()
-                
+                self.space.populate_universe()
                 self.current_screen = cs.SCR_COMMANDER
                 
             case 'Cancel':
@@ -828,9 +819,11 @@ class MainLoop():
             self.auto_dock()
             # if self.docking_on.check():
             # self.info_message(f"Docking Computers On ...{self.pilot.flight_phase} {(self.pilot.distance_to_target/1000):.0f}km")
-        # else:
-        #    if not self.space.hyper_ready:
-        #        self.auto_dock(director_only=True)
+        else:
+            if not self.space.hyper_ready and self.space.safe_mode and cs.FLIGHT_DIRECTOR:
+                 self.pilot.target_loc = self.pilot.ip_waypoint()
+                 self.pilot.draw_target()
+        
  
         self.space.update_universe()
         
@@ -1072,7 +1065,7 @@ class MainLoop():
               self.chart_screen()
           case cs.SCR_MARKET_PRICES:
               if self.docked:
-                  self.swat.clear_universe()
+                  # self.swat.clear_universe()
                   self.market_trade_screen()
               else:
                   self.in_dock.display_market_prices()
@@ -1108,18 +1101,22 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
-                  40: ['Select', '$Onen'],
+                  40: ['Select', '$Zaonce'],
                   70: ['Launch'],
-                  # 150: ['To Station'],
-                  #120: ['Docking'],
-                  # 100: ['Hyper Space'],
+                  #150: ['To Station'],
+                  #152: [*['Up']*811],
+                  #155: ['Docking'],
+                  150: ['Hyper Space'],
                   
-                  140: ['Status'],
-                  132: [],  # complete
-                  199: [],
-                  #300: ['Docking'],
-                  142: ['Launch'],
-                  340: [],  # finished align
+                  #140: ['Status'],
+                  165: [],  # complete
+                  267: [],
+                  
+                  963: ['Docking'],
+                  1002: [],
+                  1079: [],
+                  #142: ['Launch'],
+                  #340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
                   # 7359: [], # station spawned
@@ -1129,11 +1126,19 @@ def loop():
     for i in range(5000):
        logger.debug(i)
        if i in operations:
-          if i == 140:
-               pass
+          if i == 165:
+                pass
           for command in operations[i]:
               g.input_queue.put(command)
           print(i, g.docked_planet, command)
+       
+       vec = unit_vector(g.universe[STATION].location)
+       # Horizontal angle (Azimuth)
+       azimuth = math.degrees(math.atan2(vec.x, vec.z))
+       # Vertical angle (Elevation) in radians
+       elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
+       # logger.debug(f'{azimuth=:.0f}, {elevation=:.0f}')
+       
        g.game_loop()
        
        objects = [obj.model

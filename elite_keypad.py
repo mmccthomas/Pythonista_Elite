@@ -1,31 +1,6 @@
-
+# Bespoke keypad for the game Elite
 import ui
-import random
 
-class MyButtonClass(ui.View):
-    def __init__(self, x, y, width, height, action, color):
-        self.color = color
-        self.x = x
-        self.y = y
-        self.height = height
-        self.width = width
-
-    def draw(self):
-        path = ui.Path.rect(0, 0, self.width, self.height)
-        ui.set_color(self.color)
-        path.fill()
-
-    def touch_began(self, touch):
-        self.color = "green"
-        self.set_needs_display()
-
-    def touch_moved(self, touch):
-        self.color = "white"
-        self.set_needs_display()
-
-    def touch_ended(self, touch):
-        self.color = "blue"
-        self.set_needs_display()
                 
 class EliteKeypad(ui.View):
     def __init__(self, frame=(0, 0, 300, 300), action=None,
@@ -43,7 +18,7 @@ class EliteKeypad(ui.View):
             [('Launch', 1, 'cyan'), ('Trade', 1, 'cyan'), ('Equip', 1, 'cyan'),
              ('Status', 1, 'cyan'), ('Local Chart', 1, 'cyan'), ('Galaxy Chart', 1, 'cyan'),
              ('Data', 1, 'cyan')],
-            [('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1.25, '#fb9bff'),(' ', 1.75, '#fb9bff'),
+            [(' ', 1, 'cyan'), ('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1.25, '#fb9bff'), (' ', 0.75, '#fb9bff'),
              ('Find', 1, 'cyan'), (' ', 1, 'cyan')],
             [('Jump', 1, 'lightgreen'), ('Hyper Space', 1, 'lightgreen'), ('Escape', 1, 'lightgreen'),
              ('ECM', 1, 'lightgreen'), ('Bomb', 1, 'lightgreen'), ('Target', 1, 'lightgreen'),
@@ -51,18 +26,16 @@ class EliteKeypad(ui.View):
             [('Docking', 1, 'lightgreen'), ('New Galaxy', 1, 'lightgreen'), ('To Sun', 1, '#fb9bff'),
              ('To Planet', 1, '#fb9bff'), ('To Station', 1, '#fb9bff'), ('Up', 1, 'yellow'),
              (' ', 1, 'lightgreen')],
-            [('Look Fwd', 1, 'cyan'),('Look Aft', 1, 'cyan'),('Look Port', 1, 'cyan'), ('Look Stbd', 1, 'cyan'), 
-              ('Left', 1, 'yellow'), ('Select', 1, '#ff8080'),
-             ('Right', 1, 'yellow')],
-            [ ('Fire Laser', 2, 'orange'),  ('OK', 1, '#ff8080'), ('Cancel', 1, '#ff8080'),
-              (' ', 1, 'cyan'), ('Down', 1, 'yellow'), (' ', 1, 'cyan')]
+            [('Look Fwd', 1, 'cyan'), ('Look Aft', 1, 'cyan'), ('Look Port', 1, 'cyan'), ('Look Stbd', 1, 'cyan'),
+             ('Left', 1, 'yellow'), ('Select', 1, '#ff8080'), ('Right', 1, 'yellow')],
+            [('Fire Laser', 2, 'orange'),  ('OK', 1, '#ff8080'), ('Cancel', 1, '#ff8080'),
+             (' ', 1, 'cyan'), ('Down', 1, 'yellow'), (' ', 1, 'cyan')]
         ]
         
         self.btns = {}
         for row in self.layout_data:
             for char, weight, color in row:
                 # We only create buttons for non-empty slots or functional buttons
-                # btn = MyButtonClass(0,0, 20,20, "red")
                 btn = self.multiline_button(char)
                 btn.name = char
                 btn.background_color = color if char != ' ' else 'transparent'
@@ -94,7 +67,7 @@ class EliteKeypad(ui.View):
         label.text = text
         label.name = 'label'
         label.frame = btn.frame
-        label.font = ('Copperplate', 12) # was Avenir Next
+        label.font = ('Copperplate', 12)  # was Avenir Next
         label.text_color = 'black'
         label.alignment = ui.ALIGN_CENTER
         label.number_of_lines = 0  # 0 allows unlimited lines
@@ -124,38 +97,7 @@ class EliteKeypad(ui.View):
                button['label'].text_color = 'black' if enabled else 'lightgrey'
         except AttributeError as e:
             AttributeError(f'Button attribute not valid {e}')
-            
-    def toggle(self, gs, attribute_str, keynames=None, enable=None, colors=None):
-        # toggle a parameter and optionally the keypad name, enable or color
-        try:
-            attribute = getattr(gs,  attribute_str)
-            attribute = not attribute
-            setattr(gs,  attribute_str, attribute)
-        except AttributeError:
-            attribute = random.randint(0, 1)
-        
-        key_color = key_enable = new_keyname = None
-        
-        if keynames is not None:
-           # a pair of keynames relating to false or true attribute state
-           if attribute:
-               existing_keyname, new_keyname = keynames
-           else:
-               new_keyname, existing_keyname = keynames
-        
-        if enable is not None:
-            key_enable = enable
-                     
-        if colors is not None:
-           # a pair of colors relating to false or true attribute state
-           if attribute:
-               key_color = colors[attribute]
-                             
-        self.key_change(key_name=existing_keyname,
-                                            name=new_keyname,
-                                            color=key_color,
-                                            enabled=key_enable)
-                                                     
+                                                                 
     def layout(self):
         pad = 5
         rows = len(self.layout_data)
@@ -173,7 +115,7 @@ class EliteKeypad(ui.View):
                 w = unit_w * weight
                 btn.frame = (current_x, y, w, row_h)
                 # btn['label'].frame = btn.frame
-                btn['label'].font = ('Copperplate', max(10, row_h * 0.28)) # was Arial Rounded MT Bold
+                btn['label'].font = ('Copperplate', max(10, row_h * 0.28))  # was Arial Rounded MT Bold
                 
                 current_x += w + pad
 
@@ -185,11 +127,7 @@ class EliteKeypad(ui.View):
         if self.superview:
             self.superview.remove_subview(self)
 
-                        
-def my_repeat_action(sender):
-    print("Repeating!")
-
-                                              
+                                                                      
 if __name__ == '__main__':
     # Setup a dummy text field to demonstrate the link
     def get_text(sender):
@@ -205,19 +143,8 @@ if __name__ == '__main__':
         frame=(100, 150, 500, 375),
         action=get_text)
     existing_btn = keypad['U']
-    # 3. "Upgrade" it
-    # ButtonRepeater(existing_btn, my_repeat_action)
+    
     main_view.add_subview(keypad)
     keypad.key_change('Up', enabled=True)
-    #keypad.key_change(key_name='Docking', name='Cancel Docking')                                        
-    keypad.toggle(None, '', ['Docking', 'Cancel Docking'])
+    keypad.key_change(key_name='Docking', name='Cancel Docking')
     main_view.present('sheet')
-    # --- How to apply it to your existing code ---
-    
- 
-
-        
-
-
-
-

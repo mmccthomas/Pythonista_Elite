@@ -123,8 +123,25 @@ significant changes:
 
 26. New autopilot for player. used state machine to target planet pole, then
     Initial Point in front of station, then dock to station
+    
+27. Added flight director to docking Initial Point when not in autopilot mode.
+    Appears when in safe mode and points to alignment point on station axis.
+    Compass is good enough for other flight phases.
 
-28. Configuration parameters control the following:
+28. Made PLANET, STATION AND SUN, fixed items. They change only on initial load
+    and hyperspace complete. This removes lots of testing of station exists and
+    allows flying out from docked station with same orientation.
+    Lots of complication arising from decision to have sun or station
+    in unverse slot 1. Theres no real need for that.
+    station_exists text could simply be close_to_station (within 65536 of planet)
+    then use slot 0 for planet, 1 for staion, 2 for sun always.
+    This might simplify autopilot, since data points will be fixed, not dynamic.
+    would need to align ship with station on launch.
+    i woukd like the universe to persist while docked. a new universe should only be generated on 
+    hyperspace.
+    the challenge is to position and align the player on launch.
+        
+29. Configuration parameters control the following:
     HUD_H allows the  scanner height to be adjusted for visibility
     WIREFRAME allows sun and planet to be rendered as wireframe or 
               realistic images
@@ -154,6 +171,7 @@ Check endgame mission 1
 
 Add laser lines to firing ships
 they dont seem to fire at present
+
 
 Finally:
 

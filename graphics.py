@@ -256,7 +256,7 @@ class Graphics():
             # store the updated screen
             self.page_text = self.current_text.copy()
        
-            rows = [''.join([chr(char) for char in line]) for line in self.page_text[CHAR]]
+            # rows = [''.join([chr(char) for char in line]) for line in self.page_text[CHAR]]
             # logger.debug("\n".join(rows))
             
         except (AttributeError, NameError) as e:

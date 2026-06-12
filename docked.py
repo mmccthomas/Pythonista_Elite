@@ -390,7 +390,6 @@ class Docked:
         gs.current_screen = cs.SCR_CMDR_STATUS
 
         gfx.clear_display()
-        # gs.swat.clear_universe()
         gfx.display_centre_text(0, f"COMMANDER {cmdr.name}", 140, cs.GOLD)
         gfx.display_centre_text(1, self.incoming_message, 140, cs.GOLD)
         line_no = 4

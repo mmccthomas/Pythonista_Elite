@@ -17,6 +17,7 @@ NOSEV = 2
 ROOFV = 1
 SIDEV = 0
 PLANET = 0
+STATION = 1
 MIN_FIRING_DISTANCE = 16384  # 8192
 
 
@@ -106,14 +107,7 @@ class Swat:
         self.ship_dict['SUN'].name = ('SUN',)
         self.ship_dict['PLANET'].header = self.ship_dict['CORIOLIS'].header
         self.ship_dict['PLANET'].name = ('PLANET',)
-        # Flight Director icon appears when in safe zone
-        # img = self.gs.parent_scene.flight_director
-        self.ship_dict['FLIGHT_DIRECTOR'] = WireCube(size_x=200, size_y=200, size_z=200, color=cs.GREEN)
-        # c*kw):=100, h, Sprite3D(img,
-        #                        distance_scale=False, scale=1)
-        self.ship_dict['FLIGHT_DIRECTOR'].name = ('FLIGHT_DIRECTOR',)
-        self.ship_dict['FLIGHT_DIRECTOR'].header = self.ship_dict['SPLINTER'].header
-                              
+                                                                    
         self.ship_names = {v: k for k, v in cs.SHIP_DICT.items()}
         # constuct ship_list dictionary containing operational properties of each
         # ship type
@@ -201,6 +195,7 @@ class Swat:
                                 image_path='images/sun_texture400.png',
                                 light_dir=(0, 0, 1), soft=0.08)
         img = self.sun_image.planet
+        self.sun_image.color=cs.RED
         self.sun_image.planet.z_position = -1
         self.sun_image.planet.alpha = 0
         self.gs.parent_scene.add_child(self.sun_image.planet)
@@ -225,14 +220,13 @@ class Swat:
         # Rotation: store rotmat on the model so the renderer can use it
         # Convert from Vector (Elite) to Vector3 (renderer) once here
         axis_display.rotmat_world = [Vector3(*rot.to_tuple) for rot in rotmat]
+                
         
-        self.ship_dict['FLIGHT_DIRECTOR'] = axis_display
-        self.ship_dict['FLIGHT_DIRECTOR'].name = ('AXES',)
-        self.ship_dict['FLIGHT_DIRECTOR'].header = self.ship_dict['SPLINTER'].header
-        self.add_new_ship(cs.SHIP_FLIGHT_DIRECTOR, *obj.location.to_tuple, rotmat, obj.rotx, obj.rotz)
-        
-    def clear_universe(self):
-        for obj in self.universe:
+    def clear_universe(self, all_others=False):
+        # if all_others,clear all but sun, planet, station
+        for i, obj in enumerate(self.universe):
+            if all_others and i < 3:         
+                continue
             obj.type = 0
             if hasattr(obj, 'model'):
                delattr(obj, 'model')
@@ -313,7 +307,6 @@ class Swat:
 
     def add_new_station(self, sx, sy, sz, rotmat):
         station = cs.SHIP_DODEC if self.gs.current_planet_data.tech_level >= 10 else cs.SHIP_CORIOLIS
-        self.universe[1].type = 0  # remove SHIP_SUN
         self.add_new_ship(station, sx, sy, sz, rotmat, 0, -127)
         # self.add_axis_display(self.universe[1])
             
@@ -471,7 +464,7 @@ class Swat:
         obj = self.universe[un]
         if obj.flags & cs.FLG_INACTIVE:
             return
-        if obj.type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+        if un == STATION:
             obj.flags |= cs.FLG_ANGRY
             return
         if obj.type > cs.SHIP_ROCK:
@@ -522,7 +515,7 @@ class Swat:
             
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
 
-            if univ.type not in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+            if un != STATION:
                 if univ.type in (cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR):
                     if self.laser == (cs.MILITARY_LASER & 127):
                         univ.energy -= self.laser // 4
@@ -552,12 +545,13 @@ class Swat:
             return
 
         ns = self.universe[newship]
-        if src.type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+        if un != STATION:
             ns.velocity = 32
             ns.location.x += ns.rotmat[NOSEV].x * 2
             ns.location.y += ns.rotmat[NOSEV].y * 2
             ns.location.z += ns.rotmat[NOSEV].z * 2
-
+        else:
+            ns.velocity = 10
         ns.flags |= flags
         ns.rotz = (ns.rotz // 2) * 2
         ns.bravery = bravery
@@ -592,6 +586,7 @@ class Swat:
             return
         ship_type = cs.SHIP_SHUTTLE if rand255() & 1 else cs.SHIP_TRANSPORTER
         self.launch_enemy(1, ship_type, cs.FLG_HAS_ECM | cs.FLG_FLY_TO_PLANET, 113)
+        
     
     # ------ AI / Tactics
     
@@ -649,7 +644,7 @@ class Swat:
             )
             if abs(vec.x) < 256 and abs(vec.y) < 256 and abs(vec.z) < 256:
                 missile.flags |= cs.FLG_DEAD
-                if target.type not in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+                if missile.target != STATION:
                     self.explode_object(missile.target)
                 else:
                     gs.sound.play_sample(cs.SND_EXPLODE)
@@ -728,20 +723,22 @@ class Swat:
             return
         # If this is the space station and it is hostile, consider spawning a cop
         # (6.2% chance, up to a maximum of seven) and we're done
-        if ship_type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+        if un == STATION:
             if gs.pilot.auto_pilot_active and gs.space.safe_mode:
-                # dont spawn if on autopilot  its just rude
+                # dont spawn if on autopilot -   its just rude
                 return
             # If this is the space station and it is not hostile, consider spawning
             #  (0.8% chance if there are no Transporters around) a Transporter or Shuttle
             # (equal odds of each type) and we're done
-            if flags & cs.FLG_ANGRY:
-                if (random.randint(0, 255)) < 240:
-                    return
+            rnd_ = rand255()          
+            if rnd_ < 240:                
+                return
+            if flags & cs.FLG_ANGRY:                
                 if self.ship_count.get(cs.SHIP_VIPER, 0) >= 4:
                     return
                 self.launch_enemy(un, cs.SHIP_VIPER, cs.FLG_ANGRY | cs.FLG_HAS_ECM, 113)
             else:
+                
                 self.launch_shuttle()
             return
         # If this is a rock hermit, consider spawning (22% chance) a highly
@@ -779,13 +776,13 @@ class Swat:
         # done
         if not (flags & cs.FLG_ANGRY):
             if (flags & cs.FLG_FLY_TO_PLANET) or (flags & cs.FLG_FLY_TO_STATION):
-                gs.pilot.auto_pilot_ship(self.universe[un])
+                gs.pilot.auto_pilot_ship(un)
             return
 
         # Ship is angry — attack!
         #  If the ship is hostile, and a pirate, and we are within the space station
         # safe zone, stop the pirate from attacking by removing all its aggression
-        if self.ship_count.get(cs.SHIP_CORIOLIS, 0) or self.ship_count.get(cs.SHIP_DODEC, 0):
+        if self.gs.space.safe_mode: 
             if not (flags & cs.FLG_BOLD):
                 ship.bravery = 0
         # If this is an Anaconda, consider spawning (22% chance) a Worm (61% of the
@@ -1019,7 +1016,7 @@ class Swat:
                 self.in_battle += 1
 
     def random_encounter(self):
-        if self.ship_count.get(cs.SHIP_CORIOLIS, 0) or self.ship_count.get(cs.SHIP_DODEC, 0):
+        if self.gs.space.safe_mode:
             return
 
         if rand255() == 136:
