@@ -77,12 +77,17 @@ class GalaxySeed:
     @property
     def tech(self):
         # 0 - 14
+        gov = (self.d // 8) & 7             
+        return (self.econ ^ 7) + (self.c & 3) + (gov // 2) + (gov & 1)
+        
+    @property
+    def econ(self):
         gov = (self.d // 8) & 7
-        econ = self.a & 7
+        econ_ = self.a & 7
         if gov < 2:
-            econ |= 2            
-        return (econ ^ 7) + (self.c & 3) + (gov // 2) + (gov & 1)
-             
+            econ_ |= 2
+        return econ_
+                         
     @property
     def name(self):
         """
@@ -166,7 +171,7 @@ class Commander:
 class EliteState:
     def __init__(self):
         # Navigation
-        self.docked_planet: Optional[GalaxySeed] = None
+        self.present_planet: Optional[GalaxySeed] = None
         self.hyperspace_planet: Optional[GalaxySeed] = None
         self.current_planet_data = None
 
@@ -197,17 +202,17 @@ class EliteState:
         self.cmdr = self.saved_cmdr
 
         # Find the planet Jameson is currently at based on coordinates
-        self.docked_planet = planet_manager.find_planet(
+        self.present_planet = planet_manager.find_planet(
             self.cmdr.ship_x, self.cmdr.ship_y, 
             self.cmdr.galaxy_seed)
-        self.hyperspace_planet = self.docked_planet
+        self.hyperspace_planet = self.present_planet
 
         # Generate the world and market
         self.current_planet_data = planet_manager.generate_planet_stats(
-            self.docked_planet
+            self.present_planet
             
         )
-        trade_manager.generate_stock_market(self.current_planet_data.economy)
+        trade_manager.stock_market = trade_manager.generate_stock_market(self.current_planet_data.economy)
         trade_manager.set_stock_quantities(self.cmdr.station_stock)
 
 

@@ -39,6 +39,11 @@ LAUNCH_CIRCLES = 6
 LAUNCH_COMPLETE = 7
 
 
+def angle(theta):
+   return math.degrees(math.acos(theta))
+
+      
+   
 class Sound():
  
     def __init__(self, enabled=True):
@@ -143,7 +148,7 @@ class MainLoop():
        self.instant_dock = cs.INSTANT_DOCK
        self.warp_stars = False
        
-       self.docked_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
+       self.present_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.hyperspace_planet = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
        self.current_planet_data = None
        self.galaxy_seed = GalaxySeed(0x5A, 0x4A, 0x02, 0x48, 0xB7, 0x53)
@@ -485,9 +490,10 @@ class MainLoop():
                 self.current_screen = cs.SCR_SHORT_RANGE
             case 'Data':
                 self.current_screen = cs.SCR_PLANET_DATA
-            case 'Trade' | 'Market' | 'Target Prices':
-                if not self.witchspace:
-                    self.current_screen = cs.SCR_MARKET_PRICES
+            case 'Prices':
+                self.current_screen = cs.SCR_MARKET_PRICES 
+            case 'Trade' | 'Market':                
+                 self.current_screen = cs.SCR_TRADE
             case 'Status':
                 self.current_screen = cs.SCR_CMDR_STATUS
             case 'Cargo':
@@ -526,9 +532,9 @@ class MainLoop():
                 self.in_dock.buy_equip()
                 
     def market_prices_screen(self):
-        # i think this is fixed screen when in flight
+        # display prices of hyperspace_planet
         self.check_change_screen()
-        self.kbd.poll()
+        self.in_dock.display_hyperspace_planet_prices()
         
     def chart_screen(self):
         # galactic or short range chart
@@ -681,7 +687,7 @@ class MainLoop():
                 self.sound.stop_midi()
                 
     def mission_screen(self):
-        mission_phase = self.missions.check_mission_brief(self.docked_planet)
+        mission_phase = self.missions.check_mission_brief(self.present_planet)
         # logger.debug('')
         key = self.kbd.poll()
         match key:
@@ -713,8 +719,8 @@ class MainLoop():
         self.set_commander_name(path)
     
         self.saved_cmdr = self.cmdr         # shallow copy; use copy.copy() if needed
-        self.saved_cmdr.ship_x = self.elite_state.docked_planet.x
-        self.saved_cmdr.ship_y = self.elite_state.docked_planet.y
+        self.saved_cmdr.ship_x = self.elite_state.present_planet.x
+        self.saved_cmdr.ship_y = self.elite_state.present_planet.y
         
     def load_commander_screen(self):
         self.swat.clear_universe()
@@ -732,10 +738,10 @@ class MainLoop():
         self.set_commander_name(self.current_name)
         
 
-        self.docked_planet = self.planet.find_planet(self.cmdr.ship_x,
+        self.present_planet = self.planet.find_planet(self.cmdr.ship_x,
                                                      self.cmdr.ship_y,
                                                      self.cmdr.galaxy_seed)
-        self.hyperspace_planet = self.docked_planet
+        self.hyperspace_planet = self.present_planet
         self.galaxy_seed = self.cmdr.galaxy_seed
         self.saved_cmdr = self.cmdr
         # self.space.update_console()
@@ -828,12 +834,15 @@ class MainLoop():
         self.space.update_universe()
         
         self.draw_laser_sights()
+        
         if self.draw_lasers:
             self.parent_scene.laser_lines.alpha = 1
             self.draw_lasers -= 1
         else:
             self.parent_scene.laser_lines.alpha = 0
- 
+            
+        self.gfx.display_text(41, 0, self.present_planet.name, 120, cs.GOLD)
+        
         if self.message_count > 0:
             self.gfx.display_centre_text(cs.NUM_LINES-1, self.message_string, 120, cs.WHITE)
             
@@ -895,11 +904,15 @@ class MainLoop():
                 else:
                     self.pilot.engage_auto_pilot()
                     self.keypad.key_change(key_name='Docking',
-                                           name='Cancel Docking')
+                                           name='Cancel Docking', color=cs.ORANGE)
             case 'Cancel Docking':
                 self.pilot.disengage_auto_pilot()
                 self.keypad.key_change(key_name='Cancel Docking',
-                                       name='Docking')
+                                       name='Docking', color='lightgreen')
+            case 'Cancel Target':
+                self.pilot.disengage_auto_pilot()
+                self.keypad.key_change(key_name='Cancel Target',
+                                       name='Docking', color='lightgreen')                          
             case 'ECM':
                 if self.cmdr.ecm:
                     self.swat.activate_ecm(1)
@@ -1064,11 +1077,9 @@ class MainLoop():
           case cs.SCR_GALACTIC_CHART | cs.SCR_SHORT_RANGE:
               self.chart_screen()
           case cs.SCR_MARKET_PRICES:
-              if self.docked:
-                  # self.swat.clear_universe()
-                  self.market_trade_screen()
-              else:
-                  self.in_dock.display_market_prices()
+              self.market_prices_screen()              
+          case cs.SCR_TRADE:
+               self.market_trade_screen()
           case cs.SCR_PLANET_DATA:
               self.in_dock.display_data_on_planet()
           case cs.SCR_EQUIP_SHIP:
@@ -1097,16 +1108,22 @@ def loop():
     test_parent_scene.test = True
     test_parent_scene.setup()
     g = test_parent_scene.mainloop
+    current_glx = GalaxySeed(0xAD, 0x38, 0x14, 0x9c, 0x15, 0x1d)
+    planets = g.planet.get_closest_planets(GalaxySeed(), current_glx, max_distance=None)
+    for planet in planets:
+       sm = g.trade.generate_stock_market(planet.glx.econ)
+       logger.debug(f'{sm[7]["current_quantity"]}')
     #  g.gfx.display_centre_text(20, "Press Fire or Space, Commander.", color="GOLD")
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
-                  40: ['Select', '$Zaonce'],
+                  40: ['Select', '$Leesti'],
+                  
                   70: ['Launch'],
-                  #150: ['To Station'],
+                  150: ['To Station'],
                   #152: [*['Up']*811],
                   #155: ['Docking'],
-                  150: ['Hyper Space'],
+                  #150: ['Hyper Space'],
                   
                   #140: ['Status'],
                   165: [],  # complete
@@ -1123,21 +1140,20 @@ def loop():
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(5000):
+    for i in range(200):
        logger.debug(i)
        if i in operations:
-          if i == 165:
+          if i == 150:
                 pass
           for command in operations[i]:
               g.input_queue.put(command)
-          print(i, g.docked_planet, command)
-       
-       vec = unit_vector(g.universe[STATION].location)
-       # Horizontal angle (Azimuth)
-       azimuth = math.degrees(math.atan2(vec.x, vec.z))
-       # Vertical angle (Elevation) in radians
-       elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
-       # logger.debug(f'{azimuth=:.0f}, {elevation=:.0f}')
+          print(i, g.present_planet, command)
+       # logger.debug(f'{g.trade.stock_market=}')
+       univ = [obj.type for obj in g.universe]
+       if univ[3] != 0 and ((3 ^ g.mcount) & 7) == 0:
+             logger.debug(f'{g.swat.ship_names[univ[3]]}')
+             logger.debug(f'dist:{g.universe[3].distance:.0f} dir:{angle(g.universe[3].direction):.0f}')
+             logger.debug(f'fshield:{g.front_shield:.0f} ashield:{g.aft_shield} energy:{g.energy}')
        
        g.game_loop()
        

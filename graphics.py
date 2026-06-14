@@ -109,7 +109,7 @@ class Graphics():
        self.screen_rect = cs.FLIGHT_RECT
        self.centre_screen = self.screen_rect.center()
        self.X_CENTRE, self.Y_CENTRE = self.centre_screen
-       
+       self.Y_LOW = cs.FLIGHT_RECT.min_y
        # page_text is a 3d array holding ascii_code, color_of text, color of background
        # this allows instant comparison, and iteration
        

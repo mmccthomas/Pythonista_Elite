@@ -281,7 +281,7 @@ class EliteScene(Scene):
                        if obj.type != 0]
             
             # Draw all objects
-            for obj in objects:
+            for obj in objects:                
                 if obj.exploding:
                     # Draw the explosion instead of the ship
                     self.renderer.explode(obj.model, self.camera, self.size)
@@ -400,7 +400,7 @@ class Keyboard:
     
         # Definitions for modes
         # movement_keys = {'up', 'down', 'left', 'right', 'enter', 'joy2_up', 'joy2_down', 'Missile', 'Select'}
-        screen_keys = {'Launch', 'Equip', 'Galaxy Chart', 'Local Chart', 'Data', 'Trade',
+        screen_keys = {'Launch', 'Equip', 'Galaxy Chart', 'Local Chart', 'Data', 'Trade', 'Prices',
                        'Market',  'Status', 'Pause', 'Resume', 'Menu', 'Quit'}
         # We use a temporary list to store items we aren't consuming
         

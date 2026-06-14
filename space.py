@@ -193,8 +193,8 @@ class Space:
         gs = self.gs
         self.pilot.disengage_auto_pilot()
         gs.docked = True
-        gs.cmdr.ship_x = gs.docked_planet.x
-        gs.cmdr.ship_y = gs.docked_planet.y
+        gs.cmdr.ship_x = gs.present_planet.x
+        gs.cmdr.ship_y = gs.present_planet.y
         gs.flight_speed = 0
         y = 2 * gs.flight_speed / gs.myship.max_speed - 1.0
         gs.parent_scene.joystick_thrust.set_position(y=y)
@@ -389,7 +389,7 @@ class Space:
                 
     # --------Planet 
     def close_to_planet(self):
-       return self.gs.universe[PLANET].distance < 65792
+       return self.gs.universe[STATION].distance < 65792
        
     def hide_planet(self):
        try:
@@ -423,7 +423,7 @@ class Space:
         d = 1
         rotmat = Matrix([Vector(1.0, 0.0, 0.0),
                         Vector(vec.x, vec.z, -vec.y),
-                        Vector(d*vec.x, d*vec.y, d*vec.z)])
+                        Vector(vec.x, vec.y, d*vec.z)])
         
         gs.swat.add_new_station(sx, sy, sz, rotmat)
         
@@ -452,7 +452,7 @@ class Space:
         self.stars.create_new_stars()
         gs.swat.clear_universe()        
         gs.swat.generate_landscape()                
-        planet_vector, sun_vector = self.get_solar_system_vectors(gs.docked_planet)
+        planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
         gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
         self.make_station_appear()        
         gs.swat.add_new_ship(cs.SHIP_SUN, *sun_vector, None, 0, 0)
@@ -581,8 +581,9 @@ class Space:
              cs.FLG_POLICE: [cs.YELLOW, cs.YELLOW],  # tracked
              cs.FLG_INACTIVE: [cs.GREEN, cs.YELLOW],  # debris
              cs.FLG_MISSILE: [cs.YELLOW, cs.RED],  # missile
-             cs.FLG_BOLD | cs.FLG_ANGRY: [cs.GREEN, cs.RED],  # pirate/bounty hunter
-             cs.FLG_BOLD | cs.FLG_ANGRY | cs.FLG_ALIEN: [cs.RED, cs.RED]}  # thargoid
+             cs.FLG_ALIEN: [cs.RED, cs.RED],  # thargoid
+             cs.FLG_BOLD | cs.FLG_ANGRY: [cs.GREEN, cs.RED]}  # pirate/bounty hunter
+             
             for k, v in colours.items():
                 if obj.flags & k:
                     colour = v
@@ -841,7 +842,7 @@ class Space:
             return
         # planet_name = gs.planet.get_planet_name(gs.hyperspace_planet)
         self.hyper_distance = gs.in_dock.calc_distance_to_planet(
-            gs.docked_planet, gs.hyperspace_planet)
+            gs.present_planet, gs.hyperspace_planet)
         if self.hyper_distance == 0 or self.hyper_distance > gs.cmdr.fuel:
             return
 
@@ -886,13 +887,13 @@ class Space:
             setattr(cmdr.galaxy_seed, attr,
                     self.rotate_byte_left(getattr(cmdr.galaxy_seed, attr)))
         gs.galaxy_seed = cmdr.galaxy_seed
-        gs.docked_planet = gs.planet.find_planet(0xe5, 0x9f, gs.galaxy_seed)
-        gs.hyperspace_planet = gs.docked_planet
+        gs.present_planet = gs.planet.find_planet(0xe5, 0x9f, gs.galaxy_seed)
+        gs.hyperspace_planet = gs.present_planet
 
     def enter_witchspace(self):
         gs = self.gs
         gs.witchspace = True
-        gs.docked_planet.b ^= 31
+        gs.present_planet.b ^= 31
         gs.in_battle = True
         gs.flight_speed = 12
         self.flight_roll = 0
@@ -974,11 +975,11 @@ class Space:
             if gs.rand255() > 253 or gs.flight_climb == gs.myship.max_climb:
                 self.enter_witchspace()
                 return
-            gs.docked_planet = self.destination_planet
+            gs.present_planet = self.destination_planet
             logger.debug('Completed hyperspace')
         gs.cmdr.market_rnd = gs.rand255()
-        gs.current_planet_data = gs.planet.generate_planet_stats(gs.docked_planet)
-        self.trade.generate_stock_market(gs.current_planet_data.economy)
+        gs.current_planet_data = gs.planet.generate_planet_stats(gs.present_planet)
+        gs.trade.stock_market = self.trade.generate_stock_market(gs.current_planet_data.economy)
 
         gs.flight_speed = 12
         self.flight_roll = 0
@@ -989,7 +990,7 @@ class Space:
         #self.stars.create_new_stars()
         #gs.swat.clear_universe()
         #gs.swat.generate_landscape()
-        #planet_vector, sun_vector = self.get_solar_system_vectors(gs.docked_planet)
+        #planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
         #gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
         #gs.swat.add_new_ship(cs.SHIP_SUN, *sun_vector, None, 0, 0)
 
@@ -1005,13 +1006,16 @@ class Space:
     # -------Warp / launch
         
     def cross_product(self, a, b):
-        return Vector(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x)
+        return Vector(a.y*b.z - a.z*b.y,
+                      a.z*b.x - a.x*b.z,
+                      a.x*b.y - a.y*b.x)
 
     def teleport(self, target, height, axis=NOSEV):
         # function to move the ship for testing
         # moves object direct in front of ship
         # moves all universe to match
-        ship = self.gs.ship
+        ship = self.gs.ship       
+        
         safe_point = (target.rotmat[axis] * height)
         offset = target.location - safe_point                
         
@@ -1020,55 +1024,35 @@ class Space:
             if obj.type != 0 and obj != target:
                 obj.location -= offset                
         target.location = safe_point
-        # 1. Calculate the new Forward (Nose) vector
-        # We want to look at the target's position
-        look_dir = unit_vector(target.location - ship.location)
-        # 2. Build the new rotation matrix
-        # Standard 'up' vector for the world
-        world_up = Vector(0, 1, 0)
-        
-        # If looking straight up/down, avoid a zero cross-product
-        if abs(look_dir.y) > 0.99:
-            world_up = Vector(0, 0, 1)
-            
-        new_side = unit_vector(self.cross_product(world_up, look_dir))
-        new_roof = self.cross_product(look_dir, new_side)
-        
-        # 3. Update the ship's rotation matrix
-        ship.rotmat[SIDEV] = new_side * -1
-        ship.rotmat[ROOFV] = new_roof
-        ship.rotmat[NOSEV] = look_dir * -1
-        
+        # Reset the ship's rotation matrix
+        ship.rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
+        self.update_universe()
         # target.sync_model()
         ship.acceleration = 0
         ship.velocity = 0
         self.flight_roll = 0
         self.flight_climb = 0
         self.gs.flight_speed = 0
-        # self.gs.msg_left.text = f"Jump to {target.name} Complete"
         
     def jump_direct(self, key):
       """ A massive cheat, jump instantly to point"""
       if key == 'To Sun':
           sun = self.gs.universe[SUN]
           if sun.name == 'SUN':
-              self.teleport(sun, height=60000)
-              try:
-                  self.swat.sun_image.planet.alpha = 1
-              except AttributeError:
-                  pass
+              self.teleport(sun, height=60000)   
               self.update_universe()
       elif key == 'To Planet':
           # move to location outside planets  atmosphere, on vector to station
           planet = self.gs.universe[PLANET]
-          H = 65000
           # target above  North Pole
-          self.teleport(planet, height=H, axis=NOSEV)
+          self.teleport(planet, height=65000, axis=NOSEV)
           self.update_universe()
       elif key == 'To Station':
           # move to location outside station, on vector to entrance          
-          self.teleport(self.gs.universe[STATION], height=3000, axis=NOSEV)
-          # self.update_universe()
+          self.teleport(self.gs.universe[STATION], height=-2000, axis=NOSEV)
+          self.gs.safe_mode = True
+          self.update_universe()                                        
+         
                 
     def jump_warp(self):
         gs = self.gs
@@ -1113,19 +1097,12 @@ class Space:
         #self.populate_universe()
         self.stars.create_new_stars()
         gs.swat.clear_universe(all_others=True)
-        #gs.swat.generate_landscape()
-        #gs.swat.add_new_ship(cs.SHIP_PLANET, 0, 0, 65536, None, 0, 0)
-        #rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, -1)]
-        #gs.swat.add_new_station(0, 0, -256, rotmat)
+
         self.teleport(station, -1000, axis=NOSEV)
         self.update_universe()
-        #self.ship.rotmat = station.rotmat[:]
-        #self.ship.rotz = station.rotz
-        # self.ship.rotmat[NOSEV] *= Vector(1, 1 , 1)
         gs.flight_speed =0
-        self.flight_roll = -15
+        self.flight_roll = 0
         self.flight_climb = 0
-        #logger.debug(f'{gs.universe}')
         gs.current_screen = cs.SCR_FRONT_VIEW
         self.snd.play_sample(cs.SND_LAUNCH)
 

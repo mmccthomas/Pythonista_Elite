@@ -158,18 +158,13 @@ Chris `Thomas. June 2026
 
 # TODO list 
 
-autopilot is still not bulletproof
-works from long distance via planet pole and ip
-Need to check entry at all phases.
-after teleporting to Sun, next long distance
-autopilot wanders off course
+i would like to add market prices for any target planet, but do not include quantities
 
 Debug explosion animation vs FLG_REMOVE status
 ships simply disappear
 
-Check endgame mission 1
-
 Add laser lines to firing ships
+Need to debug tactics. nothing seems to fire
 they dont seem to fire at present
 
 

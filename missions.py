@@ -159,14 +159,14 @@ class MissionManager:
             self.gs.space.update_universe()
             self.gs.swat.update_model(current_obj)
 
-    def check_mission_brief(self, docked_planet):
+    def check_mission_brief(self, present_planet):
         """
         Main logic gate for triggering missions based on score and location.
         """
         self.cmdr = self.gs.cmdr
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
-        docked_planet_id = (docked_planet.x, docked_planet.y)
+        present_planet_id = (present_planet.x, present_planet.y)
         # logger.debug(f'{self.cmdr.mission=}')
         # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
         if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
@@ -185,13 +185,13 @@ class MissionManager:
             return MISSION_2_START
 
         # Trigger Mission 2 Part 2: Reach Ceerdi (Planet 215, 84)
-        if self.cmdr.mission == MISSION_2_START and docked_planet_id == (215, 84):
+        if self.cmdr.mission == MISSION_2_START and present_planet_id == (215, 84):
             
             self.thargoid_brief_2()
             return MISSION_2_BRIEFED
 
         # Trigger Mission 2 End: Reach Birera (Planet 63, 72)
-        if self.cmdr.mission == MISSION_2_BRIEFED and docked_planet_id == (63, 72):
+        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet_id == (63, 72):
             self.thargoid_debrief()
             return
             

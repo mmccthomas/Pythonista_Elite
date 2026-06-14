@@ -94,7 +94,7 @@ class Pilot:
         # x' = x*cos(a) + y*sin(a) → to zero x, we want alpha = -atan2(x, y)
         # y' = y*cos(b) - z*sin(b) → to zero y, we want beta  =  atan2(y, z)
         
-        # logger.debug(f'{x=:.3f} {y=:.3f} {z=:.3f}')
+
         # alpha = -(x/y)
         # beta = (x*x + y*y)/ (y *z)
         if math.isclose(x, 0, abs_tol=0.001) and math.isclose(y, 0, abs_tol=0.001):
@@ -110,8 +110,7 @@ class Pilot:
         else:
             roll = -alpha
             pitch = beta
-            
-        # logger.debug(f'{roll=:.3f} {pitch=:.3f}')
+           
         return roll, pitch
     
     # ######################################
@@ -195,10 +194,10 @@ class Pilot:
             return
         self.fly_to_vector__(ship, vec)
         
-    def auto_pilot_ship(self, un):
+    def auto_pilot_ship(self, index):
         """Automated ship runs to planet and back to station
         """
-        ship = self.universe[un]        
+        ship = self.universe[index]        
         if (ship.flags & cs.FLG_FLY_TO_PLANET):
             self.fly_to_planet(ship)            
         else:
@@ -377,9 +376,7 @@ class Pilot:
         
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
-        self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
-        # logger.debug(f'{target_roll=}, {target_climb=}')
-        # logger.debug(f'{fwd_dot}, {self.distance_to_target:.0f} {self.angle:+.1f}')
+        self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))        
         cr = '\n'
         self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
                                   f'{cr}D:{self.distance_to_target:.0f} A:{self.angle:+.1f} V:{self.gs.flight_speed:.1f}')
@@ -487,7 +484,6 @@ class Pilot:
     def closest_visible_target(self, ship):
         # when enabling docking computer, find closest target
         targets = [self._pole_waypoint(), self.ip_waypoint()]
-        logger.debug(targets)
         min_distance = 1000000
         min_phase = None
         closest = None
@@ -558,7 +554,7 @@ class Pilot:
                 # orient to arbitrary target, usually a ship
                 distance = self._dist_to(ship, self.target.location)
                 self.gs.msg_left.text = f'Target \n {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
-                self.fly_to_target(ship, self.target.location, max_velocity=8, pgain=80)
+                self.fly_to_target(ship, self.target.location, max_velocity=22, pgain=80)
                 if self.target.type == 0:
                    self.gs.msg_left.text = 'Target Lost'
                    self.disengage_auto_pilot()
@@ -591,28 +587,22 @@ class Pilot:
             case 'AT_POLE' | 'FIND_IP':
                 # PHASE: at pole, or elsewhere,  orient to IP before flying there
                 self.target_loc = self.ip_waypoint()
-                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)
+                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)                
                 
-                # logger.debug(f'{clear=} {self.blocker=}')
-                # logger.debug(f'{self.get_angles(*self.target_loc.to_tuple)}')
                 clear = True
-                if not clear:
-                    # logger.debug(f'Phase {self.flight_phase}, has blocker {self.blocker.name}')
+                if not clear:                    
                     self.gs.msg_left.text = f'IP has blocker {self.blocker.name}'
                     self.target_loc = self._fly_around(ship, self.blocker)
                                 
-                aligned = self.orient_to_target(ship, self.target_loc)
-                # logger.debug(f'{aligned=}')
+                aligned = self.orient_to_target(ship, self.target_loc)                
                 if aligned:
                     self.change_phase(ship, 'TO_IP')
                     
             case 'FIND_DETOUR':
                 # PHASE: orient to DETOUR before flying there
                 # TODO DOESNT UPDATE
-                self.target_loc = self._fly_around(ship, self.blocker)
-                # logger.debug(f'{self.target_loc=}')
-                aligned = self.orient_to_target(ship, self.target_loc)
-                # logger.debug(f'{aligned=}')
+                self.target_loc = self._fly_around(ship, self.blocker)                
+                aligned = self.orient_to_target(ship, self.target_loc)                
                 if aligned:
                     self.change_phase(ship, 'TO_DETOUR')
                     
@@ -686,7 +676,6 @@ class Pilot:
                     ship.acceleration = 1
                     ship.velocity = 2
                 
-                # logger.debug(f'{rolled=} {error=:.1f}')
                 cr = '\n'
                 self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
                                           f'{cr}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')

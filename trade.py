@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 # Unit Constants
 import constants as cs
 import logging
@@ -12,7 +13,7 @@ class TradeManager:
         
         # The stock_market data structure
         # (Name, current_qty, current_price, base_price, eco_adjust, base_qty, mask, units)
-        self.stock_market = [
+        self.STOCK_MARKET = [
             {"name": "Food",         "base_price": 19,  "eco_adjust": -2, "base_qty": 6,   "mask": 0x01, "units": cs.TONNES},
             {"name": "Textiles",     "base_price": 20,  "eco_adjust": -1, "base_qty": 10,  "mask": 0x03, "units": cs.TONNES},
             {"name": "Radioactives", "base_price": 65,  "eco_adjust": -3, "base_qty": 2,   "mask": 0x07, "units": cs.TONNES},
@@ -33,7 +34,7 @@ class TradeManager:
         ]
         
         # Initialize current price and quantity fields
-        for item in self.stock_market:
+        for item in self.STOCK_MARKET:
             item["current_price"] = 0
             item["current_quantity"] = 0
             
@@ -47,10 +48,11 @@ class TradeManager:
        
     def generate_stock_market(self, planet_economy):
         """
-        Generates prices and quantities based on the planet's economy.
+        Generates prices and quantities based on the planet's economy
         Mimics the 8-bit overflow/clamping of the original code.
         """
-        for i, item in enumerate(self.stock_market):
+        market = deepcopy(self.STOCK_MARKET)
+        for i, item in enumerate(market):
             # Price calculation
             price = item["base_price"]
             price += (self.cmdr.market_rnd & item["mask"])
@@ -72,7 +74,8 @@ class TradeManager:
             item["current_quantity"] = quant
 
         # Alien items are special: found/scooped, but never bought from market
-        self.stock_market[cs.ALIEN_ITEMS_IDX]["current_quantity"] = 0
+        market[cs.ALIEN_ITEMS_IDX]["current_quantity"] = 0
+        return market
 
     def carrying_contraband(self):
         """Returns a 'threat level' based on illegal goods held."""
@@ -136,4 +139,8 @@ class TradeManager:
         # Default collision if item isn't scoopable
         obj.exploding = True
         self.gs.space.damage_ship(obj.energy // 2, True)
+        
+        
+if __name__ == '__main__':
+   pass
 

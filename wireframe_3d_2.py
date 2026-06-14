@@ -285,7 +285,7 @@ class Sun(WireframeObject):
 class Sprite3D(WireframeObject):
     """Billboard sprite that always faces the camera."""
     def __init__(self, image_path, width=64, height=64,
-                 distance_scale=False, scale=100, **kw):
+                 distance_scale=False, scale=100, name='',**kw):
         super().__init__(**kw)
         self.original_vertices = []
         self.edges = []
@@ -295,6 +295,7 @@ class Sprite3D(WireframeObject):
         self.billboard_h     = height
         self.distance_scale  = distance_scale
         self.scale           = scale
+        self.name = name
         if isinstance(image_path, str):
             self._image = scene.load_image_file(image_path)
         else:
@@ -495,21 +496,22 @@ class Renderer:
         fl     = camera.focal_length
 
         visible_objs = [o for o in objects if o.visible]
-
+        
         if self.depth_sort:
             visible_objs.sort(
                 key=lambda o: (o.position_in_world - camera.position).length(),
                 reverse=True
             )
-
+        
         for obj in visible_objs:
 
             # Sprite billboard ---
             if getattr(obj, 'is_billboard', False):
                 cam_pos = self._to_camera(obj.position_in_world, camera)
+                
                 if cam_pos.z > camera.z_far or cam_pos.z < camera.z_near:
                     if isinstance(obj._image, scene.SpriteNode):
-                        obj._image.alpha = 0
+                        obj._image.alpha = 0                        
                     continue
                 screen_pt = self._project(cam_pos, fl, camera)
                 if screen_pt is None:

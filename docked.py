@@ -2,7 +2,6 @@ import math
 from dataclasses import dataclass
 import constants as cs
 from game_engine import Point2
-from elite import GalaxySeed
 from constants import PULSE_LASER, BEAM_LASER, MILITARY_LASER, MINING_LASER
 import logging
 logger = logging.getLogger(__name__)
@@ -175,7 +174,7 @@ class Docked:
         planet_name = gs.planet.name_planet(planet)
         gs.hyperspace_planet = planet
         gfx.display_text(3, cs.NUM_LINES - 1, f"{planet_name:<8} ({planet.x:.0f},{planet.y:.0f})")
-        dist_text = self.show_distance(gs.docked_planet, gs.hyperspace_planet)
+        dist_text = self.show_distance(gs.present_planet, gs.hyperspace_planet)
         self.gfx.display_text(23, cs.NUM_LINES - 1, dist_text)
 
     def _next_planet(self, glx):
@@ -193,7 +192,7 @@ class Docked:
                 gs.hyperspace_planet = glx
                 # gfx.clear_text_area()
                 # gfx.display_text(3, cs.NUM_LINES - 1, f"{planet_name:<8} ({glx.x:.0f}, {glx.y:.0f})")
-                # self.show_distance(356, gs.docked_planet, gs.hyperspace_planet)
+                # self.show_distance(356, gs.present_planet, gs.hyperspace_planet)
                 self._update_cross_for_hyperspace()
                 return
             self._next_planet(glx)
@@ -213,7 +212,7 @@ class Docked:
             
     # ------Crosshair
     def move_cursor_to_origin(self):
-        self.cross = self.old_cross = Point2(self.gs.docked_planet.x, self.gs.docked_planet.y)
+        self.cross = self.old_cross = Point2(self.gs.present_planet.x, self.gs.present_planet.y)
                                                                                          
     def move_cursor_to_xy(self, key):
         gs = self.gs
@@ -263,7 +262,7 @@ class Docked:
         gs = self.gs
         gfx = self.gfx
         
-        sorted_planets = gs.planet.get_closest_planets(gs.galaxy_seed, gs.docked_planet, max_distance=self.gs.cmdr.fuel)
+        sorted_planets = gs.planet.get_closest_planets(gs.galaxy_seed, gs.present_planet, max_distance=self.gs.cmdr.fuel)
         for planet in sorted_planets:
             coord = self._to_screen(Point2(planet.x, planet.y)).round()
             
@@ -302,13 +301,13 @@ class Docked:
         self.zoom_scale = 5 * 70 / cs.MAX_FUEL
         
         self.offset = Point2(*cs.FLIGHT_RECT.center())
-        self.baseline = Point2(gs.docked_planet.x, gs.docked_planet.y)
+        self.baseline = Point2(gs.present_planet.x, gs.present_planet.y)
         if self.old_cross.x == -1:
             self.move_cursor_to_origin()
             
         gfx.clear_display()
         gfx.display_centre_text(0, "SHORT RANGE CHART", 140, cs.GOLD)
-        centre = self._to_screen(Point2(gs.docked_planet.x, gs.docked_planet.y))
+        centre = self._to_screen(Point2(gs.present_planet.x, gs.present_planet.y))
         self.draw_fuel_limit_circle(centre)
         self._plot_planets_and_names()
         self.move_if_changed()
@@ -328,7 +327,7 @@ class Docked:
             
         gfx.clear_display()
         gfx.display_centre_text(0, f"GALACTIC CHART {self.gs.cmdr.galaxy_number + 1}", 140, cs.GOLD)
-        self.draw_fuel_limit_circle(self._to_screen(Point2(gs.docked_planet.x, gs.docked_planet.y)))
+        self.draw_fuel_limit_circle(self._to_screen(Point2(gs.present_planet.x, gs.present_planet.y)))
         
         glx = self.gs.cmdr.galaxy_seed.copy()
         # self._plot_planets_and_names()
@@ -336,7 +335,7 @@ class Docked:
         for _ in range(256):
             p = self._to_screen(Point2(glx.x, glx.y))
             # 0-14 -> 2-6
-            blob_size = round(glx.tech/ 3 + 2) * 1.5
+            blob_size = round(glx.tech / 3 + 2) * 1.5
             colour = cs.COLOUR_LIST[glx.colour]
             gfx.plot_pixel(*p.as_tuple(), colour, blob_size)
             self._next_planet(glx)
@@ -357,7 +356,7 @@ class Docked:
 
         pd = gs.planet.generate_planet_stats(gs.hyperspace_planet)
         gs.current_planet_data = pd
-        dist_text = self.show_distance(gs.docked_planet, gs.hyperspace_planet)
+        dist_text = self.show_distance(gs.present_planet, gs.hyperspace_planet)
         self.gfx.display_text(23, cs.NUM_LINES - 1, dist_text)
     
         gfx.display_text(0, 4, f"Economy: {ECONOMY_TYPES[pd.economy]}")
@@ -395,7 +394,7 @@ class Docked:
         line_no = 4
         gfx.display_colour_text(0, line_no, "Present System:", cs.GREEN)
         if not gs.witchspace:    # self.gs.ship_x, self.gs.cmdr.ship_y)
-            planet_name = gs.planet.get_planet_name(gs.docked_planet).title()
+            planet_name = gs.planet.get_planet_name(gs.present_planet).title()
             gfx.display_text(17, line_no, planet_name)
         line_no += 1
         gfx.display_colour_text(0, line_no, "Hyperspace System:", cs.GREEN)
@@ -468,32 +467,32 @@ class Docked:
         ]:
             if mount:
                 item(f"{label} {self.laser_type(mount)} Laser")
-        # Add inventory here as it makes sense       
+        # Add inventory here as it makes sense
         gfx.display_text(0, line_no, "INVENTORY", 140, cs.WHITE)
         line_no += 1
         for i in range(17):
             if cmdr.current_cargo[i] > 0:
-                sm = gs.trade.stock_market[i]                
+                sm = gs.trade.stock_market[i]
                 gfx.display_text(x, line_no, f"{sm['name']} {cmdr.current_cargo[i]}{UNIT_NAMES[sm['units']]}")
                 line_no += 1
                 
         self.gfx.text_render()
         
     # -------Markets
-    def display_stock_price(self, i):
+    def display_stock_price(self, i, sm_i):
         gfx = self.gfx
         sm = self.gs.trade.stock_market
         row = i + self.START_ROW
 
-        gfx.display_text(0,  row, sm[i]['name'])
-        gfx.display_text(13, row, UNIT_NAMES[sm[i]['units']])
-        gfx.display_text(19, row, f"{sm[i]['current_price'] // 10}.{sm[i]['current_price'] % 10}")
+        gfx.display_text(0,  row, sm_i['name'])
+        gfx.display_text(13, row, UNIT_NAMES[sm_i['units']])
+        gfx.display_text(19, row, f"{sm_i['current_price'] // 10}.{sm_i['current_price'] % 10}")
 
-        qty = sm[i]['current_quantity']
-        gfx.display_text(28, row, f"{qty}{UNIT_NAMES[sm[i]['units']]}" if qty > 0 else "-")
+        qty = sm_i['current_quantity']
+        gfx.display_text(28, row, f"{qty}{UNIT_NAMES[sm_i['units']]}" if qty > 0 else "-")
 
         held = self.gs.cmdr.current_cargo[i]
-        gfx.display_text(37, row, f"{held}{UNIT_NAMES[sm[i]['units']]}" if held > 0 else "-")
+        gfx.display_text(37, row, f"{held}{UNIT_NAMES[sm_i['units']]}" if held > 0 else "-")
                 
     def highlight_stock(self, i):
         # i is index of stock number
@@ -542,15 +541,15 @@ class Docked:
         cmdr = self.gs.cmdr
         # self.sm = self.gs.trade.stock_market
         gfx.clear_display()
-        planet_name = gs.planet.name_planet(gs.docked_planet)
+        planet_name = gs.planet.name_planet(gs.present_planet)
         gfx.display_centre_text(0, f"{planet_name} MARKET PRICES", 140, cs.GOLD)
         gfx.display_text(0, 23, f"Cash: {cmdr.credits // 10}.{cmdr.credits % 10}")
         for label, x in [("PRODUCT", 0), ("UNIT", 13), ("PRICE", 19),
                          ("FOR SALE", 26), ("IN HOLD", 35)]:
             gfx.display_colour_text(x, 3, label, cs.GREEN)
-        
-        for i in range(17):
-            self.display_stock_price(i)
+        sm = self.gs.trade.stock_market
+        for i in range(17):            
+            self.display_stock_price(i, sm[i])
 
         if gs.docked:
             if self.hilite_market == -1:
@@ -558,7 +557,25 @@ class Docked:
             self.highlight_stock(self.hilite_market)
                     
         gfx.text_render()
-    
+        
+    def display_hyperspace_planet_prices(self):
+        gfx = self.gfx
+        gfx.clear_display()
+        planet_name = self.gs.planet.name_planet(self.gs.hyperspace_planet)
+        gfx.display_centre_text(0, f"{planet_name} MARKET PRICES", 140, cs.GOLD)
+        for label, x in [("PRODUCT", 0), ("UNIT", 13), ("PRICE", 19)]:
+            gfx.display_colour_text(x, 3, label, cs.GREEN)
+        econ =   self.gs.hyperspace_planet.econ  
+        sm = self.gs.trade.generate_stock_market(econ)
+        for i in range(17):            
+            row = i + self.START_ROW
+            gfx.display_text(0,  row, sm[i]['name'])
+            gfx.display_text(13, row, UNIT_NAMES[sm[i]['units']])
+            gfx.display_text(19, row, f"{sm[i]['current_price'] // 10}.{sm[i]['current_price'] % 10}")
+            # qty = sm[i]['current_quantity']
+            # gfx.display_text(28, row, f"{qty}{UNIT_NAMES[sm[i]['units']]}" if qty > 0 else "-")
+        gfx.text_render()
+        
     # -------Inventory
 
     def display_inventory(self):
