@@ -98,12 +98,13 @@ class TradeManager:
         Handles the logic for fuel-scooping cargo canisters or debris.
         """
         obj = universe[universe_obj_index]
+        parent = getattr(obj, 'parent', None)
         logger.debug(f'{obj}')
         if obj.flags & cs.FLG_DEAD:
             return
 
         # Cannot scoop missiles
-        if obj.type == "SHIP_MISSILE":
+        if obj.type == cs.SHIP_MISSILE:
             return
 
         # Check conditions for successful scooping
@@ -121,21 +122,28 @@ class TradeManager:
             return
 
         # If it's a generic cargo canister
-        if obj.type == "SHIP_CARGO":
-            trade_type = random.randint(0, 255) & 7  # Randomly determine what's inside
-            self.cmdr.current_cargo[trade_type] += 1
-            print(f"Scooped: {self.stock_market[trade_type]['name']}")
+        if obj.type == cs.SHIP_CARGO:
+            trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
+            quantity = random.randint(0, 255) & 7
+            self.cmdr.current_cargo[trade_type] += quantity
+            logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}s")
             universe.remove_ship(universe_obj_index)
             return
 
         # If it's a specific item (like an escape pod or alloy)
-        if obj.scoop_type != 0:
-            trade_type = obj.scoop_type + 1
-            self.cmdr.current_cargo[trade_type] += 1
-            print(f"Scooped: {self.stock_market[trade_type]['name']}")
+        elif obj.type == cs.SHIP_ALLOY:
+            # allow capture of alien items
+            if parent in [cs.THARGON, cs.THARGOID]:
+                self.cmdr.current_cargo[16] += 1
+                self.gs.info_message("Scooped: Alien Items")
+                universe.remove_ship(universe_obj_index)
+                return
+               
+            self.cmdr.current_cargo[9] += 1
+            self.gs.info_message("Scooped: Alloy")
             universe.remove_ship(universe_obj_index)
             return
-
+        
         # Default collision if item isn't scoopable
         obj.exploding = True
         self.gs.space.damage_ship(obj.energy // 2, True)

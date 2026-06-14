@@ -62,12 +62,16 @@ class EliteScene(Scene):
                                       position=cs.FIRE_BUTTON_RECT.center(),
                                       parent=self)
         # status and debug messages
-        self.msg = LabelNode('', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50), color=cs.WHITE, anchor_point=(0, 0), parent=self)
+        self.msg = LabelNode('', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50),
+                             color=cs.WHITE, anchor_point=(0, 0),
+                             parent=self)
         fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
         self.msg_right = LabelNode('', position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20),
                                    color=cs.WHITE, font=('Copperplate', 18),
                                    anchor_point=(0, 1), parent=self)
-        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H), anchor_point=(0, 1), font=('Copperplate', fontsize), color=cs.WHITE, parent=self)
+        self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H),
+                                    anchor_point=(0, 1), font=('Copperplate', fontsize),
+                                    color=cs.WHITE, parent=self)
         # self.cloud = IsometricCloud(loc=Point(cs.KEYBOARD_X+cs.KEYBOARD_W/2, cs.GAME_H-200))
         self.msg_left = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H),
                                   color=cs.WHITE, font=('Copperplate', 18),
@@ -117,6 +121,7 @@ class EliteScene(Scene):
         self.emit_counter = 0
         self.emit_rate = 5  # Emit every 5 frames
         self.is_joystick_active = False
+        self._explosion_t = 0.0
         self.paused = False
         if not hasattr(self, 'test'):
             self.mainloop.game_loop()
@@ -275,16 +280,23 @@ class EliteScene(Scene):
             
     def draw(self):
         # draw whatever is in mainloop universe
-        if self.mainloop.current_screen in cs.SCR_OUTSIDE:     
+        if self.mainloop.current_screen in [*cs.SCR_OUTSIDE, cs.SCR_INTRO_ONE,
+                                            cs.SCR_INTRO_TWO, cs.SCR_MISSION]:
             objects = [obj
                        for obj in self.mainloop.universe
                        if obj.type != 0]
             
             # Draw all objects
-            for obj in objects:                
+            for obj in objects:
                 if obj.exploding:
                     # Draw the explosion instead of the ship
-                    self.renderer.explode(obj.model, self.camera, self.size)
+                    self._explosion_t += self.dt * EXPLOSION_SPEED
+                    obj.model.explosion_time = self._explosion_t
+                    if self._explosion_t >= 1.0:
+                         obj.flags |= cs.FLG_REMOVE                                                  
+                         obj.exploding = False
+                         self._explosion_t = 0.0
+                    self.renderer.explode(obj.model, self.camera, cs.FLIGHT_RECT)
                     
                 else:
                     # Draw normal ship (Renderer.draw checks .visible)

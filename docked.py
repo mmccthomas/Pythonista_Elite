@@ -481,7 +481,6 @@ class Docked:
     # -------Markets
     def display_stock_price(self, i, sm_i):
         gfx = self.gfx
-        sm = self.gs.trade.stock_market
         row = i + self.START_ROW
 
         gfx.display_text(0,  row, sm_i['name'])
@@ -548,7 +547,7 @@ class Docked:
                          ("FOR SALE", 26), ("IN HOLD", 35)]:
             gfx.display_colour_text(x, 3, label, cs.GREEN)
         sm = self.gs.trade.stock_market
-        for i in range(17):            
+        for i in range(17):
             self.display_stock_price(i, sm[i])
 
         if gs.docked:
@@ -565,9 +564,9 @@ class Docked:
         gfx.display_centre_text(0, f"{planet_name} MARKET PRICES", 140, cs.GOLD)
         for label, x in [("PRODUCT", 0), ("UNIT", 13), ("PRICE", 19)]:
             gfx.display_colour_text(x, 3, label, cs.GREEN)
-        econ =   self.gs.hyperspace_planet.econ  
+        econ = self.gs.hyperspace_planet.econ
         sm = self.gs.trade.generate_stock_market(econ)
-        for i in range(17):            
+        for i in range(17):
             row = i + self.START_ROW
             gfx.display_text(0,  row, sm[i]['name'])
             gfx.display_text(13, row, UNIT_NAMES[sm[i]['units']])

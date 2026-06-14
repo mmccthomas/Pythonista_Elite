@@ -1,10 +1,10 @@
 # Chris Thomas Apr 2026
 # All screen sizes scale to Ipad screen
 from change_screensize import get_screen_size
-from types import SimpleNamespace
 from scene import Rect
 from PIL import Image
 import logging
+
 
 def setup_logging():
     logging.basicConfig(
@@ -18,9 +18,11 @@ def setup_logging():
 
 logger = logging.getLogger(__name__)
 
+
 def is_debug_level():
     return logging.getLevelName(logger.getEffectiveLevel()) == 'DEBUG'
     
+
 # --------Global modes
 SOUND = 0
 WIREFRAME = 0
@@ -30,7 +32,7 @@ UNIVERSE_STATUS = True
 INSTANT_DOCK = False
 MAX_FUEL = 100
 FLIGHT_DIRECTOR = True
-FIRE_ACCURACY = 8  # higher makes it easier to hit target
+FIRE_ACCURACY = 12  # higher makes it easier to hit target default 8
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -61,7 +63,7 @@ HUD_H = 300
 HUD_RECT = Rect(BORDER, BORDER,
                 HUD_W, HUD_H + BORDER)
 HUD_LEFT = Rect(BORDER, 4*BORDER,
-                hud_l_w + 0* BORDER,
+                hud_l_w + 0 * BORDER,
                 HUD_H_L + BORDER)
 
 HUD_RIGHT = Rect(HUD_W - hud_r_w + BORDER, 4*BORDER,
@@ -81,8 +83,8 @@ SCANNER_H = HUD_H * 0.75
 SCANNER_RECT = Rect(HUD_CENTRE.x, HUD_CENTRE.y + 0.125 * HUD_CENTRE.h,
                     HUD_CENTRE.w, SCANNER_H)
 
-COMPASS_W = HUD_RECT.height / 4
-COMPASS_X = SCANNER_RECT.max_x - COMPASS_W/2 +4
+COMPASS_W = HUD_RECT.height/4
+COMPASS_X = SCANNER_RECT.max_x - COMPASS_W/2 + 4
 COMPASS_Y = HUD_RECT.max_y - COMPASS_W/2 + 8
 COMPASS_RECT = Rect(COMPASS_X - COMPASS_W/2,
                     COMPASS_Y - COMPASS_W/2,
@@ -251,8 +253,6 @@ IMG_MISSILE_GREEN = 'missgrn.bmp'
 # Sound stubs
 # ═══════════════════════════════════════════════════════════════════════════════
 
-
-
 SND_BEEP = 'beep'
 SND_BOOP = "boop"
 SND_CRASH = "crash"
@@ -286,8 +286,8 @@ FLG_POLICE = 0x800
 FLG_CLOAKED = 0x1000
 FLG_MISSILE = 0x2000
 FLG_ALIEN = 0x4000
-FLG_STATION = 0x8000 # for scanner
-FLG_PLANET = 0x10000 # for scanner
+FLG_STATION = 0x8000  # for scanner
+FLG_PLANET = 0x10000  # for scanner
 
 MISSILE_UNARMED = -2
 MISSILE_ARMED = -1
@@ -507,7 +507,7 @@ if __name__ == '__main__':
     ax.add_patch(hud_right)
     ax.add_patch(hud_centre)
     cx, cy = FLIGHT_RECT.center()
-    # Add Cross at FLIGHT_RECT.centre() 
+    # Add Cross at FLIGHT_RECT.centre()
     ax.plot(cx, cy, 'x', color='black', markersize=10, markeredgewidth=2)
     # Set axis limits to ensure the rectangle is visible
     ax.set_xlim(0, GAME_W)

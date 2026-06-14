@@ -42,9 +42,9 @@ significant changes:
    The keyboard keys are reconfigured depending on mode
    
 2. 2 joysticks, one for roll, pitch, the other for thrust
-    Thrust is direct and will stay set when not touched.
-    It will react when thrust is controlled by autopilot.
-    Fire button fires whenever held, so can continuously fire.
+   Thrust is direct and will stay set when not touched.
+   It will react when thrust is controlled by autopilot.
+   Fire button fires whenever held, so can continuously fire.
     
 3. Screen can be varied. Hud left and right sections are fixed size. Scanner width changes with screen size
    flight window fills screen. Watch out if original code uses fixed window
@@ -63,8 +63,8 @@ significant changes:
 9. the infinte loop in alg_main would make the system unresponsive. Replace with a routine entered every 1/60th
    second by Scene.update(). a state machine calls appropriate screens
 
-10 for fixed items such as crosshairs and laser lines, draw them once and control alpha dynamically
-   This is much faster and more secure than adding, removing. use this also to add safe and ecm icons to hud
+10. for fixed items such as crosshairs and laser lines, draw them once and control alpha dynamically
+    This is much faster and more secure than adding, removing. use this also to add safe and ecm icons to hud
   
 11. Very imporantly, all text is rendered as sprites, which stay until removed. Clearing sprites and redrawing 
     is expensive in time, so some of the logic must change to either render them initially, or update if changed. 
@@ -74,7 +74,6 @@ significant changes:
     Rows and columns are fixed length. Font sizes change to suit screen size
     each block of text should finish with text render, which will check if there have been any changes
     
-
 12. Pressing keys enters key into message queue. one message will be processed on each iteration. Hence they are approximately concurrent and multitouch. All keys and joystick pass messages onlyo queue, so implementing rollover.
     direction joystick emits messages when held, whether moved od not, and can move in two directions
     at once
@@ -82,7 +81,6 @@ significant changes:
 13. Several keys change their label when activated, e.g.Target Missile/ Unarm, Escape/cancel escape,  Pause/resume,Docking/abort docking
     Some keys only enable when equipment is bought,  e.g. ECM
      
-
 14. A major change to the program structure is the use of state machines
     As each routine may be called 60 times per second we may need another state machine to cover 
      setup section, at least one iteration section and a means to leave.
@@ -95,10 +93,11 @@ significant changes:
     colour list is cs.COLOUR_LIST, curated to show sensible colours, no primary or dark colours
     Chart views also use planet tech level scaled to  9-23 pixels for short range and 3-7 pixels for galactic chart
     colour and size allows you to visually align galactic and short range chart
+    Looking at chart now allows assessing government and tech level.
             
 17. Implemented touch on charts, because it feels natural, rather than having to hold joystick
 
-18. remove approximations to vector rotation. proper sine, cos are quick. remove tidy_matrix.
+18. remove approximations to vector rotation. proper sine, cos are fast now. remove tidy_matrix.
     Ship drawing is handled seperately, so no issue with distortion.
     
 19. To cater for variable screen size, simplify translation of planet space (0-255) to flight rectangle.
@@ -133,7 +132,7 @@ significant changes:
     allows flying out from docked station with same orientation.
     Lots of complication arising from decision to have sun or station
     in unverse slot 1. Theres no real need for that.
-    station_exists text could simply be close_to_station (within 65536 of planet)
+    station_exists text could simply be close_to_station (within 65536 of station)
     then use slot 0 for planet, 1 for staion, 2 for sun always.
     This might simplify autopilot, since data points will be fixed, not dynamic.
     would need to align ship with station on launch.
@@ -142,6 +141,7 @@ significant changes:
     the challenge is to position and align the player on launch.
         
 29. Configuration parameters control the following:
+    SOUND turn sound on and off
     HUD_H allows the  scanner height to be adjusted for visibility
     WIREFRAME allows sun and planet to be rendered as wireframe or 
               realistic images
@@ -151,21 +151,28 @@ significant changes:
                     touching an object text, e.g. a ship will invoke an autopilot mode
                     to move that object into the fron view.
     YAW_COUPLING allows an element of roll to be applied to yaw.
+    
+    INSTANT_DOCK switches docking computer to instant mode
+    MAX_FUEL (default 70) changes fuel load for further travel
+    FLIGHT_DIRECTOR shows flight director to docking Initial Point when
+                    within safe zone.
+    FIRE_ACCURACY (default 8) makes it easier to hit target. Higher value increases radius of laser fire
 
-             
+30. Added a button to inspect market prices on currently designated hyperspace
+    planet. This does not show quantities, and does not affect current planet
+    trade screen. It simplifies trading decisions.             
                                        
 Chris `Thomas. June 2026
 
 # TODO list 
 
-i would like to add market prices for any target planet, but do not include quantities
 
-Debug explosion animation vs FLG_REMOVE status
-ships simply disappear
+Check directions for ships firing
+after game over, universe is not repopulated. do i understand this backup correctly?
+follow the logic.
 
-Add laser lines to firing ships
-Need to debug tactics. nothing seems to fire
-they dont seem to fire at present
+check scooping canisters and plate.
+added thargon plate as alien items
 
 
 Finally:

@@ -39,7 +39,7 @@ class Space:
         self.flight_roll = 0
         self.flight_climb = 0
         self.flight_yaw = 0
-        self.yaw_coupling = cs.YAW_COUPLING                 
+        self.yaw_coupling = cs.YAW_COUPLING
         self.low_altitude = False
         self.in_corona = False
     
@@ -57,7 +57,6 @@ class Space:
         self.jump_start = 0
         
     # ------- Rotation helpers
-
     
     @staticmethod
     def rotate_vec_yaw(vec, gamma):
@@ -206,7 +205,7 @@ class Space:
         gs.myship.altitude = 255
         gs.myship.cabtemp = 30
         gs.on_final_approach = False
-        self.hide_planet()        
+        self.hide_planet()
         self.swat.reset_weapons()
         self.swat.clear_universe(all_others=True)
         gs._change_flight_keys(False)
@@ -265,7 +264,7 @@ class Space:
             self.damage_ship(5, gs.universe[i].location.z > 0)
             self.snd.play_sample(cs.SND_CRASH)
 
-    def engage_docking_computer(self):       
+    def engage_docking_computer(self):
         self.snd.play_sample(cs.SND_DOCK)
         self.dock_player()
         self.gs.break_mode = 'docking'
@@ -357,7 +356,7 @@ class Space:
         gs.myship.cabtemp = 30
         if gs.witchspace:
             return
-        object = self.gs.universe[SUN]                      
+        object = self.gs.universe[SUN]
         loc = object.location
         x = abs(int(loc.x))
         y = abs(int(loc.y))
@@ -387,8 +386,8 @@ class Space:
                                gs.myship.max_fuel)
             gs.info_message("Fuel Scoop On")
                 
-    # --------Planet 
-    def close_to_planet(self):
+    # --------Planet
+    def close_to_station(self):
        return self.gs.universe[STATION].distance < 65792
        
     def hide_planet(self):
@@ -447,19 +446,19 @@ class Space:
     # ------- Universe update
     
     def populate_universe(self):
-        # create planet, station and sun       
-        gs = self.gs 
+        # create planet, station and sun
+        gs = self.gs
         self.stars.create_new_stars()
-        gs.swat.clear_universe()        
-        gs.swat.generate_landscape()                
+        gs.swat.clear_universe()
+        gs.swat.generate_landscape()
         planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
         gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
-        self.make_station_appear()        
+        self.make_station_appear()
         gs.swat.add_new_ship(cs.SHIP_SUN, *sun_vector, None, 0, 0)
         # check distances betweeb sun, planet and station
-        logger.debug(f'station-planet {(self.gs.universe[STATION].location - self.gs.universe[PLANET].location).magnitude:.0f}') 
-        logger.debug(f'sun-planet {(self.gs.universe[SUN].location - self.gs.universe[PLANET].location).magnitude:.0f}') 
-        logger.debug(f'station-sun {(self.gs.universe[SUN].location - self.gs.universe[STATION].location).magnitude:.0f}') 
+        logger.debug(f'station-planet {(self.gs.universe[STATION].location - self.gs.universe[PLANET].location).magnitude:.0f}')
+        logger.debug(f'sun-planet {(self.gs.universe[SUN].location - self.gs.universe[PLANET].location).magnitude:.0f}')
+        logger.debug(f'station-sun {(self.gs.universe[SUN].location - self.gs.universe[STATION].location).magnitude:.0f}')
         
     def update_universe(self):
         gs = self.gs
@@ -494,11 +493,12 @@ class Space:
                 continue
 
             if (gs.detonate_bomb
-                and not (obj.flags & cs.FLG_DEAD)
-                and i not in [SUN, PLANET, STATION]
-                and type not in [cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR]):
-                  self.snd.play_sample(cs.SND_EXPLODE)
-                  obj.flags |= cs.FLG_DEAD                                                                                                                
+                    and not (obj.flags & cs.FLG_DEAD)
+                    and i not in [SUN, PLANET, STATION]
+                    and type not in [cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR]):
+                self.snd.play_sample(cs.SND_EXPLODE)
+                obj.exploding = True
+                obj.flags |= cs.FLG_DEAD
 
             if i == SUN:
                 # obj.sync_model()
@@ -512,7 +512,7 @@ class Space:
                 if i == STATION:
                     self.check_docking(i)
                 elif i == PLANET:
-                    continue                
+                    continue
                 elif type == cs.SHIP_MISSILE:
                     continue
                 else:
@@ -521,7 +521,7 @@ class Space:
                     gs.universe[i].type = 0
                 # continue
 
-            if obj.distance > 57344 and i > SUN: # not sun, planet or station
+            if obj.distance > 57344 and i > SUN:  # not sun, planet or station
                 gs.swat.remove_ship(i)
                 # continue
          
@@ -638,7 +638,7 @@ class Space:
         colour = (cs.RED
                   if gs.flight_speed > gs.myship.max_speed * 2 // 3
                   else cs.GOLD)
-        self.display_dial_bar(length, sx, sy, colour)        
+        self.display_dial_bar(length, sx, sy, colour)
         self.gs.gfx.draw_text(f'{gs.flight_speed:.0f}', sx+length*cs.METER_LENGTH / 64, sy, font_size=15, alignment=6)
          
     def display_dial_bar(self, length, x, y, colour=cs.YELLOW):
@@ -748,7 +748,7 @@ class Space:
             return
 
         # enable ecm and safe_mode sprites
-        self.safe_mode = gs.space.close_to_planet()
+        self.safe_mode = gs.space.close_to_station()
         
         self.update_scanner()
         self.update_compass()
@@ -985,15 +985,9 @@ class Space:
         self.flight_roll = 0
         self.flight_climb = 0
         self.populate_universe()
-        rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]     
+        rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
         gs.ship.rotmat = rotmat
-        #self.stars.create_new_stars()
-        #gs.swat.clear_universe()
-        #gs.swat.generate_landscape()
-        #planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
-        #gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
-        #gs.swat.add_new_ship(cs.SHIP_SUN, *sun_vector, None, 0, 0)
-
+        
         gs.current_screen = cs.SCR_BREAK_PATTERN
         self.gs.sound.play_sample(cs.SND_HYPERSPACE)
 
@@ -1014,15 +1008,15 @@ class Space:
         # function to move the ship for testing
         # moves object direct in front of ship
         # moves all universe to match
-        ship = self.gs.ship       
+        ship = self.gs.ship
         
         safe_point = (target.rotmat[axis] * height)
-        offset = target.location - safe_point                
+        offset = target.location - safe_point
         
         # shift all other objects by same offset
         for obj in self.gs.universe:
             if obj.type != 0 and obj != target:
-                obj.location -= offset                
+                obj.location -= offset
         target.location = safe_point
         # Reset the ship's rotation matrix
         ship.rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
@@ -1039,7 +1033,7 @@ class Space:
       if key == 'To Sun':
           sun = self.gs.universe[SUN]
           if sun.name == 'SUN':
-              self.teleport(sun, height=60000)   
+              self.teleport(sun, height=60000)
               self.update_universe()
       elif key == 'To Planet':
           # move to location outside planets  atmosphere, on vector to station
@@ -1048,12 +1042,11 @@ class Space:
           self.teleport(planet, height=65000, axis=NOSEV)
           self.update_universe()
       elif key == 'To Station':
-          # move to location outside station, on vector to entrance          
+          # move to location outside station, on vector to entrance
           self.teleport(self.gs.universe[STATION], height=-2000, axis=NOSEV)
           self.gs.safe_mode = True
-          self.update_universe()                                        
-         
-                
+          self.update_universe()
+                         
     def jump_warp(self):
         gs = self.gs
         passable = {cs.SHIP_ASTEROID, cs.SHIP_CARGO, cs.SHIP_ALLOY,
@@ -1068,7 +1061,6 @@ class Space:
             if obj.type > 0 and obj.type not in passable:
                 gs.info_message("Mass Locked")
                 return
-        
 
         jump = min(
             min(gs.universe[PLANET].distance, gs.universe[SUN].distance) - 75000,
@@ -1094,13 +1086,12 @@ class Space:
         # universe already populated
         # move player onto station.
         
-        #self.populate_universe()
         self.stars.create_new_stars()
         gs.swat.clear_universe(all_others=True)
 
         self.teleport(station, -1000, axis=NOSEV)
         self.update_universe()
-        gs.flight_speed =0
+        gs.flight_speed = 0
         self.flight_roll = 0
         self.flight_climb = 0
         gs.current_screen = cs.SCR_FRONT_VIEW

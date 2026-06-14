@@ -17,21 +17,19 @@ import scene
 import urllib.request
 import re
 import json
-import ui
 from random import choice, uniform
-import constants as cs
 import random
 from change_screensize import get_screen_size
 import logging
 logger = logging.getLogger(__name__)
 
 # ---------Colour constants
-GREEN  = (0, 1, 0, 1)
-RED    = (1, 0, 0, 1)
+GREEN = (0, 1, 0, 1)
+RED = (1, 0, 0, 1)
 YELLOW = (1, 1, 0, 1)
-WHITE  = (1, 1, 1, 1)
-CYAN   = (0, 1, 1, 1)
-BLUE   = (0, 0, 1, 1)
+WHITE = (1, 1, 1, 1)
+CYAN = (0, 1, 1, 1)
+BLUE = (0, 0, 1, 1)
 
 EXPLOSION_SPEED = 0.4
 
@@ -154,21 +152,21 @@ class WireframeObject:
                  color=GREEN,
                  visible=True,
                  line_width=2.0):
-        self.position  = position or Vector3()
-        self.rotation  = rotation or Vector3()
-        self.scale     = scale
-        self.color     = color
-        self.visible   = visible
+        self.position = position or Vector3()
+        self.rotation = rotation or Vector3()
+        self.scale = scale
+        self.color = color
+        self.visible = visible
         self.line_width = line_width
 
         self.original_vertices = []
-        self.edges             = []          # (v1, v2) draw list
-        self.edges_with_faces  = None        # (v1, v2, f1, f2) — Elite only
-        self.face_normals      = None        # list[Vector3] local space
-        self.face_rep_verts    = None        # list[int] — one vert idx per face
+        self.edges = []          # (v1, v2) draw list
+        self.edges_with_faces = None        # (v1, v2, f1, f2) — Elite only
+        self.face_normals = None        # list[Vector3] local space
+        self.face_rep_verts = None        # list[int] — one vert idx per face
 
-        self.position_in_world         = self.position.clone()
-        self.rotation_angles_in_world  = self.rotation.clone()
+        self.position_in_world = self.position.clone()
+        self.rotation_angles_in_world = self.rotation.clone()
 
     # -------- Geometry helpers
     
@@ -191,8 +189,8 @@ class WireframeObject:
 
         rotmat: [right_vec, up_vec, forward_vec] — each a Vector3
         """
-        right   = Vector3(rotmat[0].x, rotmat[0].y, rotmat[0].z)
-        up      = Vector3(rotmat[1].x, rotmat[1].y, rotmat[1].z)
+        right = Vector3(rotmat[0].x, rotmat[0].y, rotmat[0].z)
+        up = Vector3(rotmat[1].x, rotmat[1].y, rotmat[1].z)
         forward = Vector3(rotmat[2].x, rotmat[2].y, rotmat[2].z)
 
         out = []
@@ -238,21 +236,22 @@ class WireframeObject:
 
         return d
 
+
 # Built-in primitive shapes
 class WireCube(WireframeObject):
     def __init__(self, size_x=1, size_y=1, size_z=1, **kw):
         super().__init__(**kw)
         hx, hy, hz = size_x/2, size_y/2, size_z/2
         self.original_vertices = [
-            Vector3(-hx, -hy,  hz), Vector3( hx, -hy,  hz),
-            Vector3( hx, -hy, -hz), Vector3(-hx, -hy, -hz),
-            Vector3(-hx,  hy,  hz), Vector3( hx,  hy,  hz),
-            Vector3( hx,  hy, -hz), Vector3(-hx,  hy, -hz),
+            Vector3(-hx, -hy,  hz), Vector3(hx, -hy,  hz),
+            Vector3(hx, -hy, -hz), Vector3(-hx, -hy, -hz),
+            Vector3(-hx, hy,  hz), Vector3(hx, hy,  hz),
+            Vector3(hx, hy, -hz), Vector3(-hx, hy, -hz),
         ]
         self.edges = [
-            (0,1),(1,2),(2,3),(3,0),
-            (4,5),(5,6),(6,7),(7,4),
-            (0,4),(1,5),(2,6),(3,7),
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            (4, 5), (5, 6), (6, 7), (7, 4),
+            (0, 4), (1, 5), (2, 6), (3, 7),
         ]
 
 
@@ -262,12 +261,12 @@ class WirePyramid(WireframeObject):
         h = base_size / 2
         self.original_vertices = [
             Vector3(-h, 0, -h), Vector3(h, 0, -h),
-            Vector3( h, 0,  h), Vector3(-h, 0,  h),
-            Vector3( 0, height, 0),
+            Vector3(h, 0, h), Vector3(-h, 0,  h),
+            Vector3(0, height, 0),
         ]
         self.edges = [
-            (0,1),(1,2),(2,3),(3,0),
-            (0,4),(1,4),(2,4),(3,4),
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            (0, 4), (1, 4), (2, 4), (3, 4),
         ]
 
 
@@ -275,26 +274,26 @@ class Sun(WireframeObject):
     def __init__(self, radius=100, scale=65535, distance_scale=False, **kw):
         super().__init__(**kw)
         self.original_vertices = []
-        self.is_star    = True
+        self.is_star = True
         self.star_radius = radius
-        self.scale      = scale
-        self.color      = (1.0, 0.95, 0.6, 1.0)
+        self.scale = scale
+        self.color = (1.0, 0.95, 0.6, 1.0)
         self.distance_scale = distance_scale
 
 
 class Sprite3D(WireframeObject):
     """Billboard sprite that always faces the camera."""
     def __init__(self, image_path, width=64, height=64,
-                 distance_scale=False, scale=100, name='',**kw):
+                 distance_scale=False, scale=100, name='', **kw):
         super().__init__(**kw)
         self.original_vertices = []
         self.edges = []
-        self.is_billboard    = True
-        self.image_path      = image_path
-        self.billboard_w     = width
-        self.billboard_h     = height
-        self.distance_scale  = distance_scale
-        self.scale           = scale
+        self.is_billboard = True
+        self.image_path = image_path
+        self.billboard_w = width
+        self.billboard_h = height
+        self.distance_scale = distance_scale
+        self.scale = scale
         self.name = name
         if isinstance(image_path, str):
             self._image = scene.load_image_file(image_path)
@@ -355,9 +354,9 @@ class WireAxes(WireframeObject):
         self.original_vertices = [
             Vector3(0,    0, 0), Vector3(size, 0,    0),
             Vector3(0,    0, 0), Vector3(0,    size, 0),
-            Vector3(0,    0, 0), Vector3(0,    0,    size),
+            Vector3(0, 0, 0), Vector3(0, 0, size),
         ]
-        self.edges       = [(0,1),(2,3),(4,5)]
+        self.edges = [(0, 1), (2, 3), (4, 5)]
         self.edge_colors = [RED, GREEN, BLUE]
 
 
@@ -372,12 +371,12 @@ class Camera:
                  z_near=5.0,
                  z_far=2000.0):
         self.position = position or Vector3()
-        self.yaw      = yaw
-        self.pitch    = pitch
-        self.roll     = roll
-        self.fov      = fov
-        self.z_near   = z_near
-        self.z_far    = z_far
+        self.yaw = yaw
+        self.pitch = pitch
+        self.roll = roll
+        self.fov = fov
+        self.z_near = z_near
+        self.z_far = z_far
 
     @property
     def focal_length(self):
@@ -385,9 +384,9 @@ class Camera:
 
     def forward(self):
         return Vector3(
-            math.sin(self.yaw)  * math.cos(self.pitch),
+            math.sin(self.yaw) * math.cos(self.pitch),
             -math.sin(self.pitch),
-            math.cos(self.yaw)  * math.cos(self.pitch)
+            math.cos(self.yaw) * math.cos(self.pitch)
         )
 
     def right(self):
@@ -402,8 +401,8 @@ class Camera:
 
     def basis(self):
         fwd = self.forward()
-        r   = self.right()
-        u   = r.cross(fwd).normalize()
+        r = self.right()
+        u = r.cross(fwd).normalize()
         return r, u, fwd
 
 
@@ -423,8 +422,8 @@ class Renderer:
                  depth_sort=True,
                  backface_cull=True,
                  default_line_width=2.0):
-        self.depth_sort        = depth_sort
-        self.backface_cull     = backface_cull
+        self.depth_sort = depth_sort
+        self.backface_cull = backface_cull
         self.default_line_width = default_line_width
     
     # Hidden-line removal
@@ -447,7 +446,7 @@ class Renderer:
         is missing.
         """
         ewf = getattr(obj, 'edges_with_faces', None)
-        fn  = getattr(obj, 'face_normals',     None)
+        fn = getattr(obj, 'face_normals',     None)
         frv = getattr(obj, 'face_rep_verts',   None)
 
         if ewf is None or fn is None or frv is None:
@@ -493,7 +492,7 @@ class Renderer:
     # Main draw
     def draw(self, objects, camera, screen_size):
         sw, sh = screen_size.w, screen_size.h
-        fl     = camera.focal_length
+        fl = camera.focal_length
 
         visible_objs = [o for o in objects if o.visible]
         
@@ -511,7 +510,7 @@ class Renderer:
                 
                 if cam_pos.z > camera.z_far or cam_pos.z < camera.z_near:
                     if isinstance(obj._image, scene.SpriteNode):
-                        obj._image.alpha = 0                        
+                        obj._image.alpha = 0
                     continue
                 screen_pt = self._project(cam_pos, fl, camera)
                 if screen_pt is None:
@@ -521,15 +520,15 @@ class Renderer:
                 w = obj.billboard_w
                 h = obj.billboard_h
                 if obj.distance_scale:
-                    dist  = max(1.0, (obj.position_in_world - camera.position).length())
+                    dist = max(1.0, (obj.position_in_world - camera.position).length())
                     scale = fl / dist * obj.scale
                     w *= scale
                     h *= scale
                 cx, cy = screen_pt
                 if isinstance(obj._image, scene.SpriteNode):
                     obj._image.position = (cx, cy)
-                    obj._image.alpha    = 1
-                    obj._image.scale    = scale
+                    obj._image.alpha = 1
+                    obj._image.scale = scale
                 else:
                     if obj._image is None:
                         obj._image = scene.load_image_file(obj.image_path)
@@ -538,7 +537,7 @@ class Renderer:
 
             # Filled circle ---
             if getattr(obj, 'is_star', False):
-                cam_pos   = self._to_camera(obj.position_in_world, camera)
+                cam_pos = self._to_camera(obj.position_in_world, camera)
                 if cam_pos is None or cam_pos.z >= camera.z_far:
                     continue
                 screen_pt = self._project(cam_pos, fl, camera)
@@ -565,7 +564,7 @@ class Renderer:
             else:
                 world_verts = obj.get_world_vertices()
 
-            cam_verts  = [self._to_camera(v, camera) for v in world_verts]
+            cam_verts = [self._to_camera(v, camera) for v in world_verts]
             screen_pts = [self._project(v, fl, camera) for v in cam_verts]
 
             # Hidden-line removal — only when enabled and face data present
@@ -576,13 +575,13 @@ class Renderer:
             else:
                 visible_edges = None      # draw all edges
 
-            color          = obj.color
-            line_width     = getattr(obj, 'line_width', self.default_line_width)
+            color = obj.color
+            line_width = getattr(obj, 'line_width', self.default_line_width)
             has_edge_colors = hasattr(obj, 'edge_colors')
             scene.stroke_weight(line_width)
 
             vx, vy, vw, vh = getattr(self, 'viewport',
-                                      scene.Rect(0, 0, sw, sh))
+                                     scene.Rect(0, 0, sw, sh))
 
             for ei, (i1, i2) in enumerate(obj.edges):
                 if visible_edges is not None and ei not in visible_edges:
@@ -608,7 +607,7 @@ class Renderer:
         """ Explosion helper """
         scene.no_fill()
         fl = camera.focal_length
-        t  = getattr(obj, 'explosion_time', 1.0)
+        t = getattr(obj, 'explosion_time', 1.0)
         world_verts = obj.get_world_vertices()
         center = obj.position_in_world
 
@@ -616,9 +615,9 @@ class Renderer:
             v1, v2 = world_verts[i1], world_verts[i2]
             if t > 0:
                 edge_center = (v1 + v2) / 2
-                direction   = (edge_center - center).normalize()
-                offset      = direction * (t * 200)
-                noise       = Vector3(
+                direction = (edge_center - center).normalize()
+                offset = direction * (t * 200)
+                noise = Vector3(
                     random.uniform(-5, 5),
                     random.uniform(-5, 5),
                     random.uniform(-5, 5)
@@ -630,12 +629,11 @@ class Renderer:
             p2 = self._project(self._to_camera(v2, camera), fl, camera)
 
             if p1 and p2:
-                alpha      = max(0, 1.0 - t)
+                alpha = max(0, 1.0 - t)
                 edge_color = obj.color[:3] + (alpha,)
                 scene.stroke(*edge_color)
                 scene.rect(0, 0, 0, 0)
                 scene.line(*p1, *p2)
-
     
     # -----Private geometry helpers
     
@@ -659,7 +657,7 @@ class Renderer:
 
     def _to_camera(self, world_v, camera):
         """World vertex → camera space using full roll/pitch/yaw basis."""
-        v    = world_v - camera.position
+        v = world_v - camera.position
         r, u, f = camera.basis()
         return Vector3(v.dot(r), v.dot(u), v.dot(f))
 
@@ -793,10 +791,10 @@ class GetEliteShips:
         
     def ship_from_url(self, url, **kwargs):
         parsed = self.fetch_elite_ship(url)
-        obj    = EliteShip.__new__(EliteShip)
+        obj = EliteShip.__new__(EliteShip)
         WireframeObject.__init__(obj, **kwargs)
         obj._apply_parsed(parsed)
-        obj.name   = parsed['name']
+        obj.name = parsed['name']
         obj.header = parsed['header']
         return obj
 
@@ -818,7 +816,7 @@ class GetEliteShips:
         if not match:
             raise ValueError(f"No codeBlock <pre> found at {url}")
 
-        raw         = match.group(1)
+        raw = match.group(1)
         source_text = re.sub(r'<[^>]+>', '', raw)
         source_text = (source_text
                        .replace('&amp;',  '&')
@@ -829,15 +827,15 @@ class GetEliteShips:
                        .replace('&nbsp;', ' '))
 
         name_match = re.search(r'/(ship_[^/]+)\.html', url)
-        ship_name  = name_match.group(1).upper() if name_match else 'UNKNOWN'
+        ship_name = name_match.group(1).upper() if name_match else 'UNKNOWN'
 
-        parsed           = _parse_elite_source(source_text)
-        parsed['name']   = ship_name
+        parsed = _parse_elite_source(source_text)
+        parsed['name'] = ship_name
         parsed['header'] = self._parse_header(source_text)
         return parsed
 
     def _parse_header(self, source_text):
-        header   = {}
+        header = {}
         last_val = None
 
         for line in source_text.splitlines():
@@ -845,18 +843,22 @@ class GetEliteShips:
             if re.search(r'_VERTICES\b', line):
                 break
 
-            m_dir  = re.match(r'EQU[BW]\s+([%\d\s\*]+)\\(.+)', line)
+            m_dir = re.match(r'EQU[BW]\s+([%\d\s\*]+)\\(.+)', line)
             m_cont = re.match(r'^\\(.+)', line)
 
             if m_dir:
-                raw_val      = m_dir.group(1).strip()
+                raw_val = m_dir.group(1).strip()
                 comment_part = m_dir.group(2)
                 if raw_val.startswith('%'):
-                    try:    value = int(raw_val[1:], 2)
-                    except: value = raw_val
+                    try:
+                        value = int(raw_val[1:], 2)
+                    except Exception:
+                        value = raw_val
                 else:
-                    try:    value = eval(raw_val, {"__builtins__": {}})
-                    except: value = raw_val
+                    try:
+                        value = eval(raw_val, {"__builtins__": {}})
+                    except Exception:
+                        value = raw_val
                 last_val = value
                 self._add_header_item(header, comment_part, value)
             elif m_cont and last_val is not None:
@@ -890,16 +892,16 @@ def _obj_from_dict(item):
         visible=item["visible"],
         line_width=item["line_width"]
     )
-    obj.name   = item.get("name", "unknown")
+    obj.name = item.get("name", "unknown")
     obj.header = item.get("header", {})
 
     obj.original_vertices = [Vector3(*v) for v in item["original_vertices"]]
-    obj.edges             = [tuple(e) for e in item["edges"]]
+    obj.edges = [tuple(e) for e in item["edges"]]
 
     if 'edge_colors' in item:
         obj.edge_colors = list(item["edge_colors"])
 
-    obj.position_in_world        = Vector3(*item["position_in_world"])
+    obj.position_in_world = Vector3(*item["position_in_world"])
     obj.rotation_angles_in_world = Vector3(*item["rotation_angles_in_world"])
 
     # --- Hidden-line removal fields ---
@@ -934,7 +936,7 @@ def load_ships_from_json(filename):
 
 
 class Demo(scene.Scene):
-    def setup(self):                
+    def setup(self):
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
@@ -944,8 +946,8 @@ class Demo(scene.Scene):
         self.t = 0
 
         self.objects = [
-            WireCube(50, 50, 50,     position=Vector3(-80, 0, 0),   color=GREEN),
-            WirePyramid(60, 80,      position=Vector3( 80, 0, 0),   color=CYAN),
+            WireCube(50, 50, 50, position=Vector3(-80, 0, 0), color=GREEN),
+            WirePyramid(60, 80, position=Vector3(80, 0, 0), color=CYAN),
             WireSphere(40, lat_lines=10, lon_lines=16,
                        position=Vector3(0, 0, 100),                 color=YELLOW),
             WireAxes(60),
@@ -955,13 +957,13 @@ class Demo(scene.Scene):
             objects = load_wireframes_from_json('files/Elite_ships.json')
         except Exception:
             ship_locs = [
-                'missile','coriolis','escape_pod','plate','canister',
-                'Boulder','Asteroid','Splinter','Shuttle','Transporter',
-                'Cobra_Mk_3','Python','Boa','Anaconda','Rock_hermit',
-                'Viper','Sidewinder','Mamba','Krait','Adder','Gecko',
-                'Cobra_Mk_1','Worm','Cobra_Mk_3_p','Asp_Mk_2','Python_p',
-                'Fer_de_lance','Moray','Thargoid','Thargon','Constrictor',
-                'logo','Cougar','Dodo'
+                'missile', 'coriolis', 'escape_pod', 'plate', 'canister',
+                'Boulder', 'Asteroid', 'Splinter', 'Shuttle', 'Transporter',
+                'Cobra_Mk_3', 'Python', 'Boa', 'Anaconda', 'Rock_hermit',
+                'Viper', 'Sidewinder', 'Mamba', 'Krait', 'Adder', 'Gecko',
+                'Cobra_Mk_1', 'Worm', 'Cobra_Mk_3_p', 'Asp_Mk_2', 'Python_p',
+                'Fer_de_lance', 'Moray', 'Thargoid', 'Thargon', 'Constrictor',
+                'logo', 'Cougar', 'Dodo'
             ]
             ships = GetEliteShips('6502sp', ship_locs)
             objects = ships.ship_objects
@@ -977,15 +979,15 @@ class Demo(scene.Scene):
             ship.explosion_time = random.random()
             self.objects.append(ship)
         self._exploding_obj = None
-        self._explosion_t   = random.random()
+        self._explosion_t = random.random()
         
     def _pick_new_explosion(self):
         candidates = [o for o in self.objects if hasattr(o, 'name')]
         if candidates:
             obj = random.choice(candidates)
-            obj.explosion_time  = 0.0
+            obj.explosion_time = 0.0
             self._exploding_obj = obj
-            self._explosion_t   = 0.0
+            self._explosion_t = 0.0
                  
     def update(self):
         # make all object spin and move forward and backward
@@ -1003,24 +1005,24 @@ class Demo(scene.Scene):
         else:
             self._explosion_t += self.dt * EXPLOSION_SPEED
             self._exploding_obj.explosion_time = self._explosion_t
-            if self._explosion_t >= 1.0:                
+            if self._explosion_t >= 1.0:
                 self.objects.remove(self._exploding_obj)
                 self._exploding_obj = None
                 
     def draw(self):
-        scene.background(0, 0, 0)        
+        scene.background(0, 0, 0)
         self.renderer.viewport = scene.Rect(0, 0, *get_screen_size())
 
         for obj in self.objects:
             if obj == self._exploding_obj:
                 self.renderer.explode(obj, self.camera, self.size)
             else:
-                self.renderer.draw([obj], self.camera, self.size)        
+                self.renderer.draw([obj], self.camera, self.size)
 
 
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
     # g = Demo()
     # g.setup()
-    #g.draw()
+    # g.draw()
     scene.run(Demo(), show_fps=True, multi_touch=True)

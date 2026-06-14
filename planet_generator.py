@@ -83,7 +83,7 @@ class AlienPlanet():
      self.blend = 10  # increase to blend more
      self.blob_size = 3
      self.rng = np.random.default_rng(42)
-     self.edge_margin = 0.15 # ocean margin at edges
+     self.edge_margin = 0.15  # ocean margin at edges
      if seed is None:
         self.seed = random.randint(1, 10)
      else:
@@ -154,7 +154,7 @@ class AlienPlanet():
       if self.blob_size is None:
           blob_size = random.choice([small_blob, middle_blob, big_blob])
       else:
-          blob_size =  [small_blob, middle_blob, big_blob][self.blob_size % 3]
+          blob_size = [small_blob, middle_blob, big_blob][self.blob_size % 3]
       for cx, cy, r, strength in blob_size:
           ys, xs = np.mgrid[0:self.H, 0:self.W]
           dx = (xs / self.W - cx)
@@ -174,7 +174,7 @@ class AlienPlanet():
       m = self.edge_margin          # e.g. 0.06
       xs_norm = np.linspace(0.0, 1.0, self.W)          # (W,)
       # ramp: 0 â 1 over [0, m], flat 1 in middle, 1 â 0 over [1-m, 1]
-      left_ramp  = np.clip(xs_norm / m, 0.0, 1.0)
+      left_ramp = np.clip(xs_norm / m, 0.0, 1.0)
       right_ramp = np.clip((1.0 - xs_norm) / m, 0.0, 1.0)
       edge_weight = np.minimum(left_ramp, right_ramp)   # (W,)
       # smoothstep for a softer coastline gradient
@@ -279,7 +279,7 @@ class AlienPlanet():
       # so the wrap seam is always clear sky.
       m = self.edge_margin
       xs_norm = np.linspace(0.0, 1.0, self.W)
-      left_ramp  = np.clip(xs_norm / m, 0.0, 1.0)
+      left_ramp = np.clip(xs_norm / m, 0.0, 1.0)
       right_ramp = np.clip((1.0 - xs_norm) / m, 0.0, 1.0)
       edge_weight = np.minimum(left_ramp, right_ramp)
       edge_weight = edge_weight * edge_weight * (3.0 - 2.0 * edge_weight)  # smoothstep
@@ -355,7 +355,7 @@ class PlanetScene(Scene):
         self.planet = Planet(size=500,
                              position=self.size/2,
                              # y measured from top
-                             #.          x.  y.   w.    h
+                             #           x.  y.   w.    h
                              clip_rect=(0.1, 0.1, 0.9, 0.9))
         # image_path='images/sun_texture400.png')
         self.add_child(self.planet.planet)
@@ -383,7 +383,7 @@ class Planet():
             self.planet.shader.set_uniform('u_texture', Texture(image_path))
         else:
             image = Image.open(image_path)
-            #image = image.rotate(90)
+            # image = image.rotate(90)
             self.planet.shader.set_uniform('u_texture', Texture(pil_to_ui(image)))
         # Set Uniforms
         # u_clip_rect: x, y, w, h in normalized (0..1) screen space

@@ -93,7 +93,6 @@ class Pilot:
         # Invert the rotation formulas for small angles:
         # x' = x*cos(a) + y*sin(a) → to zero x, we want alpha = -atan2(x, y)
         # y' = y*cos(b) - z*sin(b) → to zero y, we want beta  =  atan2(y, z)
-        
 
         # alpha = -(x/y)
         # beta = (x*x + y*y)/ (y *z)
@@ -169,18 +168,18 @@ class Pilot:
         else:
             ship.velocity = MIN_SPEED
             
-    # ------ AI ship autopilot        
+    # ------ AI ship autopilot
     def fly_to_vector__(self, ship, vec):
         """ Used for ai ship only
             to point toward and move to a specific vector.
-        """                      
-        ship.rotmat[NOSEV] = unit_vector(vec) 
-        ship.rotx = ship.rotz = 0                
+        """
+        ship.rotmat[NOSEV] = unit_vector(vec)
+        ship.rotx = ship.rotz = 0
 
     def fly_to_planet(self, ship):
         """Points the ship toward the planet."""
-        vec = self.universe[PLANET].location - ship.location     
-        if vec.magnitude  < 25000:
+        vec = self.universe[PLANET].location - ship.location
+        if vec.magnitude < 25000:
             ship.flags &= ~cs.FLG_FLY_TO_PLANET  # clears bit
             ship.flags |= cs.FLG_FLY_TO_STATION
             return
@@ -197,13 +196,13 @@ class Pilot:
     def auto_pilot_ship(self, index):
         """Automated ship runs to planet and back to station
         """
-        ship = self.universe[index]        
+        ship = self.universe[index]
         if (ship.flags & cs.FLG_FLY_TO_PLANET):
-            self.fly_to_planet(ship)            
+            self.fly_to_planet(ship)
         else:
             self.fly_to_station(ship)
     
-    # --------  Engage/ disengage                     
+    # --------  Engage/ disengage
     def engage_auto_pilot(self):
         """Activates the docking computer and plays Blue Danube."""
         # Condition checks: not already on, not in witchspace, etc.
@@ -376,7 +375,7 @@ class Pilot:
         
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
-        self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))        
+        self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
         cr = '\n'
         self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
                                   f'{cr}D:{self.distance_to_target:.0f} A:{self.angle:+.1f} V:{self.gs.flight_speed:.1f}')
@@ -488,7 +487,7 @@ class Pilot:
         min_phase = None
         closest = None
         phases = ['FIND_POLE', 'FIND_IP']
-        if not self.gs.space.close_to_planet():
+        if not self.gs.space.close_to_station():
             return self._pole_waypoint(), 'FIND_POLE'
           
         for target, phase in zip(targets, phases):
@@ -572,7 +571,7 @@ class Pilot:
                 self.target_loc = self._pole_waypoint()
                 
                 # divert if station visible
-                if self.gs.space.close_to_planet():
+                if self.gs.space.close_to_station():
                     clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
                     if True:
                         self.change_phase(ship, 'FIND_IP')
@@ -587,22 +586,22 @@ class Pilot:
             case 'AT_POLE' | 'FIND_IP':
                 # PHASE: at pole, or elsewhere,  orient to IP before flying there
                 self.target_loc = self.ip_waypoint()
-                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)                
+                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)
                 
                 clear = True
-                if not clear:                    
+                if not clear:
                     self.gs.msg_left.text = f'IP has blocker {self.blocker.name}'
                     self.target_loc = self._fly_around(ship, self.blocker)
                                 
-                aligned = self.orient_to_target(ship, self.target_loc)                
+                aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:
                     self.change_phase(ship, 'TO_IP')
                     
             case 'FIND_DETOUR':
                 # PHASE: orient to DETOUR before flying there
                 # TODO DOESNT UPDATE
-                self.target_loc = self._fly_around(ship, self.blocker)                
-                aligned = self.orient_to_target(ship, self.target_loc)                
+                self.target_loc = self._fly_around(ship, self.blocker)
+                aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:
                     self.change_phase(ship, 'TO_DETOUR')
                     
@@ -619,7 +618,7 @@ class Pilot:
             case 'TO_DETOUR':
                 # the rare case when target is blocked
                 # divert  to ip possible
-                if self.gs.close_to_planet():
+                if self.gs.close_to_station():
                     clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
                     clear = True
                     if clear:

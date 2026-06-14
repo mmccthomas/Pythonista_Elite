@@ -23,9 +23,11 @@ MIN_FIRING_DISTANCE = 8192
 
 def rand255():
    return random.randint(0, 255)
-   
+
+      
 def angle(theta):
    return math.degrees(math.acos(theta))
+
 
 @dataclass
 class UnivObject:
@@ -484,16 +486,17 @@ class Swat:
 
     def explode_object(self, index: int):
         gs = self.gs
+        ship = self.universe[index]
         # logger.debug('exploding')
         gs.cmdr.score += 1
         if (gs.cmdr.score & 255) == 0:
             gs.info_message("Right On Commander!")
         gs.sound.play_sample(cs.SND_EXPLODE)
-        # self.universe[index].flags |= cs.FLG_REMOVE
-        if self.universe[index].type == cs.SHIP_CONSTRICTOR:
+        # ship.flags |= cs.FLG_REMOVE
+        if ship.type == cs.SHIP_CONSTRICTOR:
             gs.cmdr.mission = 2  # MISSION_1_COMPLETE
-        self.universe[index].exploding = True
-        self.universe[index].explosion_time = 0.0
+        ship.exploding = True
+        ship.explosion_time = 0.0
         
     def _flip_location(self, world_loc):
         """
@@ -533,15 +536,16 @@ class Swat:
                     univ.energy -= self.laser
             # self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
             # logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
-            if univ.energy <= 0:
-                self.explode_object(index)
+            # This runs once only
+            if univ.energy <= 0 and not univ.exploding:                
                 if univ.type == cs.SHIP_ASTEROID:
                     if self.laser == (cs. MINING_LASER & 127):
-                        self.launch_loot(index, cs.SHIP_ROCK)
+                        self.launch_loot(index, cs.SHIP_ROCK, univ)
                 else:
-                    self.launch_loot(index, cs.SHIP_ALLOY)
-                    self.launch_loot(index, cs.SHIP_CARGO)
-
+                    
+                    self.launch_loot(index, cs.SHIP_ALLOY, univ)
+                    self.launch_loot(index, cs.SHIP_CARGO, univ)
+                self.explode_object(index)
             self.make_angry(index)
     
     # ------ Ship spawning
@@ -570,11 +574,14 @@ class Swat:
             ns.rotz = ((rand255() * 2) & 255) - 128
             ns.rotx = ((rand255() * 2) & 255) - 128
             ns.velocity = rand255() & 15
-
-    def launch_loot(self, index: int, loot: int):
+        return ns
+        
+    def launch_loot(self, index: int, loot: int, parent: UnivObject):
         if loot == cs.SHIP_ROCK:
             cnt = rand255() & 3
-        else:
+        elif loot == cs.SHIP_ALLOY:
+           cnt = rand255() & 3
+        else:         
             cnt = rand255()
             if cnt >= 128:
                 return
@@ -583,10 +590,12 @@ class Swat:
                 cnt &= 15
             except AttributeError:
                 # no max_loot
-                cnt &= 7
+                cnt &= 3
 
         for _ in range(cnt):
-            self.launch_enemy(index, loot, 0, 0)
+            ns = self.launch_enemy(index, loot, 0, 0)
+            if ns:
+                setattr(ns, 'parent', parent.name)
 
     def launch_shuttle(self):
         gs = self.gs
@@ -731,12 +740,20 @@ class Swat:
     def ship_fire(self, ship):
         gs = self.gs
         gfx = self.gs.gfx
+        cam = gs.camera
+        fl = cam.focal_length
         # Draw laser line from ship toward player (origin)
         # Project ship position to screen
+        
+        cam_pos = gs.renderer._to_camera(ship.model.position_in_world, cam)                                
+        screen_pt = gs.renderer._project(cam_pos, fl, cam)
         if ship.location.z > 0:
-            scale = gs.parent_scene.camera.focal_length / ship.location.z
-            sx = gfx.X_CENTRE + ship.location.x * scale
-            sy = gfx.Y_CENTRE - ship.location.y * scale
+            scale = fl / ship.location.z
+            if screen_pt:
+               sx, sy = screen_pt
+            else:
+                sx = gfx.X_CENTRE + ship.location.x * scale
+                sy = gfx.Y_CENTRE - ship.location.y * scale
             # Nose vector points toward us (negative z), so laser fires from
             # ship toward origin — extend in nosev direction to screen edge
             nose = ship.rotmat[NOSEV]
@@ -746,7 +763,7 @@ class Swat:
             ey = ship.location.y + nose.y * far
             ez = ship.location.z + nose.z * far
             if ez > 0:
-                escale = gs.parent_scene.camera.focal_length / ez
+                escale = fl / ez
                 ex_screen = gfx.X_CENTRE + ex * escale
                 ey_screen = gfx.Y_LOW - ey * escale
             else:
