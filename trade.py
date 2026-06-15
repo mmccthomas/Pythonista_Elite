@@ -55,13 +55,13 @@ class TradeManager:
         for i, item in enumerate(market):
             # Price calculation
             price = item["base_price"]
-            price += (self.cmdr.market_rnd & item["mask"])
+            price += (self.gs.cmdr.market_rnd & item["mask"])
             price += (planet_economy * item["eco_adjust"])
             price &= 0xFF  # Keep to 8-bit
             
             # Quantity calculation
             quant = item["base_qty"]
-            quant += (self.cmdr.market_rnd & item["mask"])
+            quant += (self.gs.cmdr.market_rnd & item["mask"])
             quant -= (planet_economy * item["eco_adjust"])
             quant &= 0xFF  # Keep to 8-bit
             
@@ -79,8 +79,8 @@ class TradeManager:
 
     def carrying_contraband(self):
         """Returns a 'threat level' based on illegal goods held."""
-        illegal_goods = (self.cmdr.current_cargo[cs.SLAVES]
-                         + self.cmdr.current_cargo[cs.NARCOTICS]) * 2
+        illegal_goods = (self.gs.cmdr.current_cargo[cs.SLAVES]
+                         + self.gs.cmdr.current_cargo[cs.NARCOTICS]) * 2
         illegal_goods += self.cmdr.current_cargo[cs.FIREARMS]
         return illegal_goods
 
@@ -88,9 +88,9 @@ class TradeManager:
         """Calculates total tonnes currently in the hold."""
         cargo_held = 0
         for i in range(len(self.stock_market)):
-            if (self.cmdr.current_cargo[i] > 0
+            if (self.gs.cmdr.current_cargo[i] > 0
                     and self.stock_market[i]["units"] == cs.TONNES):
-                cargo_held += self.cmdr.current_cargo[i]
+                cargo_held += self.gs.cmdr.current_cargo[i]
         return cargo_held
 
     def scoop_item(self, universe_obj_index, universe):
@@ -99,10 +99,11 @@ class TradeManager:
         """
         obj = universe[universe_obj_index]
         parent = getattr(obj, 'parent', None)
-        logger.debug(f'{obj}')
+        
         if obj.flags & cs.FLG_DEAD:
             return
-
+        if obj.exploding:
+            return
         # Cannot scoop missiles
         if obj.type == cs.SHIP_MISSILE:
             return
@@ -111,10 +112,10 @@ class TradeManager:
         # 1. Must have fuel scoop equipment
         # 2. Item must be in the lower half of the screen (y >= 0 in Elite's coordinate system)
         # 3. Must have cargo space
-        if (not self.cmdr.fuel_scoop
+        if (not self.gs.cmdr.fuel_scoop
                 or obj.location.y >= 0
-                or self.total_cargo() >= self.cmdr.cargo_capacity):
-            
+                or self.total_cargo() >= self.gs.cmdr.cargo_capacity):
+            logging.debug(f'collided with {obj.name} {obj.location} {obj.location.y=}')
             # If conditions fail, you collide with the object instead
             obj.exploding = True
             damage = 128 + (obj.energy // 2)
@@ -122,30 +123,36 @@ class TradeManager:
             return
 
         # If it's a generic cargo canister
-        if obj.type == cs.SHIP_CARGO:
+        if obj.type == cs.SHIP_CARGO:            
             trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
             quantity = random.randint(0, 255) & 7
-            self.cmdr.current_cargo[trade_type] += quantity
-            logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}s")
-            universe.remove_ship(universe_obj_index)
+            self.gs.cmdr.current_cargo[trade_type] += quantity
+            logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
+            self.gs.swat.remove_ship(universe_obj_index)
+            obj.exploding = True
             return
 
         # If it's a specific item (like an escape pod or alloy)
         elif obj.type == cs.SHIP_ALLOY:
+            
             # allow capture of alien items
-            if parent in [cs.THARGON, cs.THARGOID]:
-                self.cmdr.current_cargo[16] += 1
+            if parent in [cs.SHIP_THARGON, cs.SHIP_THARGOID]:
+                self.gs.cmdr.current_cargo[16] += 1
                 self.gs.info_message("Scooped: Alien Items")
+                logging.debug(f'captured alien item {obj.location}')
                 universe.remove_ship(universe_obj_index)
                 return
                
-            self.cmdr.current_cargo[9] += 1
+            self.gs.cmdr.current_cargo[9] += 1
             self.gs.info_message("Scooped: Alloy")
-            universe.remove_ship(universe_obj_index)
+            logging.debug(f'Scooped: Alloy {obj.location}')
+            obj.exploding = True
+            self.gs.swat.remove_ship(universe_obj_index)
             return
         
         # Default collision if item isn't scoopable
         obj.exploding = True
+        logging.debug(f'damaged by {obj.name} {obj.location}')
         self.gs.space.damage_ship(obj.energy // 2, True)
         
         

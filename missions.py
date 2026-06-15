@@ -175,7 +175,6 @@ class MissionManager:
 
         # Trigger Mission 1 Debrief
         if self.cmdr.mission == MISSION_1_COMPLETE:
-            logger.debug(f'{self.state=}')
             self.constrictor_debrief()
             return MISSION_1_DEBRIEFED
 
@@ -203,15 +202,16 @@ class MissionManager:
             logger.debug('')
             # self.gs.cmdr.mission = MISSION_1_DEBRIEFED
             self.gs.cmdr.score += 256
-            self.gs.cmdr.credits += 50000  # 5000.0 Credits
+            self.gs.cmdr.credits += 100000  # 10000.0 Credits
             self.state = ST_UPDATE
             
         if self.state == ST_UPDATE:
-            logger.debug('')
             self.gfx.clear_display()
             self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
             self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
-            self.gfx.display_pretty_text(0, 5, "There will always be a place for you in Her Majesty's Space Navy.")
+            self.gfx.display_pretty_text(0, 4, "You suceeded in your mission to destroy the Constrictor.")
+            self.gfx.display_pretty_text(0, 5, "Please accept a reward of 10000 credits.")
+            self.gfx.display_pretty_text(0, 6, "There will always be a place for you in Her Majesty's Space Navy.")
             self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
             self.gfx.update_screen()
             

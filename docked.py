@@ -420,7 +420,8 @@ class Docked:
         gfx.display_text(6, line_no, f"{cmdr.fuel // 10}.{cmdr.fuel % 10} Light Years")
         line_no += 1
         gfx.display_colour_text(0, line_no, "Cash:",         cs.GREEN)
-        gfx.display_text(7, line_no, f"{cmdr.credits // 10}.{cmdr.credits % 10} Cr")
+        
+        gfx.display_text(7, line_no, f"{(cmdr.credits / 10):.1f} Cr")
 
         legal = ("Clean" if cmdr.legal_status == 0
                  else "Fugitive" if cmdr.legal_status > 50
@@ -542,7 +543,7 @@ class Docked:
         gfx.clear_display()
         planet_name = gs.planet.name_planet(gs.present_planet)
         gfx.display_centre_text(0, f"{planet_name} MARKET PRICES", 140, cs.GOLD)
-        gfx.display_text(0, 23, f"Cash: {cmdr.credits // 10}.{cmdr.credits % 10}")
+        gfx.display_text(0, 23, f"Cash: {(cmdr.credits / 10):.1f} Cr")
         for label, x in [("PRODUCT", 0), ("UNIT", 13), ("PRICE", 19),
                          ("FOR SALE", 26), ("IN HOLD", 35)]:
             gfx.display_colour_text(x, 3, label, cs.GREEN)
@@ -589,7 +590,7 @@ class Docked:
         gfx.display_colour_text(0, 2, "Fuel:",  cs.GREEN)
         gfx.display_text(6, 2, f"{cmdr.fuel // 10}.{cmdr.fuel % 10} Light Years")
         gfx.display_colour_text(0, 3, "Cash:",  cs.GREEN)
-        gfx.display_text(7, 3, f"{cmdr.credits // 10}.{cmdr.credits % 10} Cr")
+        gfx.display_text(7, 3, f"{(cmdr.credits / 10):.1f} Cr")
 
         for i in range(17):
             if cmdr.current_cargo[i] > 0:
@@ -770,5 +771,5 @@ class Docked:
             self.hilite_equip = 0
         self.items_to_buy = self.list_equip_prices()
         self.highlight_equip(self.hilite_equip)
-        gfx.display_text(0, 20, f"Cash: {cmdr.credits // 10}.{cmdr.credits % 10}")
+        gfx.display_text(0, 20, f"Cash: {(cmdr.credits / 10):.1f} Cr")
         self.gfx.text_render()

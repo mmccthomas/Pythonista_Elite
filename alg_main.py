@@ -8,6 +8,7 @@
 
 import random
 import math
+from operator import attrgetter
 from ui import in_background
 import game_engine
 from copy import copy
@@ -185,8 +186,10 @@ class MainLoop():
        self.find_input = False
        self.find_name = ""
        self.current_name = None
+       self.last_found_name = None
        self.on_final_approach = False
        self.tick_count = 0
+       self.status_objects = []
        # individual counters
        self.univ_status = IntervalTrigger(0.5)
        self.alt_temp_status = IntervalTrigger(0.25)
@@ -435,13 +438,19 @@ class MainLoop():
         """ provide a text readout of all universe objects """
         objects = [obj for obj in self.universe if obj.type != 0]
         textline = []
-        for obj in objects:
+        # sort the objects by fwd vector and inversely by distance
+        def sortkey(obj):
+           return 100 * obj.direction / obj.distance
+        self.status_objects = sorted(objects, key=lambda x: sortkey(x), reverse=True)
+        for obj in self.status_objects:
             vec = unit_vector(obj.location - self.ship.location)
             # Horizontal angle (Azimuth)
             azimuth = math.degrees(math.atan2(vec.x, vec.z))
             # Vertical angle (Elevation) in radians
             elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
-            textline.append(f'{obj.name:<9} {obj.distance/1000:.1f}k ({azimuth:.0f}, {elevation:.0f})')
+            # textline.append(f'{obj.name:<9} {obj.distance/1000:.1f}k ({azimuth:.0f}, {elevation:.0f})')
+            # textline.append(f'{obj.name:<9} {obj.location.x/1000:.1f}k {obj.location.y/1000:.1f}k, {obj.location.z/1000:.1f}k')
+            textline.append(f'{obj.name:<9} {obj.direction:+.2f} {obj.distance/1000:.1f}k')
         self.obj_status.text = '\n'.join(textline)
                                             
     def set_commander_name(self, path):
@@ -459,9 +468,12 @@ class MainLoop():
             for _ in range(4):
                 glx.waggle()
         planet_names = sorted(planet_names)
+        if self.last_found_name:
+           planet_names.insert(0, self.last_found_name.upper())
         name = self.gfx.list_files(planet_names)
         if name:
-            self.in_dock.find_planet_by_name(name)
+            self.in_dock.find_planet_by_name(name.capitalize())
+            self.last_found_name = name
                                    
     def launch(self):
         # enable flight keys and launch

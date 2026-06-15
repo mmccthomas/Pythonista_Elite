@@ -57,6 +57,7 @@ class UnivObject:
     def direction(self):
         nvec = unit_vector(self.location)
         return vector_dot_product(nvec, self.rotmat[NOSEV])
+            
         
     def sync_model(self):
         """
@@ -447,8 +448,8 @@ class Swat:
         line_index = int((relative_y * no_items) / obj_status.bbox.h)
         if line_index >= no_items:
             line_index = no_items - 1
-        
-        target = self.gs.universe[line_index]
+        # allow for obj_status not being in universe order
+        target = gs.status_objects[line_index]
         # gs.msg.text = (f'no lines {no_items} {key} {line_index} {target.name}')
         logger.debug(f'targeting {target.name}')
         gs.keypad.key_change('Docking', name='Cancel Target', color=cs.ORANGE)
@@ -770,7 +771,7 @@ class Swat:
                 # Line passes through or behind camera — aim at screen centre
                 ex_screen = gfx.X_CENTRE
                 ey_screen = gfx.Y_LOW
-            logger.debug(f'{ez=:.0f} {sx=:.0f} {sy=:.0f} {ex_screen=:.0f} {ey_screen=:.0f}')
+            # logger.debug(f'{ez=:.0f} {sx=:.0f} {sy=:.0f} {ex_screen=:.0f} {ey_screen=:.0f}')
             gfx.draw_line(sx, sy, ex_screen, ey_screen,
                           colour=cs.WHITE, width=2)
                                                             
