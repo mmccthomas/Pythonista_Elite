@@ -166,7 +166,38 @@ significant changes:
 30. Added a button to inspect market prices on currently designated hyperspace
     planet. This does not show quantities, and does not affect current planet
     trade screen. It simplifies trading decisions.             
-                                       
+
+
+Getting Started
+
+   If you have never seen this game before, here are the first few steps.
+   
+   You have very money, so the first task is to build up cash by trading.
+   The starting planet Lave is agricultural, so buy food and textiles here.
+   Select Leesti on the short range chart, which is an industrial planet.
+   Launch from the dock with the Launch button and hyperspace to Leesti.
+   Align the planet in the Compass as a green dot to fly towards planet.
+   When toy get close enough, the compass wil point towards the station, and 
+   an 'S' symbol appears. The cross that appears points to a nice Initial Point
+   outside the station. When this counts down to about 200m, stop and rotate until 
+   the green dot is centred. You are then aligned with the station. Move slowly
+   forward and use roll to try to keep station slot horizontal.
+   
+   if you are successful, the docking animation will result in being docked at
+   Leesti. Sell your goods for a (small) profit, fill up with fuel and repeat.
+   This time, buy computers and machinery. You can check prices at target planet
+   on the short range chart.
+   
+   If you get bored with this phase of the game, take note of the fact that the save file
+   format in files/ folder is JSON. Just saying.
+   
+   As you get more cash, you can upgrade your ship with more equipment. This will help
+   with profit making, and with the inevitable space combat.
+   
+   At this point, you may wish to explore the MANY sources of information on this game. 
+   The game first appeared in 1984, so there are 40 years of dedicated fan information.
+   
+                                                                                                                                                                                                                                                                                                                        
 Chris `Thomas. June 2026
 
 # TODO list 
