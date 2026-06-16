@@ -5,6 +5,10 @@ platforms.
 This was inspired by Mark Moxon's deconstruction and documentation of the
 original 6502 Assembler  https://elite.bbcelite.com
 
+There are multiple sources of information and gameplay available on the
+web and YouTube, e.g. https://wiki.alioth.net/index.php/Main_Page
+Search 'BBC Elite' on YouTube
+
 <img src="images/Elite_screen1.PNG" alt="App Screenshot" width="500">
 
 I wondered if AI would be able to convert this code to Python, and Mark suggested

@@ -25,13 +25,13 @@ def is_debug_level():
 
 # --------Global modes
 SOUND = 1
-WIREFRAME = 1
+WIREFRAME = 0
 WIREFRAME_REMOVAL = False
 YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True
 INSTANT_DOCK = False
-MAX_FUEL = 100
+MAX_FUEL = 70
 FLIGHT_DIRECTOR = True
 FIRE_ACCURACY = 12  # higher makes it easier to hit target default 8
 
