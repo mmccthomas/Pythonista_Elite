@@ -28,7 +28,7 @@ class MissionManager:
             "Her Majesty's Space Navy and I beg a moment of your "
             "valuable time. We would like you to do a little job "
             "for us. The ship you see here is a new model, the "
-            "Constrictor, equiped with a top secret new shield "
+            "Constrictor, equipped with a top secret new shield "
             "generator. Unfortunately it's been stolen."
         )
 
@@ -65,7 +65,7 @@ class MissionManager:
         self.m2_brief_a = (
             "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
             "We have need of your services again. If you would be so good as to go to "
-            "Ceerdi you will be briefed.If succesful, you will be rewarded."
+            "Ceerdi you will be briefed.If successful, you will be rewarded."
             "---MESSAGE ENDS.")
   
         self.m2_brief_b = (
@@ -209,7 +209,7 @@ class MissionManager:
             self.gfx.clear_display()
             self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
             self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
-            self.gfx.display_pretty_text(0, 4, "You suceeded in your mission to destroy the Constrictor.")
+            self.gfx.display_pretty_text(0, 4, "You succeeded in your mission to destroy the Constrictor.")
             self.gfx.display_pretty_text(0, 5, "Please accept a reward of 10000 credits.")
             self.gfx.display_pretty_text(0, 6, "There will always be a place for you in Her Majesty's Space Navy.")
             self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)

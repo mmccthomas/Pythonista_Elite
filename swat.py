@@ -119,7 +119,7 @@ class Swat:
         self.ship_dict['PLANET'].name = ('PLANET',)
                                                                     
         self.ship_names = {v: k for k, v in cs.SHIP_DICT.items()}
-        # constuct ship_list dictionary containing operational properties of each
+        # construct ship_list dictionary containing operational properties of each
         # ship type
         alternatve_names = {'Max. canisters on demise': 'max_loot',
                             'Bounty': 'bounty',

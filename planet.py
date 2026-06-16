@@ -37,7 +37,7 @@ class PlanetGenerator:
             ["wasp", "moth", "grub", "ant", "%R"],
             ["poet", "arts graduate", "yak", "snail", "slug"],
             ["tropical", "dense", "rain", "impenetrable", "exuberant"],
-            ["funny", "wierd", "unusual", "strange", "peculiar"],
+            ["funny", "weird", "unusual", "strange", "peculiar"],
             ["frequent", "occasional", "unpredictable", "dreadful", "deadly"],
             ["<1> <0> for <9>", "<1> <0> for <9> and <9>", "<7> by <8>", "<1> <0> for <9> but <7> by <8>", " a<15> <16>"],
             ["<26>", "mountain", "edible", "tree", "spotted"],
@@ -324,7 +324,7 @@ if __name__ == '__main__':
                    ([0x9580, 0xB8A0, 0x70DA], 'Errius'),
                    ([0x99C0, 0x8F08, 0x63BD], 'Geinona'),
                    ([0x5A4A, 0x0248, 0xB753], 'Tibedied')]
-    # check spefic set of planets as listed in deep dive article
+    # check specific set of planets as listed in deep dive article
     galaxy = GalaxySeed().copy()
     for system in system_list:
         current_seed, planet_name = system
@@ -366,7 +366,7 @@ if __name__ == '__main__':
     
     # sorted_planets = dict(sorted(planets.items(), key=lambda x: x[1].distance))
     # print(sorted_planets.keys())
-    # get planet name ab]nd coords at each corner
+    # get planet name and coords at each corner
         
     def get_extremities(points):
         import numpy as np

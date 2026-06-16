@@ -104,7 +104,7 @@ class Graphics():
        
        # this object holds all the characters on a given "screen".
        # you can use multiple objects for different screens and retain in memory.
-       # text grid is a \node which hold multiple caracters
+       # text grid is a \node which hold multiple characters
        self.text_grid = game_engine.TextGridArray(cs.GAME_W, cs.GAME_W)
        self.screen_rect = cs.FLIGHT_RECT
        self.centre_screen = self.screen_rect.center()
@@ -149,7 +149,7 @@ class Graphics():
         try:
             return np.all([c == 32 for c in self.current_text[0][row][col-1:col+length]])
         except (ValueError, IndexError):
-            # doesnt fit so skip
+            # doesn't fit so skip
             return False
             
     def replace_text_section(self, r, c, text, color=cs.BLACK, background=cs.BLACK):
@@ -158,7 +158,7 @@ class Graphics():
         """
         if r < 0 or c < 0:
             return
-        # constuct a list of character number, text colour, background colour
+        # construct a list of character number, text colour, background colour
         new_text = np.array([[ord(char),
                               self.to_color_int(color),
                               self.to_color_int(background)]
@@ -166,7 +166,7 @@ class Graphics():
         try:
             self.current_text[:, r, c: c + new_text.shape[0]] = new_text.T
         except (ValueError, IndexError):
-            # doesnt fit so skip
+            # doesn't fit so skip
             pass
           
     def clear_display(self):
@@ -182,7 +182,7 @@ class Graphics():
         """Renders text centered horizontally on the screen.
            In game engine, letters are anchored to bottom left
            write text into self.current_text array centred on screen
-           Font sizing is not neccesary, only used in title bar, values were 120 or 140"""
+           Font sizing is not necessary, only used in title bar, values were 120 or 140"""
                     
         # pad string both ends to length
         self.replace_text_section(row, 0, f'{text:^{cs.TEXT_LENGTH}}', color=color)
@@ -409,7 +409,7 @@ def test():
             "Her Majesty's Space Navy and I beg a moment of your "
             "valuable time. We would like you to do a little job "
             "for us. The ship you see here is a new model, the "
-            "Constrictor, equiped with a top secret new shield "
+            "Constrictor, equipped with a top secret new shield "
             "generator. Unfortunately it's been stolen."
         )
     graphic = Graphics(None)
