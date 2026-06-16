@@ -55,6 +55,7 @@ class Space:
         self.ship = ship
         self.compass_target = PLANET
         self.jump_start = 0
+        self.end_reason = ''
         
     # ------- Rotation helpers
     
@@ -273,9 +274,14 @@ class Space:
     # ------- Game over / damage
     
     def do_game_over(self, reason=''):
+        reasons = {'no energy': 'Depleted Energy Banks',
+                   'altitude': 'Crashed on planet',
+                   'cabin temp': "Burned up in the Sun's corona",             
+                   'speed': 'Docked at excessive speed'}
         # debug crashes
         traceback.print_stack()
         logger.debug(reason)
+        self.end_reason = reasons.get(reason, '')
         self.snd.play_sample(cs.SND_GAMEOVER)
         self.gs.game_over = True
 
@@ -342,13 +348,12 @@ class Space:
         #    gs.myship.altitude = 0
          #   self.do_game_over()
          #   return
-
+        if (self.gs.mcount & 63) == 0:
+            if dist < 10000:
+                gs.myship.altitude = 0
+                self.do_game_over('altitude')
+                return
         dist = math.sqrt(dist)
-        if dist < 1:
-            gs.myship.altitude = 0
-            self.do_game_over('altitude')
-            return
-
         gs.myship.altitude = dist
 
     def update_cabin_temp(self):
@@ -415,15 +420,14 @@ class Space:
             random.randint(0, 32767)
         )
         vec = unit_vector(vec)
-
+        
         sx = px - vec.x * 65792
         sy = py - vec.y * 65792
         sz = pz - vec.z * 65792
-        d = 1
+        d = 1        
         rotmat = Matrix([Vector(1.0, 0.0, 0.0),
                         Vector(vec.x, vec.z, -vec.y),
-                        Vector(vec.x, vec.y, d*vec.z)])
-        
+                        Vector(vec.x, vec.y, d*vec.z)])        
         gs.swat.add_new_station(sx, sy, sz, rotmat)
         
     def change_view(self):
@@ -450,7 +454,8 @@ class Space:
         gs = self.gs
         self.stars.create_new_stars()
         gs.swat.clear_universe()
-        gs.swat.generate_landscape()
+        if not cs.WIREFRAME:
+            gs.swat.generate_landscape()
         planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
         gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
         self.make_station_appear()

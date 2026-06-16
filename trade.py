@@ -116,6 +116,7 @@ class TradeManager:
                 or obj.location.y >= 0
                 or self.total_cargo() >= self.gs.cmdr.cargo_capacity):
             logging.debug(f'collided with {obj.name} {obj.location} {obj.location.y=}')
+            self.gs.info_message(f"Destroyed")
             # If conditions fail, you collide with the object instead
             obj.exploding = True
             damage = 128 + (obj.energy // 2)
@@ -125,8 +126,9 @@ class TradeManager:
         # If it's a generic cargo canister
         if obj.type == cs.SHIP_CARGO:            
             trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
-            quantity = random.randint(0, 255) & 7
+            quantity = random.randint(0, 255) & 15
             self.gs.cmdr.current_cargo[trade_type] += quantity
+            self.gs.info_message(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
             logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
             self.gs.swat.remove_ship(universe_obj_index)
             obj.exploding = True

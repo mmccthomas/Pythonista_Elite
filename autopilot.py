@@ -203,10 +203,13 @@ class Pilot:
             self.fly_to_station(ship)
     
     # --------  Engage/ disengage
-    def engage_auto_pilot(self):
+    def engage_auto_pilot(self, target=False):
         """Activates the docking computer and plays Blue Danube."""
         # Condition checks: not already on, not in witchspace, etc.
         self.auto_pilot_active = True
+        name = 'Cancel Target' if target else 'Cancel Docking'
+        self.gs.keypad.key_change(key_name='Docking',
+                                  name=name, color=cs.ORANGE)
         # self.flight_phase = None
         # play_midi("BLUE_DANUBE")
 
@@ -216,6 +219,10 @@ class Pilot:
         self.flight_phase = None
         cr = '\n'
         self.gs.msg_right.text = f'Autopilot{cr}Off'
+        self.gs.keypad.key_change(key_name='Cancel Docking',
+                                  name='Docking', color='lightgreen')
+        self.gs.keypad.key_change(key_name='Cancel Target',
+                                  name='Docking', color='lightgreen')                         
         ship = self.gs.space.ship
         ship.smooth_climb = 0
         ship.smooth_roll = 0
@@ -310,7 +317,8 @@ class Pilot:
     def _pole_waypoint(self):
         """Point POLE_ALTITUDE above planet north pole."""
         planet = self.universe[PLANET]
-        return planet.location + Vector(0, 1, 0) * POLE_ALTITUDE
+        pole = 1 if self.universe[PLANET].location.y <  self.universe[STATION].location.y else -1
+        return planet.location + Vector(0, 1, 0) * POLE_ALTITUDE * pole
 
     def ip_waypoint(self):
         """Point IP_DIST ahead of station nose."""
@@ -553,7 +561,7 @@ class Pilot:
                 # orient to arbitrary target, usually a ship
                 distance = self._dist_to(ship, self.target.location)
                 self.gs.msg_left.text = f'Target \n {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
-                self.fly_to_target(ship, self.target.location, max_velocity=22, pgain=80)
+                self.fly_to_target(ship, self.target.location, max_velocity=22, pgain=250)
                 if self.target.type == 0:
                    self.gs.msg_left.text = 'Target Lost'
                    self.disengage_auto_pilot()

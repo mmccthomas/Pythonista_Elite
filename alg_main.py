@@ -191,10 +191,10 @@ class MainLoop():
        self.tick_count = 0
        self.status_objects = []
        # individual counters
-       self.univ_status = IntervalTrigger(0.5)
+       self.univ_status = IntervalTrigger(1.0)
        self.alt_temp_status = IntervalTrigger(0.25)
        self.regen_shields = IntervalTrigger(0.125)
-       self.energy_status = IntervalTrigger(0.5)
+       self.energy_status = IntervalTrigger(0.25)
        self.encounter = IntervalTrigger(4.25)
        self.docking_on = IntervalTrigger(0.5)
                           
@@ -436,10 +436,17 @@ class MainLoop():
     
     def show_universe_status(self):
         """ provide a text readout of all universe objects """
+        start = 0x2190
+        code = [7, 8, 9, 5, 49, 51]
+        fstring = f'{chr(start + code[0])}'
         objects = [obj for obj in self.universe if obj.type != 0]
         textline = []
         # sort the objects by fwd vector and inversely by distance
         def sortkey(obj):
+            # This keeps distance relative. 
+            # Use 1/(distance + 1) so it ranges from 1 (close) to near 0 (far).
+            return (obj.direction + 1) * 1000 + (1000 / (obj.distance + 1))
+        def sortkey_(obj):
            return 100 * obj.direction / obj.distance
         self.status_objects = sorted(objects, key=lambda x: sortkey(x), reverse=True)
         for obj in self.status_objects:
@@ -512,9 +519,9 @@ class MainLoop():
             case 'Cargo':
                 self.current_screen = cs.SCR_INVENTORY
             case 'Pause' | 'Resume':
-                # pause key is toggle
+                # pause key is toggle                
                 self.game_paused = not self.game_paused
-                if self.game_paused:
+                if self.game_paused:                
                     self.keypad.key_change(key_name='Pause',
                                            name='Resume')
                 else:
@@ -768,8 +775,11 @@ class MainLoop():
                 return
                 
         self.gfx.clear_display()
-        self.swat.planet_image.planet.alpha = 0
-        self.swat.sun_image.planet.alpha = 0
+        try:
+            self.swat.planet_image.planet.alpha = 0
+            self.swat.sun_image.planet.alpha = 0
+        except AttributeError:
+            pass
         
         self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to load backup", color=cs.GOLD)
         self.current_screen = cs.SCR_GAME_OVER
@@ -794,6 +804,7 @@ class MainLoop():
         self.stars.update_starfield()
         self.space.update_universe()
         self.gfx.display_centre_text(12, "GAME OVER", 140, cs.GOLD)
+        self.gfx.display_centre_text(14, self.space.end_reason, color=cs.GOLD)
         self.gfx.update_screen()
         self.sound.sound_shutdown()
         self.gfx.text_render()
@@ -911,12 +922,10 @@ class MainLoop():
                     self.space.engage_docking_computer()
                 else:
                     self.pilot.engage_auto_pilot()
-                    self.keypad.key_change(key_name='Docking',
-                                           name='Cancel Docking', color=cs.ORANGE)
+                    
             case 'Cancel Docking':
                 self.pilot.disengage_auto_pilot()
-                self.keypad.key_change(key_name='Cancel Docking',
-                                       name='Docking', color='lightgreen')
+                
             case 'Cancel Target':
                 self.pilot.disengage_auto_pilot()
                 self.keypad.key_change(key_name='Cancel Target',
@@ -980,7 +989,10 @@ class MainLoop():
             case 'To Sun' | 'To Planet' | 'To Station':
                 self.space.jump_direct(key)
             case key if key.startswith('->'):
+                self.keypad.key_change(key_name='Docking',
+                                       name='Cancel Target', color=cs.ORANGE)
                 logger.debug(key)
+                
                 self.swat.target_object(key)
                  
     def _change_flight_keys(self, enable=True):
@@ -1151,7 +1163,7 @@ def loop():
     for i in range(200):
        logger.debug(i)
        if i in operations:
-          if i == 150:
+          if i == 1:
               pass
           for command in operations[i]:
               g.input_queue.put(command)

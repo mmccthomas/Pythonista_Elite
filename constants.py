@@ -24,8 +24,9 @@ def is_debug_level():
     
 
 # --------Global modes
-SOUND = 0
-WIREFRAME = 0
+SOUND = 1
+WIREFRAME = 1
+WIREFRAME_REMOVAL = False
 YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True
@@ -257,14 +258,14 @@ SND_BEEP = 'beep'
 SND_BOOP = "boop"
 SND_CRASH = "crash"
 SND_BLUE_DANUBE = 'danube'
-SND_DOCK = "dock"
+SND_DOCK = "docking3"
 SND_ECM = "ecm"
 SND_ELITE_THEME = 'theme'
 SND_EXPLODE = 'explode'
 SND_GAMEOVER = "gameover"
 SND_HYPERSPACE = "hyper"
 SND_HIT_ENEMY = "hit_enemy"
-SND_LAUNCH = 'launch'
+SND_LAUNCH = 'Jump2'
 SND_MISSILE = "missile"
 SND_PULSE = "pulse"
 SND_INCOMMING_FIRE_1 = "incom1"

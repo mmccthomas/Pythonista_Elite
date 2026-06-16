@@ -94,7 +94,7 @@ class EliteScene(Scene):
             
         self.moved = False
 
-        self.renderer = Renderer(depth_sort=True, backface_cull=False)
+        self.renderer = Renderer(depth_sort=True, backface_cull=cs.WIREFRAME_REMOVAL)
         self.renderer.viewport = cs.FLIGHT_RECT  # x, y, w, h
         
         self.camera = Camera(

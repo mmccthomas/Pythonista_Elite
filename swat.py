@@ -290,8 +290,8 @@ class Swat:
                     try:
                         # spin on its axis
                         obj.roty = -127
-                        # if cs.WIREFRAME:
-                        #    obj.model.color = cs.COLOUR_LIST[self.gs.present_planet.colour]
+                        if cs.WIREFRAME:
+                            obj.model.color = cs.COLOUR_LIST[self.gs.present_planet.colour]
                     except (AttributeError, IndexError):
                         pass
                 return i
@@ -452,11 +452,11 @@ class Swat:
         target = gs.status_objects[line_index]
         # gs.msg.text = (f'no lines {no_items} {key} {line_index} {target.name}')
         logger.debug(f'targeting {target.name}')
-        gs.keypad.key_change('Docking', name='Cancel Target', color=cs.ORANGE)
+        
         gs.pilot.disengage_auto_pilot()
         gs.pilot.flight_phase = 'FIND_TARGET'
         gs.pilot.target = target
-        gs.pilot.engage_auto_pilot()
+        gs.pilot.engage_auto_pilot(target=True)
                         
     def in_target(self, ship_type: int, x: float, y: float, z: float) -> bool:
         # use model targetable area
@@ -621,8 +621,8 @@ class Swat:
             if flags & cs.FLG_ANGRY:
                 self.missile_tactics(index)
             return
-        
-        if ((index ^ gs.mcount) & 7) != 0:
+        # every 8 /60ths
+        if ((index ^ gs.mcount) & 15) != 0:
             return
     
         if index == STATION:

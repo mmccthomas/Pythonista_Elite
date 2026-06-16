@@ -145,6 +145,7 @@ significant changes:
     HUD_H allows the  scanner height to be adjusted for visibility
     WIREFRAME allows sun and planet to be rendered as wireframe or 
               realistic images
+	   WIREFRAME_REMOVAL controls appearance of wireframe objects. Currently buggy.          
     TELEPORT enables 3 keys which allows instant movement to the Sun, Planet and Station
              for testing  of altitude and docking.
     UNIVERSE_STATUS allows the universe objects to be listed and updated as they move.
@@ -167,12 +168,10 @@ Chris `Thomas. June 2026
 # TODO list 
 
 
-Check directions for ships firing
-after game over, universe is not repopulated. do i understand this backup correctly?
-follow the logic.
+Wireframe backface culling gives strange results.
+works ok in wireframe_3d_2 Demo, 
 
-check scooping canisters and plate.
-added thargon plate as alien items
+Autopilot pretty good, except in the edge case of immediately behind station
 
 
 Finally:
