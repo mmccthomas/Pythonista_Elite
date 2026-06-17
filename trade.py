@@ -112,11 +112,18 @@ class TradeManager:
         # 1. Must have fuel scoop equipment
         # 2. Item must be in the lower half of the screen (y >= 0 in Elite's coordinate system)
         # 3. Must have cargo space
-        if (not self.gs.cmdr.fuel_scoop
-                or obj.location.y >= 0
-                or self.total_cargo() >= self.gs.cmdr.cargo_capacity):
+        no_fuel_scoop = not self.gs.cmdr.fuel_scoop
+        above_ship = obj.location.y >= 0
+        full_cargo_hold = self.total_cargo() >= self.gs.cmdr.cargo_capacity
+        if (no_fuel_scoop or above_ship or full_cargo_hold):
             logging.debug(f'collided with {obj.name} {obj.location} {obj.location.y=}')
-            self.gs.info_message(f"Destroyed")
+            if no_fuel_scoop:
+               reason = 'No Fuel Scoop'
+            elif above_ship:
+                reason = 'Missed Fuel Scoop'
+            elif full_cargo_hold:
+                reason = 'Full Cargo Hold'
+            self.gs.info_message(f"Destroyed {reason}")
             # If conditions fail, you collide with the object instead
             obj.exploding = True
             damage = 128 + (obj.energy // 2)
@@ -124,7 +131,7 @@ class TradeManager:
             return
 
         # If it's a generic cargo canister
-        if obj.type == cs.SHIP_CARGO:            
+        if obj.type == cs.SHIP_CARGO:
             trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
             quantity = random.randint(0, 255) & 15
             self.gs.cmdr.current_cargo[trade_type] += quantity

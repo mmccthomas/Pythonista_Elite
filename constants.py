@@ -13,7 +13,7 @@ def setup_logging():
         datefmt='%H:%M:%S'
     )
     # Set the root level, or specific package level
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.ERROR)
 
 
 logger = logging.getLogger(__name__)

@@ -293,9 +293,9 @@ class EliteScene(Scene):
                     self._explosion_t += self.dt * EXPLOSION_SPEED
                     obj.model.explosion_time = self._explosion_t
                     if self._explosion_t >= 1.0:
-                         obj.flags |= cs.FLG_REMOVE                                                  
-                         obj.exploding = False
-                         self._explosion_t = 0.0
+                        obj.flags |= cs.FLG_REMOVE
+                        obj.exploding = False
+                        self._explosion_t = 0.0
                     self.renderer.explode(obj.model, self.camera, cs.FLIGHT_RECT)
                     
                 else:

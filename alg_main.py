@@ -8,7 +8,6 @@
 
 import random
 import math
-from operator import attrgetter
 from ui import in_background
 import game_engine
 from copy import copy
@@ -357,8 +356,7 @@ class MainLoop():
         # flight speed tracks velocity
         self.flight_speed = min(self.myship.max_speed * (1 + 4 * self.pilot.escape), self.ship.velocity)
         # control joystick
-        y = 2 * self.flight_speed / self.myship.max_speed - 1.0
-        self.parent_scene.joystick_thrust.set_position(y=y)
+        self.space.joystick_position()
              
     # ── Escape sequence ───────────────────────────────────────────────────────────
     def run_escape_sequence(self):
@@ -435,29 +433,66 @@ class MainLoop():
     # ── Main input handler ────────────────────────────────────────────────────────
     
     def show_universe_status(self):
-        """ provide a text readout of all universe objects """
-        start = 0x2190
-        code = [7, 8, 9, 5, 49, 51]
-        fstring = f'{chr(start + code[0])}'
+        """ provide a text readout of all universe objects
+        Ranked by
+        1. firing enemy
+        2. close to sun
+        3. close to planet
+        2. close enemy
+        3. trader
+        4. canister
+        5. station
+        6. any other items in distance order (closest first)
+        Display distance and direction using arrows """
+        start = 0x21d0
+        code = [7, 8, 9, 6, 23, 25]
+        
         objects = [obj for obj in self.universe if obj.type != 0]
         textline = []
-        # sort the objects by fwd vector and inversely by distance
+
         def sortkey(obj):
-            # This keeps distance relative. 
-            # Use 1/(distance + 1) so it ranges from 1 (close) to near 0 (far).
-            return (obj.direction + 1) * 1000 + (1000 / (obj.distance + 1))
-        def sortkey_(obj):
-           return 100 * obj.direction / obj.distance
+         
+            firing_enemy = (obj.flags & cs.FLG_FIRING) > 0
+            close_sun = obj.type == cs.SHIP_SUN and obj.distance < 40000
+            close_planet = obj.type == cs.SHIP_PLANET and obj.distance < 40000
+            close_enemy = ((obj.flags & cs.FLG_BOLD & cs.FLG_ANGRY)
+                           or (obj.flags & cs.FLG_ALIEN)
+                           and obj.distance < 20000) > 0
+            trader = ((obj.flags == 0)
+                      and obj.distance < 20000)
+            canister = obj.type == cs.SHIP_CARGO
+            station = (obj.flags & cs.FLG_STATION) > 0
+            
+            order = [firing_enemy, close_sun, close_planet, close_enemy, trader, canister, station]
+            rank = sum([item * (2**(6-i)) for i, item in enumerate(order)])
+            if rank == 0:
+               rank = rank - obj.distance / 10000
+            return rank
+        
         self.status_objects = sorted(objects, key=lambda x: sortkey(x), reverse=True)
         for obj in self.status_objects:
             vec = unit_vector(obj.location - self.ship.location)
             # Horizontal angle (Azimuth)
             azimuth = math.degrees(math.atan2(vec.x, vec.z))
-            # Vertical angle (Elevation) in radians
             elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
-            # textline.append(f'{obj.name:<9} {obj.distance/1000:.1f}k ({azimuth:.0f}, {elevation:.0f})')
-            # textline.append(f'{obj.name:<9} {obj.location.x/1000:.1f}k {obj.location.y/1000:.1f}k, {obj.location.z/1000:.1f}k')
-            textline.append(f'{obj.name:<9} {obj.direction:+.2f} {obj.distance/1000:.1f}k')
+            if -45 < azimuth < 45:
+                n = 0
+            elif 45 <= azimuth < 135:
+                n = 1
+            elif azimuth >= 135 or azimuth < -135:
+                n = 2
+            elif azimuth >= -135 or azimuth < -45:
+                n = 3
+            f = f'{chr(start + code[n])}'
+            if elevation > 20:
+                v = f'{chr(start + code[4])}'
+            elif elevation < -20:
+                v = f'{chr(start + code[5])}'
+            else:
+                v = ' '
+            
+            arrows = f'{v}{f}' if n < 2 else f'{f}{v}'
+            textline.append(f'{obj.name:<9} {arrows} {obj.distance/1000:.1f}k')
         self.obj_status.text = '\n'.join(textline)
                                             
     def set_commander_name(self, path):
@@ -519,9 +554,9 @@ class MainLoop():
             case 'Cargo':
                 self.current_screen = cs.SCR_INVENTORY
             case 'Pause' | 'Resume':
-                # pause key is toggle                
+                # pause key is toggle
                 self.game_paused = not self.game_paused
-                if self.game_paused:                
+                if self.game_paused:
                     self.keypad.key_change(key_name='Pause',
                                            name='Resume')
                 else:
@@ -711,7 +746,7 @@ class MainLoop():
             case 'OK':
                 self.cmdr.mission = mission_phase
                 self.current_screen = cs.SCR_COMMANDER
-                self.missions.state = 0                
+                self.missions.state = 0
                 self.space.populate_universe()
                 self.space.dock_player()
                 self.sound.stop_midi()
@@ -859,9 +894,13 @@ class MainLoop():
             self.parent_scene.laser_lines.alpha = 0
         if self.witchspace:
             self.gfx.display_text(41, 0, 'Witch Space !', 120, cs.RED)
-        else:   
+        else:
             self.gfx.display_text(41, 0, self.present_planet.name, 120, cs.GOLD)
-        
+            
+        # clear left message every second
+        if self.mcount & 63 == 0:
+           self.msg_left.text = ''
+           
         if self.message_count > 0:
             self.gfx.display_centre_text(cs.NUM_LINES-1, self.message_string, 120, cs.WHITE)
             
@@ -898,9 +937,7 @@ class MainLoop():
             case key if key.startswith('>'):
                 self.space.roll_pitch_control(key)
             case key if key.startswith('<'):
-                self.flight_speed = (float(key.removeprefix('<')) + 1.0) * 0.5 * self.myship.max_speed
-                # logger.debug(f'speed {self.flight_speed}')
-                    
+                self.space.speed_control(key)
             case 'Look Fwd':
                 self.current_screen = cs.SCR_FRONT_VIEW
                 self.stars.flip_stars()
@@ -956,7 +993,6 @@ class MainLoop():
             case 'dec_speed':
                 if self.flight_speed > 0:
                     self.flight_speed -= 1
-            
             case 'Up':
                 self.space.increase_flight_climb()
                 self.climbing = True
@@ -989,11 +1025,12 @@ class MainLoop():
             case 'To Sun' | 'To Planet' | 'To Station':
                 self.space.jump_direct(key)
             case key if key.startswith('->'):
-                self.keypad.key_change(key_name='Docking',
-                                       name='Cancel Target', color=cs.ORANGE)
-                logger.debug(key)
-                
-                self.swat.target_object(key)
+                # only allow target locking if docking computer fitted
+                if self.cmdr.docking_computer:
+                    self.keypad.key_change(key_name='Docking',
+                                           name='Cancel Target', color=cs.ORANGE)
+                    logger.debug(key)
+                    self.swat.target_object(key)
                  
     def _change_flight_keys(self, enable=True):
         # enable normal flight keys plus others where purchased

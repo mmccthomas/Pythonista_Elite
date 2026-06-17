@@ -121,7 +121,7 @@ class EliteIntro:
         
             # Carousel state
             self.intro_matrix = set_init_matrix()
-            self.car_ship_pool = [i for i in range(11,32) if i !=0]   # 9..32
+            self.car_ship_pool = [i for i in range(11, 32) if i != 0]   # 9..32
             self.car_pool_idx = 0  # next ship to pull from pool
             self.car_state = ST_FILLING
             self.car_fill_idx = 0  # how many ships placed so far

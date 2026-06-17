@@ -222,7 +222,7 @@ class Pilot:
         self.gs.keypad.key_change(key_name='Cancel Docking',
                                   name='Docking', color='lightgreen')
         self.gs.keypad.key_change(key_name='Cancel Target',
-                                  name='Docking', color='lightgreen')                         
+                                  name='Docking', color='lightgreen')
         ship = self.gs.space.ship
         ship.smooth_climb = 0
         ship.smooth_roll = 0
@@ -317,7 +317,7 @@ class Pilot:
     def _pole_waypoint(self):
         """Point POLE_ALTITUDE above planet north pole."""
         planet = self.universe[PLANET]
-        pole = 1 if self.universe[PLANET].location.y <  self.universe[STATION].location.y else -1
+        pole = 1 if self.universe[PLANET].location.y < self.universe[STATION].location.y else -1
         return planet.location + Vector(0, 1, 0) * POLE_ALTITUDE * pole
 
     def ip_waypoint(self):

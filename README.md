@@ -48,6 +48,8 @@ significant changes:
 2. 2 joysticks, one for roll, pitch, the other for thrust
    Thrust is direct and will stay set when not touched.
    It will react when thrust is controlled by autopilot.
+   Roll/Pitch has square law response, allowing finer control for lower deflection
+   Thrust has cubic response, allowing slow speed control for docking
    Fire button fires whenever held, so can continuously fire.
     
 3. Screen can be varied. Hud left and right sections are fixed size. Scanner width changes with screen size
@@ -207,7 +209,17 @@ Wireframe backface culling gives strange results.
 works ok in wireframe_3d_2 Demo, 
 
 Autopilot pretty good, except in the edge case of immediately behind station
-
+ 
+Universe list should be better.
+maybe order in Threats, then Opportunities
+how to rank?
+1. firing enemy
+2. close sun
+3. close planet
+2. close enemy
+3. trader
+4. canister
+5. station
 
 Finally:
 

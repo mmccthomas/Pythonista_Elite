@@ -6,7 +6,8 @@ import constants as cs
 # from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
-                
+
+                                
 @dataclass
 class GalaxySeed:
     """The 6-byte seed used to generate an entire galaxy."""
@@ -77,7 +78,7 @@ class GalaxySeed:
     @property
     def tech(self):
         # 0 - 14
-        gov = (self.d // 8) & 7             
+        gov = (self.d // 8) & 7
         return (self.econ ^ 7) + (self.c & 3) + (gov // 2) + (gov & 1)
         
     @property
@@ -203,7 +204,7 @@ class EliteState:
 
         # Find the planet Jameson is currently at based on coordinates
         self.present_planet = planet_manager.find_planet(
-            self.cmdr.ship_x, self.cmdr.ship_y, 
+            self.cmdr.ship_x, self.cmdr.ship_y,
             self.cmdr.galaxy_seed)
         self.hyperspace_planet = self.present_planet
 
@@ -257,7 +258,7 @@ def load_game_json(cmdr, file_name):
             else:
                 setattr(cmdr, k, v)
                                                          
-        cmdr.name = path.stem.upper()        
+        cmdr.name = path.stem.upper()
     except FileNotFoundError:
         return False, "SAVE FILE NOT FOUND"
     except KeyError as e:

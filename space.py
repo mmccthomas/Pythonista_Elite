@@ -17,6 +17,14 @@ STATION = 1
 SUN = 2
 
 
+def sgn(x):
+    if x > 0:
+        return 1
+    elif x < 0:
+        return -1
+    return 0
+    
+
 class Space:
     """Flight system and universe management (space.c)."""
 
@@ -196,8 +204,8 @@ class Space:
         gs.cmdr.ship_x = gs.present_planet.x
         gs.cmdr.ship_y = gs.present_planet.y
         gs.flight_speed = 0
-        y = 2 * gs.flight_speed / gs.myship.max_speed - 1.0
-        gs.parent_scene.joystick_thrust.set_position(y=y)
+        self.joystick_position()
+        
         self.flight_roll = 0
         self.flight_climb = 0
         gs.front_shield = 255
@@ -276,7 +284,7 @@ class Space:
     def do_game_over(self, reason=''):
         reasons = {'no energy': 'Depleted Energy Banks',
                    'altitude': 'Crashed on planet',
-                   'cabin temp': "Burned up in the Sun's corona",             
+                   'cabin temp': "Burned up in the Sun's corona",
                    'speed': 'Docked at excessive speed'}
         # debug crashes
         traceback.print_stack()
@@ -333,26 +341,23 @@ class Space:
         y /= 256
         z /= 256
         dist = x*x + y*y + z*z
-        if dist > 65535:
-            return
-        # logger.debug(dist)
-        if dist < 32768:
-           if (self.gs.mcount & 63) == 0:
-              self.gs.info_message(f"Low Altitude {dist:.0f}km")
-           self.low_altitude = True
-        else:
-            self.low_altitude = False
-        
-        # dist -= 9472
-        # if dist < 1:
-        #    gs.myship.altitude = 0
-         #   self.do_game_over()
-         #   return
         if (self.gs.mcount & 63) == 0:
-            if dist < 10000:
+            if dist < 9472:
                 gs.myship.altitude = 0
                 self.do_game_over('altitude')
                 return
+            elif dist > 65535:
+                self.low_altitude = False
+                return
+            elif dist < 20480:
+               self.gs.info_message(f"Critical Altitude {dist:.0f}km")
+               self.low_altitude = True
+            elif dist < 32768:
+               self.gs.info_message(f"Low Altitude {dist:.0f}km")
+               self.low_altitude = True
+            else:
+                self.low_altitude = False
+        
         dist = math.sqrt(dist)
         gs.myship.altitude = dist
 
@@ -424,10 +429,9 @@ class Space:
         sx = px - vec.x * 65792
         sy = py - vec.y * 65792
         sz = pz - vec.z * 65792
-        d = 1        
         rotmat = Matrix([Vector(1.0, 0.0, 0.0),
                         Vector(vec.x, vec.z, -vec.y),
-                        Vector(vec.x, vec.y, d*vec.z)])        
+                        Vector(vec.x, vec.y, vec.z)])
         gs.swat.add_new_station(sx, sy, sz, rotmat)
         
     def change_view(self):
@@ -508,11 +512,7 @@ class Space:
             if i == SUN:
                 # obj.sync_model()
                 continue
-            # limit speed within 2k of station
-            if i == STATION and obj.distance < 2000:
-                gs.myship.max_speed = 5
-            else:
-                gs.myship.max_speed = 50
+            
             if obj.distance < 170:
                 if i == STATION:
                     self.check_docking(i)
@@ -763,39 +763,45 @@ class Space:
         gs.hud.ecm_node.alpha = gs.swat.ecm_active
                         
         gfx.set_clip_region(*cs.FLIGHT_RECT)
-    
+     
     # -------Flight controls
+    def speed_control(self, key):
+        # power factor to smooth response
+        k = 3
+        x = float(key.removeprefix('<'))
+        y = ((x+1) / 2) ** k
+        self.gs.flight_speed = y * self.gs.myship.max_speed
+        # logger.debug(f'speed {self.flight_speed}')
+        # limit speed within 2k of station
+        #    if i == STATION and obj.distance < 2000:
+        #        gs.myship.max_speed = 5
+        #    else:
+        #        gs.myship.max_speed = 50
+                                              
+    def joystick_position(self):
+        k = 3
+        y_norm = self.gs.flight_speed / self.gs.myship.max_speed
+        pos = y_norm ** (1 / k) * 2 - 1
+        self.gs.parent_scene.joystick_thrust.set_position(y=pos)
         
     def roll_pitch_control(self, key):
         """ PID-based control of roll and pitch """
         attack = 0.6
         decay = 0.05
-        stop_threshold = 0.05
+        stop_threshold = 0.01  # The "Deadzone"
+        # power factor to smooth response
+        k = 2.0
         if key is not None and key.startswith('>'):
             # Parse inputs (Assuming these are target percentages -1.0 to 1.0)
             xy = key.removeprefix('>')
             x, y = xy.split(',')
-            target_roll = float(x) * self.gs.myship.max_roll
-            target_climb = float(y) * self.gs.myship.max_climb
+            x, y = float(x), float(y)
+            target_roll = sgn(x) * abs(x**k) * self.gs.myship.max_roll
+            target_climb = sgn(y) * abs(y**k) * self.gs.myship.max_climb
         else:
             target_roll = 0
             target_climb = 0
-        # Damp roll / climb when no key held
-        
-        stop_threshold = 0.1   # The "Deadzone"
-        """
-           if self.rolling:
-               self.space.flight_roll *= damping_factor
-               if abs(self.space.flight_roll) < stop_threshold:
-                   self.space.flight_roll = 0
-               self.rolling = bool(self.space.flight_roll)
-           
-           if self.climbing:
-               self.space.flight_climb *= damping_factor
-               if abs(self.space.flight_climb) < stop_threshold:
-                   self.space.flight_climb = 0
-               self.climbing = bool(self.space.flight_climb)
-        """
+                      
         # Determine if we are moving away from zero (Attack)
         # or returning to zero (Release)
         speed = attack if abs(target_roll) > abs(self.flight_roll) else decay

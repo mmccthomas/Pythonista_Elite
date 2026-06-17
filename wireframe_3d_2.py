@@ -574,10 +574,7 @@ class Renderer:
                 )
             else:
                 visible_edges = None      # draw all edges
-            #if visible_edges:
-            #   logger.debug(f'{obj.name} {len(visible_edges)}')
-            #else:
-            #    logger_debug(f'{obj.name} All')
+            
             color = obj.color
             line_width = getattr(obj, 'line_width', self.default_line_width)
             has_edge_colors = hasattr(obj, 'edge_colors')

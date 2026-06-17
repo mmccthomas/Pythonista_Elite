@@ -57,7 +57,6 @@ class UnivObject:
     def direction(self):
         nvec = unit_vector(self.location)
         return vector_dot_product(nvec, self.rotmat[NOSEV])
-            
         
     def sync_model(self):
         """
@@ -538,7 +537,7 @@ class Swat:
             # self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
             # logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
             # This runs once only
-            if univ.energy <= 0 and not univ.exploding:                
+            if univ.energy <= 0 and not univ.exploding:
                 if univ.type == cs.SHIP_ASTEROID:
                     if self.laser == (cs. MINING_LASER & 127):
                         self.launch_loot(index, cs.SHIP_ROCK, univ)
@@ -582,7 +581,7 @@ class Swat:
             cnt = rand255() & 3
         elif loot == cs.SHIP_ALLOY:
            cnt = rand255() & 3
-        else:         
+        else:
             cnt = rand255()
             if cnt >= 128:
                 return
@@ -746,7 +745,7 @@ class Swat:
         # Draw laser line from ship toward player (origin)
         # Project ship position to screen
         
-        cam_pos = gs.renderer._to_camera(ship.model.position_in_world, cam)                                
+        cam_pos = gs.renderer._to_camera(ship.model.position_in_world, cam)
         screen_pt = gs.renderer._project(cam_pos, fl, cam)
         if ship.location.z > 0:
             scale = fl / ship.location.z

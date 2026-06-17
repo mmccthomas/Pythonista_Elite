@@ -6,14 +6,13 @@ import io
 from PIL import Image
 from scene import SpriteNode, Texture, Node, Scene, run, Point, LabelNode
 import os
-import io
-from PIL import Image
+
 
 def pil_to_ui(image_name):
     # 1. Get the directory where the current script (calling module) resides
-    base_path = os.path.dirname(os.path.abspath(__file__))    
+    base_path = os.path.dirname(os.path.abspath(__file__))
     # 2. Join the base path with the filename
-    full_path = os.path.join(base_path, image_name)    
+    full_path = os.path.join(base_path, image_name)
     img = Image.open(full_path)
     with io.BytesIO() as bIO:
         img.save(bIO, 'png')
@@ -23,11 +22,11 @@ def pil_to_ui(image_name):
 class Joystick(Node):
     """
     A Node that simulates a joystick with two concentric circles.
-    Node is positioned, SpriteNodes and LabelNode are positioned 
+    Node is positioned, SpriteNodes and LabelNode are positioned
     relative to this
     """
-    def __init__(self, position, color='black', 
-                 alpha=0.8, show_xy=True, msg='', 
+    def __init__(self, position, color='black',
+                 alpha=0.8, show_xy=True, msg='',
                  deadzone_x=0.5, deadzone_y=0.5, autoreturn=True, mode='ALL', radius=100):
         # --- Configuration ---
         self.backgrounds = {'NS': './images/joystick_updown 4.png',
@@ -45,7 +44,7 @@ class Joystick(Node):
         self.thumbstick_color = 'red'
         self.x = 0
         self.y = 0
-        self.scale=1
+        self.scale = 1
         self.keys_pressed = set()
         self.deadzone_x = deadzone_x
         self.deadzone_y = deadzone_y
@@ -55,19 +54,20 @@ class Joystick(Node):
         # The background for the joystick
         
         self.outer_joystick = SpriteNode(
-            Texture(pil_to_ui(self.backgrounds[mode])), #'iow:disc_256',
+            Texture(pil_to_ui(self.backgrounds[mode])),
             size=(self.joystick_radius * 2,
-            self.joystick_radius * 2),
-            position = (0, 0),
+                  self.joystick_radius * 2),
+            position=(0, 0),
             color=self.joystick_color,
             alpha=alpha,
-            parent=self           
+            parent=self
         )
         # The movable inner circle (thumbstick)
-        self.inner_joystick = SpriteNode('emj:Black_Circle',            
+        self.inner_joystick = SpriteNode(
+            'emj:Black_Circle',
             size=(self.thumbstick_radius * 2,
-            self.thumbstick_radius * 2),
-            position = (0, 0),
+                  self.thumbstick_radius * 2),
+            position=(0, 0),
             color=self.thumbstick_color,
             parent=self
         )
@@ -77,7 +77,7 @@ class Joystick(Node):
             font=('Helvetica', 20),
             color='white',
             anchor_point=(0.5, 0.5),
-            position = (0, self.thumbstick_radius+20),
+            position=(0, self.thumbstick_radius+20),
             parent=self
         )
         # A label to display the output
@@ -85,7 +85,7 @@ class Joystick(Node):
             text='X: 0.00, Y: 0.00',
             font=('Helvetica', 20),
             color='white',
-            position = (0, self.joystick_radius)
+            position=(0, self.joystick_radius)
         )
         if show_xy:
             self.add_child(self.output_label)
@@ -103,17 +103,16 @@ class Joystick(Node):
         if not self.autoreturn:
             scale = (self.joystick_radius - self.thumbstick_radius)
             match self.mode:
-                case 'NS':                    
-                    self.inner_joystick.position = Point(0, y) * scale + self.outer_joystick.position 
+                case 'NS':
+                    self.inner_joystick.position = Point(0, y) * scale + self.outer_joystick.position
                 case 'EW':
-                    self.inner_joystick.position = Point(x, 0) * scale + self.outer_joystick.position 
-                case 'ALL':                    
+                    self.inner_joystick.position = Point(x, 0) * scale + self.outer_joystick.position
+                case 'ALL':
                     self.inner_joystick.position = Point(x, y) * scale + self.outer_joystick.position
             self.update()
         
-        
     def touch_began(self, touch):
-        """Called when a touch starts."""        
+        """Called when a touch starts."""
         dist = touch.location - (self.position + self.inner_joystick.position)
         # Check if touch is on the thumbstick
         if math.hypot(*dist) <= self.thumbstick_radius:
@@ -122,10 +121,10 @@ class Joystick(Node):
     def touch_moved(self, touch):
         """Called when a touch moves across the screen."""
         if not self._is_touched:
-            return        
+            return
         joystick_center = self.outer_joystick.position
         # Calculate vector from center to touch
-        offset = touch.location - self.position                     
+        offset = touch.location - self.position
         distance = math.hypot(offset.x, offset.y)
         
         # Calculate the maximum allowed distance for the inner joystick's center
@@ -139,8 +138,8 @@ class Joystick(Node):
             clamped_y = joystick_center.y + (offset.y / distance) * max_distance
             
             self.inner_joystick.position = Point(clamped_x if self.mode != 'NS' else 0.0,
-                                                 clamped_y if self.mode != 'EW' else 0.0) 
-        else:            
+                                                 clamped_y if self.mode != 'EW' else 0.0)
+        else:
             self.inner_joystick.position = Point(offset.x if self.mode != 'NS' else 0.0,
                                                  offset.y if self.mode != 'EW' else 0.0)
         
@@ -156,13 +155,13 @@ class Joystick(Node):
             self.keys_pressed.discard('right')
         if self.y > self.deadzone_y:
             self.keys_pressed.add('up')
-            self.keys_pressed.discard('down')      
+            self.keys_pressed.discard('down')
         elif self.y < -self.deadzone_y:
             self.keys_pressed.add('down')
             self.keys_pressed.discard('up')
         else:
-            self.keys_pressed.discard('up')        
-            self.keys_pressed.discard('down')      
+            self.keys_pressed.discard('up')
+            self.keys_pressed.discard('down')
 
     def touch_ended(self, touch):
         """Called when a touch ends."""
@@ -175,25 +174,26 @@ class Joystick(Node):
         """
         calculates the normalized output.
         """
-        offset = self.inner_joystick.position - self.outer_joystick.position        
+        offset = self.inner_joystick.position - self.outer_joystick.position
                 
         # Normalize the x and y positions to a range of -1.0 to +1.0
-        # The divisor for normalization should now be the maximum allowed travel distance        
+        # The divisor for normalization should now be the maximum allowed travel distance
         normalised_x = offset.x / (self.joystick_radius - self.thumbstick_radius)
         normalised_y = offset.y / (self.joystick_radius - self.thumbstick_radius)
             
         self.x = normalised_x if self.mode != 'NS' else 0.0
         self.y = normalised_y if self.mode != 'EW' else 0.0
         # Update the display label
-        self.output_label.text = f'X: {self.x:.2f}, Y: {self.y:.2f}'                        
+        self.output_label.text = f'X: {self.x:.2f}, Y: {self.y:.2f}'
         self.emit_text()
 
-# use case               
+
+# use case
 class MyScene(Scene):
   def setup(self):
-     self.background_color='green'
+     self.background_color = 'green'
      self.joystick = Joystick(position=Point(500, 200), mode='NS', autoreturn=False)
-     self.add_child(self.joystick)     
+     self.add_child(self.joystick)
      
   def update(self):
     self.joystick.update()
@@ -207,7 +207,8 @@ class MyScene(Scene):
     
   def touch_ended(self, touch):
     self.joystick.touch_ended(touch)
-  
+
+    
 # --- Run the Scene ---
 if __name__ == '__main__':
     run(MyScene(), show_fps=False)
