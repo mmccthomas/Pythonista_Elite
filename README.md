@@ -60,17 +60,17 @@ significant changes:
 6. Load and save use a json file, which makes it human readable (and editable ;)
    This of course allows the possibility to cheat. But of course you wouldn't do that.
 
-7. we do not need seperate keys for firing laser in 4 directions, use view to control, and laser sight appears only if laser fitted
+7. we do not need separate keys for firing laser in 4 directions, use view to control, and laser sight appears only if laser fitted
 
 8. key for system search by name  will be made by pulldown dialog list,  prepopulated with system names in alphabetical order
 
-9. the infinte loop in alg_main would make the system unresponsive. Replace with a routine entered every 1/60th
+9. the infinite loop in alg_main would make the system unresponsive. Replace with a routine entered every 1/60th
    second by Scene.update(). a state machine calls appropriate screens
 
 10. for fixed items such as crosshairs and laser lines, draw them once and control alpha dynamically
     This is much faster and more secure than adding, removing. use this also to add safe and ecm icons to hud
   
-11. Very imporantly, all text is rendered as sprites, which stay until removed. Clearing sprites and redrawing 
+11. Very importantly, all text is rendered as sprites, which stay until removed. Clearing sprites and redrawing 
     is expensive in time, so some of the logic must change to either render them initially, or update if changed. 
     This is solved by writing a character into numpy matrix. The sprites are replaced only when the matrix changes.
     The matrix has 3 layers: character, color, background color. highlight will just change background
@@ -102,7 +102,7 @@ significant changes:
 17. Implemented touch on charts, because it feels natural, rather than having to hold joystick
 
 18. remove approximations to vector rotation. proper sine, cos are fast now. remove tidy_matrix.
-    Ship drawing is handled seperately, so no issue with distortion.
+    Ship drawing is handled separately, so no issue with distortion.
     
 19. To cater for variable screen size, simplify translation of planet space (0-255) to flight rectangle.
     Use Point2 objects to avoid repetition of x, y operations, allowing mathematical operations on x,y pairs
@@ -135,9 +135,9 @@ significant changes:
     and hyperspace complete. This removes lots of testing of station exists and
     allows flying out from docked station with same orientation.
     Lots of complication arising from decision to have sun or station
-    in unverse slot 1. Theres no real need for that.
+    in unverse slot 1. There's no real need for that.
     station_exists text could simply be close_to_station (within 65536 of station)
-    then use slot 0 for planet, 1 for staion, 2 for sun always.
+    then use slot 0 for planet, 1 for station, 2 for sun always.
     This might simplify autopilot, since data points will be fixed, not dynamic.
     would need to align ship with station on launch.
     i woukd like the universe to persist while docked. a new universe should only be generated on 
@@ -154,7 +154,7 @@ significant changes:
              for testing  of altitude and docking.
     UNIVERSE_STATUS allows the universe objects to be listed and updated as they move.
                     touching an object text, e.g. a ship will invoke an autopilot mode
-                    to move that object into the fron view.
+                    to move that object into the front view.
     YAW_COUPLING allows an element of roll to be applied to yaw.
     
     INSTANT_DOCK switches docking computer to instant mode
@@ -177,7 +177,7 @@ Getting Started
    Select Leesti on the short range chart, which is an industrial planet.
    Launch from the dock with the Launch button and hyperspace to Leesti.
    Align the planet in the Compass as a green dot to fly towards planet.
-   When toy get close enough, the compass wil point towards the station, and 
+   When toy get close enough, the compass will point towards the station, and 
    an 'S' symbol appears. The cross that appears points to a nice Initial Point
    outside the station. When this counts down to about 200m, stop and rotate until 
    the green dot is centred. You are then aligned with the station. Move slowly

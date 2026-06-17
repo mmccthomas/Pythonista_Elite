@@ -607,7 +607,7 @@ class Pilot:
                     
             case 'FIND_DETOUR':
                 # PHASE: orient to DETOUR before flying there
-                # TODO DOESNT UPDATE
+                # TODO DOESN'T UPDATE
                 self.target_loc = self._fly_around(ship, self.blocker)
                 aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:

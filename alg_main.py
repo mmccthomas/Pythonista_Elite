@@ -647,7 +647,7 @@ class MainLoop():
         
                case 'Catalogue':
                    # list all saved files. Selecting one changes current name
-                   # and repeates Menu
+                   # and repeats Menu
                    selection = self.gfx.list_files(all_files(), prompt='Selection?')
                    if selection:
                        self.current_name = selection
