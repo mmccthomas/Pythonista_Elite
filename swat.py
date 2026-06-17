@@ -633,8 +633,8 @@ class Swat:
         # Recharge the ship's energy banks by 1
         if ship.energy < self.ship_list[ship.type].energy:
             ship.energy += 1
-        # If this is a lone Thargoid without a mothership, set it adrift aimlessly
-        if ship.type == cs.SHIP_THARGOID and self.ship_count.get(cs.SHIP_THARGON, 0) == 0:
+        # If this is a lone Thargon without a mothership, set it adrift aimlessly
+        if ship.type == cs.SHIP_THARGON and self.ship_count.get(cs.SHIP_THARGOID, 0) == 0:
             ship.flags = 0
             ship.velocity //= 2
             return
@@ -836,7 +836,7 @@ class Swat:
         # If the ship is into the last 1/8th of its energy, and this ship type has
         # an escape pod fitted, then rarely (10% chance) the ship launches an escape
         # pod and is left drifting in space
-        if energy < maxeng // 8 and rand255() > 230 and ship.type != cs.SHIP_THARGON:
+        if energy < maxeng // 8 and rand255() > 230 and ship.type != cs.SHIP_THARGOID:
             ship.flags &= ~cs.FLG_ANGRY
             ship.flags |= cs.FLG_INACTIVE
             self.launch_enemy(index, cs.SHIP_ESCAPE_CAPSULE, 0, 126)
@@ -853,8 +853,8 @@ class Swat:
                 and not ship.has_fired):
             ship.missiles -= 1
             ship.has_fired = True
-            if ship.type == cs.SHIP_THARGON:
-                self.launch_enemy(index, cs.SHIP_THARGOID, cs.FLG_ANGRY, ship.bravery)
+            if ship.type == cs.SHIP_THARGOID:
+                self.launch_enemy(index, cs.SHIP_THARGON, cs.FLG_ANGRY, ship.bravery)
             else:
                 self.launch_enemy(index, cs.SHIP_MISSILE, cs.FLG_ANGRY, 126)
                 gs.info_message("INCOMING MISSILE")
@@ -958,12 +958,12 @@ class Swat:
         return self.add_new_ship(ship_type, x, y, z, None, 0, 0)
 
     def create_thargoid(self):
-        newship = self.create_other_ship(cs.SHIP_THARGON)
+        newship = self.create_other_ship(cs.SHIP_THARGOID)
         if newship != -1:
             self.universe[newship].flags = cs.FLG_ANGRY | cs.FLG_HAS_ECM
             self.universe[newship].bravery = 113
             if rand255() > 64:
-                self.launch_enemy(newship, cs.SHIP_THARGOID, cs.FLG_ANGRY | cs.FLG_HAS_ECM, 96)
+                self.launch_enemy(newship, cs.SHIP_THARGON, cs.FLG_ANGRY | cs.FLG_HAS_ECM, 96)
 
     def create_cougar(self):
         if self.ship_count.get(cs.SHIP_COUGAR, 0) != 0:

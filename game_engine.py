@@ -25,52 +25,11 @@ class SoundComponent:
         self.music_list = []
         self.music = None
         self.sound_effect_dict = {}
-        self.current_volume = 0.1
-        self.add_all_sound_effects()
-        
-    def add_all_sound_effects(self):
-            
-        for name, filename in cs.sounds.items():
-            self.add_sound_effect(name, filename)
-        self.add_music('sounds/title_music.wav')
-        
-    def add_sound_effect(self, name, filename):
-
-        s = sound.Player(filename)
-
-        s.volume = self.current_volume
-
-        self.sound_effect_dict[name] = s
-
-        return len(self.sound_effect_dict)
-
-    def change_volume_sound_fx(self, new_vol):
-
-        self.current_volume = new_vol
-
-        if self.current_volume < 0:
-            self.current_volume = 0
-        if self.current_volume > 1:
-            self.current_volume = 1
-
-        for v in self.sound_effect_dict.values():
-            v.volume = self.current_volume
+        self.current_volume = 0.1                        
             
     @ui.in_background
     def play_sound_effect(self, name):
-        sound.play_effect(name)
-
-    def add_music(self, filename):
-
-        self.music_list.append(filename)
-
-        return len(self.music_list)
-
-    def play_music(self, index):
-
-        self.music = sound.Player(self.music_list[index-1])
-        self.music.volume = 0.5
-        self.music.number_of_loops = -1
+        sound.play_effect(name)        
 
     def stop_music(self):
         if self.music:

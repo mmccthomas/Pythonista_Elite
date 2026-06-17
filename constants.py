@@ -321,8 +321,8 @@ SHIP_ASP2 = 25
 SHIP_PYTHON_LONE = 26
 SHIP_FER_DE_LANCE = 27
 SHIP_MORAY = 28
-SHIP_THARGON = 29
-SHIP_THARGOID = 30
+SHIP_THARGOID = 29
+SHIP_THARGON = 30
 SHIP_CONSTRICTOR = 31
 SHIP_COUGAR = 32
 SHIP_DODEC = 33
@@ -408,75 +408,6 @@ SHIP_DICT = {
     "DODO": 33
 }
 
-sounds = {
-    "GAME_START": "sounds/bbc_micro_reset.wav",
-    "LASER_1": "sounds/pulse_laser.wav",
-    "LASER_2": "sounds/pulse_laser2.wav",
-    "LASER_3": "sounds/pulse_laser3.wav",
-    "LASER_4": "sounds/pulse_laser4.wav",
-    "LASER_5": "sounds/pulse_laser5.wav",
-    "LASER_6": "sounds/pulse_laser6.wav",
-    "MINOR_EXPLOSION_1": "sounds/minor_explosion.wav",
-    "MINOR_EXPLOSION_2": "sounds/minor_explosion2.wav",
-    "MINOR_EXPLOSION_3": "sounds/minor_explosion3.wav",
-    "MINOR_EXPLOSION_4": "sounds/minor_explosion4.wav",
-    "EXPLODE_1": "sounds/explosion.wav",
-    "EXPLODE_2": "sounds/explosion2.wav",
-    "EXPLODE_3": "sounds/explosion3.wav",
-    "EXPLODE_4": "sounds/explosion4.wav",
-    "UNDOCK": "sounds/launch.wav",
-    "UNDOCK2": "sounds/launch2.wav",
-    "UNDOCK3": "sounds/launch3.wav",
-    "DOCK": "sounds/docking.wav",
-    "DOCK2": "sounds/docking2.wav",
-    "DOCK3": "sounds/docking3.wav",
-    "COLLECT_1": "sounds/collect.wav",
-    "COLLECT_2": "sounds/collect2.wav",
-    "SELECTION_BAR": "sounds/selection_bar.wav",
-    "JUMP_1": "sounds/Jump.wav",
-    "JUMP_2": "sounds/Jump2.wav",
-    "JUMP_3": "sounds/Jump3.wav",
-    "JUMP_4": "sounds/Jump4.wav",
-    "JUMP_5": "sounds/jump5.wav",
-    "ECM_1": "sounds/ecm.wav",
-    "ECM_2": "sounds/ecm2.wav",
-    "ECM_3": "sounds/ecm3.wav",
-    "BOMB_1": "sounds/bomb.wav",
-    "BOMB_2": "sounds/bomb2.wav",
-    "SUCCESS": "sounds/success.wav",
-    "BUY": "sounds/buy.wav",
-    "SELL": "sounds/cash.wav",
-    "BEEP": "sounds/bbc_beep.wav",
-    "BEEP_2": "sounds/beep2.wav",
-    "BEEP_3": "sounds/beep3.wav",
-    "BEEP_4": "sounds/beep4.wav",
-    "BEEP_5": "sounds/beep5.wav",
-    "BEEP_6": "sounds/beep6.wav",
-    "BEEP_7": "sounds/beep7.wav",
-    "BEEP_8": "sounds/beep8.wav",
-    "CASH_1": "sounds/cash.wav",
-    "CASH_2": "sounds/cash2.wav",
-    "GAME_OVER_1": "sounds/game_over_1.wav",
-    "GAME_OVER_2": "sounds/game_over_2.wav",
-    "GAME_OVER_3": "sounds/game_over_3.wav",
-    "GAME_OVER_4": "sounds/game_over_2.wav",
-    "GAME_OVER_5": "sounds/game_over_3.wav",
-    "LEGAL_STATUS_UPDATE": "sounds/status_update.wav",
-    "MISSILE": "sounds/missile.wav",
-    "INVASION": "sounds/invasion.wav",
-    "INVASION2": "sounds/invasion2.wav",
-    "LIBERTY": "sounds/liberty.wav",
-    "VOICE_1": "sounds/thargoid_voice_1.wav",
-    "VOICE_2": "sounds/thargoid_voice_2.wav",
-    "VOICE_3": "sounds/thargoid_voice_3.wav",
-    "VOICE_4": "sounds/thargoid_voice_4.wav",
-    "VOICE_5": "sounds/thargoid_voice_5.wav",
-    "VOICE_6": "sounds/thargoid_voice_6.wav",
-    "VOICE_7": "sounds/thargoid_voice_7.wav",
-    "VOICE_8": "sounds/thargoid_voice_8.wav",
-    "VOICE_9": "sounds/thargoid_voice_9.wav",
-    "MISSILE_ARMED": "sounds/missile_armed.wav",
-}
 
 if __name__ == '__main__':
     print(GAME_W, GAME_H)
