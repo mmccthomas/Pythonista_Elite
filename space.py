@@ -576,6 +576,7 @@ class Space:
                 cs.SHIP_MISSILE:  cs.MAGENTA,  # Index 137 is usually a Medium-Dark Magenta or a Deep Violet.
                 cs.SHIP_DODEC:    cs.GREEN,
                 cs.SHIP_CORIOLIS: cs.GREEN,
+                cs.SHIP_STATIONV: cs.GREEN,
                 cs.SHIP_VIPER:    cs.GREY_2,  # very light grey
             }.get(obj.type, colour)
             colours = {

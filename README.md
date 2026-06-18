@@ -123,6 +123,7 @@ significant changes:
     these have striped vertical bars in scanner for some types
     
 24. Coloured slot and front lines of station yellow to allow visual orientation
+    Added new station STATIONV for tech level above 12. A throwback to 2001
 
 25. Allow compass to be switched to sun insread of planet
 
@@ -169,7 +170,28 @@ significant changes:
     planet. This does not show quantities, and does not affect current planet
     trade screen. It simplifies trading decisions.             
 
+31. Present the list of universe items as a list with distance and direction.
+    They are listed in order of Threats, then Opportunities
+    1. firing enemy
+    2. close sun
+    3. close planet
+    2. close enemy
+    3. trader
+    4. canister
+    5. station
+    If docking computer fitted, a universe item can be selected as the autopilot target, so turning
+    to meet the threat/opportunity is fast. However, once in view, the autopilot may not be fast enough 
+    to target the item, so switching off the Target computer might be necessary before or during combat.
 
+32. Long range navigation is improved. The Find list is populated with all planets in alphabetical order
+    and once selected, the selected planet is placed in uppercase at ghe head of the list.
+    The route to the target is calculated and displayed as a list and route on the long range chart.
+    
+33. Incoming Laser shots are coloured to the ship type.
+34. Universe objects have new colours. Canisters, plates and asteroids are yellow
+    
+
+    
 Getting Started
 
    If you have never seen this game before, here are the first few steps.
@@ -210,16 +232,10 @@ works ok in wireframe_3d_2 Demo,
 
 Autopilot pretty good, except in the edge case of immediately behind station
  
-Universe list should be better.
-maybe order in Threats, then Opportunities
-how to rank?
-1. firing enemy
-2. close sun
-3. close planet
-2. close enemy
-3. trader
-4. canister
-5. station
+Having difficulty with fuel radius. Orignial code used modified hypotenuse
+distance to make fuel outline circular on 256x192 display.
+as we do not have this limitation, does it matter if fuel is circular?
+currently planets outside circle may be in range, and others inside not.
 
 Finally:
 

@@ -99,7 +99,7 @@ class Swat:
         self.universe: list[UnivObject] = [UnivObject() for _ in range(cs.MAX_UNIV_OBJECTS)]
         self.ship_count: dict[int, int] = {i: 0 for i in range(cs.NO_OF_SHIPS + 1)}
         
-        ships = load_wireframes_from_json('files/Elite_ships.json')
+        ships = load_wireframes_from_json('files/Elite_ships1.json')
         self.ship_dict = {ship.name: ship for ship in ships}
         # add planet and sun
         
@@ -308,7 +308,7 @@ class Swat:
         obj.type = 0
         self.check_missiles(index)
 
-        if ship_type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC):
+        if ship_type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC, cs.SHIP_STATIONV):
             px = obj.location.x
             py = obj.location.y
             pz = obj.location.z
@@ -316,7 +316,14 @@ class Swat:
             self.add_new_ship(cs.SHIP_SUN, px, py, pz, None, 0, 0)
 
     def add_new_station(self, sx, sy, sz, rotmat):
-        station = cs.SHIP_DODEC if self.gs.current_planet_data.tech_level >= 10 else cs.SHIP_CORIOLIS
+        match self.gs.current_planet_data.tech_level:
+            case 12 | 13 | 14 | 15:        
+                station = cs.SHIP_STATIONV
+            case 10 | 11:        
+                station = cs.SHIP_DODEC
+            case _:
+                station = cs.SHIP_CORIOLIS
+         
         self.add_new_ship(station, sx, sy, sz, rotmat, 0, -127)
         # self.add_axis_display(self.universe[1])
             
@@ -742,6 +749,18 @@ class Swat:
         gfx = self.gs.gfx
         cam = gs.camera
         fl = cam.focal_length
+        # could change laser colour deoending on ship.
+        colours = {0: cs.WHITE,  # clean             
+                   cs.FLG_POLICE: cs.YELLOW,  # tracked             
+                   cs.FLG_ALIEN: cs.PURPLE,  # thargoid
+                   cs.FLG_BOLD | cs.FLG_ANGRY: cs.RED}  # pirate/bounty hunter
+             
+        for k, v in colours.items():
+            if ship.flags & k:
+                colour = v
+                break
+            else:
+                colour = cs.RED
         # Draw laser line from ship toward player (origin)
         # Project ship position to screen
         
@@ -772,7 +791,7 @@ class Swat:
                 ey_screen = gfx.Y_LOW
             # logger.debug(f'{ez=:.0f} {sx=:.0f} {sy=:.0f} {ex_screen=:.0f} {ey_screen=:.0f}')
             gfx.draw_line(sx, sy, ex_screen, ey_screen,
-                          colour=cs.WHITE, width=2)
+                          colour=colour, width=2)
                                                             
     def _tactics_station(self, index, flags):
         # If this is the space station and it is hostile, consider spawning a cop

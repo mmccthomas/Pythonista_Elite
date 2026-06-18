@@ -141,7 +141,13 @@ class Docked:
         # logger.debug(f'{radius=} {self.gs.cmdr.fuel=}')
         cross_size = 1 * self.zoom_scale * self.SCALE
         cx, cy = c.as_tuple()
-        gfx.draw_circle(cx, cy, radius.x, cs.GREEN)
+        if cs.CLASSIC_DISTANCE:
+            dx = 2.5
+            dy = 5
+            rect = cx-0.5*dx*radius.x, cy-radius.y*0.5*dy, dx*radius.x, dy*radius.y
+            gfx.draw_ellipse(rect, cs.GREEN)
+        else:
+            gfx.draw_circle(cx, cy, radius.x, cs.GREEN)
         gfx.draw_line(cx, cy - cross_size, cx, cy + cross_size)
         gfx.draw_line(cx - cross_size, cy, cx + cross_size, cy)
         return radius
@@ -152,9 +158,12 @@ class Docked:
     def calc_distance_to_planet(from_planet, to_planet):
         dx = abs(to_planet.x - from_planet.x)
         dy = abs(to_planet.y - from_planet.y)
-        light_years = int(math.sqrt(dx**2 + dy**2)) * 4
+        if cs.CLASSIC_DISTANCE:
+            light_years = int(math.sqrt(dx**2 + dy**2 / 4)) * 4
+        else:
+            light_years = int(math.sqrt(dx**2 + dy**2)) * 4
         return light_years
-
+        
     def show_distance(self, from_planet, to_planet):
         light_years = self.calc_distance_to_planet(from_planet, to_planet)
         text = f" {light_years // 10:2d}.{light_years % 10} Light Years "
@@ -298,7 +307,7 @@ class Docked:
         
         # logger.debug(f'{fuel_radius=} {cs.FLIGHT_H=}')
         
-        self.zoom_scale = 5 * 70 / cs.MAX_FUEL
+        self.zoom_scale = 4 * 70 / cs.MAX_FUEL
         
         self.offset = Point2(*cs.FLIGHT_RECT.center())
         self.baseline = Point2(gs.present_planet.x, gs.present_planet.y)

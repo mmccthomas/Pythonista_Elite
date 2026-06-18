@@ -34,6 +34,7 @@ INSTANT_DOCK = False
 MAX_FUEL = 70
 FLIGHT_DIRECTOR = True
 FIRE_ACCURACY = 12  # higher makes it easier to hit target default 8
+CLASSIC_DISTANCE = True
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -326,6 +327,7 @@ SHIP_THARGON = 30
 SHIP_CONSTRICTOR = 31
 SHIP_COUGAR = 32
 SHIP_DODEC = 33
+SHIP_STATIONV = 34
 SHIP_PLANET = -1
 SHIP_SUN = -2
 
@@ -365,6 +367,7 @@ INITIAL_FLAGS = {
     SHIP_CONSTRICTOR:  FLG_ANGRY,
     SHIP_COUGAR:       FLG_POLICE | FLG_CLOAKED,
     SHIP_DODEC:        FLG_STATION,
+    SHIP_STATIONV:     FLG_STATION,
     SHIP_PLANET:       FLG_PLANET
 }
 
@@ -405,7 +408,8 @@ SHIP_DICT = {
     "THARGON": 30,
     "CONSTRICTOR": 31,
     "COUGAR": 32,
-    "DODO": 33
+    "DODO": 33,
+    "STATIONV": 34
 }
 
 

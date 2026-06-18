@@ -2,6 +2,7 @@ from elite import GalaxySeed
 from types import SimpleNamespace
 import math
 import constants as cs
+import numpy as np
 
 
 class PlanetGenerator:
@@ -263,6 +264,7 @@ class PlanetGenerator:
             dx = planet['x'] - current_glx.x
             dy = planet['y'] - current_glx.y
             planet['distance'] = round(math.hypot(dx, dy))
+            planet['tech']= planet['glx'].tech
             planets.append(SimpleNamespace(**planet))
         sorted_planets = sorted(planets, key=lambda x: x.distance)
         if max_distance is not None:
@@ -295,11 +297,85 @@ class PlanetGenerator:
            planets[planet]['distance'] = round(distance)
        return planets
         
+    def get_planet_route(self, current_planet_name, target_planet_name, seed):
+        """ Find a route between two planet names within fuel range of each planet """
+        
+        planets = self.get_planet_list(seed)
+        locations = np.array([[planet.x, planet.y] for planet in planets])
+        names = [planet.name for planet in planets]
+        num_locations = len(locations)
+        start_node = names.index(current_planet_name)
+        end_node = names.index(target_planet_name)                
 
+        threshold = 7
+
+        # 2. Build adjacency list (Graph represented as a dictionary)
+        adj = {i: [] for i in range(num_locations)}
+        for i in range(len(locations)):
+            for j in range(i + 1, len(locations)):
+             if cs.CLASSIC_DISTANCE:
+                x1, y1 = locations[i]
+                x2, y2 = locations[j]
+                dx, dy = abs(x1-x2), abs(y1-y2)
+                dist = math.sqrt(dx**2 + 0.25 * dy**2) * 4 / 10
+                # print(names[i], names[j], i, j, dist)
+             else:
+                dist = math.dist(locations[i], locations[j]) * 4
+             if dist <= threshold:
+                 adj[i].append(j)
+                 adj[j].append(i)
+        
+        # 3. Breadth-First Search to find the path
+        def find_path(start, end, graph):
+            queue = [[start]]
+            visited = {start}
+            
+            while queue:
+                path = queue.pop(0)
+                node = path[-1]
+                
+                if node == end:
+                    return path
+                    
+                for neighbor in graph[node]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        new_path = list(path)
+                        new_path.append(neighbor)
+                        queue.append(new_path)
+            return None
+        
+        path = find_path(start_node, end_node, adj)
+        if path:
+            pathnames = [names[index] for index in path]
+        else:
+            pathnames = []     
+        return path, pathnames
+
+        
+    def plot_path(self, path, seed):     
+        if path:
+            planets = self.get_planet_list(seed)
+            locations = np.array([[planet.x, planet.y] for planet in planets])
+            plt.figure(figsize=(8, 8))
+            # Plot all points
+            plt.scatter([p[0] for p in locations], [p[1] for p in locations], s=5, c='gray')
+            
+            # Plot the path
+            path_x = [locations[i][0] for i in path]
+            path_y = [locations[i][1] for i in path]
+            plt.plot(path_x, path_y, 'r-', marker='o', markersize=4)
+            
+            plt.title("Route Found via BFS")
+            plt.show()
+        else:
+            print("No path found.")
+        
 if __name__ == '__main__':
     # --- Example Usage ---
     # Lave (starting planet) seed in Galaxy 1
     import numpy as np
+    import matplotlib.pyplot as plt
     # x is glx.d y is glx.b
                      
     # --- TEST EXECUTION ---
@@ -332,7 +408,7 @@ if __name__ == '__main__':
         name = gen.get_planet_name(galaxy)
         assert (name == planet_name)
         start_seed_str = ", ".join([f"0x{s:#06x}" for s in current_seed])
-        print(f'{start_seed_str} Expected name {planet_name:<8} returned name {name}')
+        # print(f'{start_seed_str} Expected name {planet_name:<8} returned name {name}')
     print()
     # list all 256 systems
     glx = GalaxySeed().copy()
@@ -343,7 +419,7 @@ if __name__ == '__main__':
         planet_names.append(name)
         for _ in range(4):
             glx.waggle()
-        print(f"System {i:<3}: {name:<12} | Seed: {seed_str} | Colour: {glx.colour}")
+        # print(f"System {i:<3}: {name:<12} | Seed: {seed_str} | Colour: {glx.colour}")
     assert ('Lave' in planet_names)
     assert ('Tibedied' in planet_names)
     assert ('Diso' in planet_names)
@@ -351,18 +427,19 @@ if __name__ == '__main__':
     # closest to Lave
     current_glx = GalaxySeed(0xAD, 0x38, 0x14, 0x9c, 0x15, 0x1d)
     closest = gen.get_closest_planets(GalaxySeed(), current_glx, max_distance=None)
+    # closest = sorted(closest, key = lambda x: x.tech)
     [print(planet) for planet in closest]
     x_locs = [planet.x for planet in closest]
     y_locs = [planet.y for planet in closest]
-    print(f'{min(x_locs)=}, {max(x_locs)=}, {np.mean(x_locs)=:.0f}')
-    print(f'{min(y_locs)=}, {max(y_locs)=}, {np.mean(y_locs)=:.0f}')
+    # print(f'{min(x_locs)=}, {max(x_locs)=}, {np.mean(x_locs)=:.0f}')
+    # print(f'{min(y_locs)=}, {max(y_locs)=}, {np.mean(y_locs)=:.0f}')
     new_seed = gen.next_galaxy(GalaxySeed())
     
     closest = gen.get_closest_planets(new_seed, new_seed, max_distance=None)
-    print('Galaxy 2')
-    [print(planet) for planet in closest]
+    # print('Galaxy 2')
+    # [print(planet) for planet in closest]
     seed = gen.find_planet(0x60, 0x60, new_seed)
-    print(gen.get_planet_name(seed))
+    # print(gen.get_planet_name(seed))
     
     # sorted_planets = dict(sorted(planets.items(), key=lambda x: x[1].distance))
     # print(sorted_planets.keys())
@@ -397,23 +474,31 @@ if __name__ == '__main__':
     for p in extremities:
         seed = gen.find_planet(*p, GalaxySeed())
         name = gen.get_planet_name(seed)
-        print(f"{name} at ({p[0]}, {p[1]}")
+        # print(f"{name} at ({p[0]}, {p[1]}")
              
     # Initial seed for Galaxy 1 (Tibedied / System 0)
     tibedied_seed = (0x5A4A, 0x0248, 0xB753)
     
     planets = gen.get_planet_list(GalaxySeed())
-    for i, planet in enumerate(planets):
-        print(i, planet.name)
+    # for i, planet in enumerate(planets):
+    #    print(i, planet.name)
     
     new_seed = gen.next_galaxy(GalaxySeed())
-    print(new_seed)
+    # print(new_seed)
     planets = gen.get_planet_list(new_seed)
-    for i, planet in enumerate(planets):
-        print(i, planet.name, planet.glx.tech)
+    # for i, planet in enumerate(planets):
+    #     print(i, planet.name, planet.glx.tech)
     new_seed = gen.next_galaxy(new_seed)
-    print(new_seed)
+    # print(new_seed)
     planets = gen.get_planet_list(new_seed)
-    for i, planet in enumerate(planets):
-        print(i, planet.name, planet.glx.tech)
+    # for i, planet in enumerate(planets):
+    #    print(i, planet.name, planet.glx.tech)
+        
+    path, pathnames = gen.get_planet_route('Lave', 'Ribilebi', GalaxySeed())
+    print(pathnames)
+    gen.plot_path(path, GalaxySeed())
+    
+    path, pathnames = gen.get_planet_route('Lave', 'Atarza', GalaxySeed())
+    print(pathnames)
+    gen.plot_path(path, GalaxySeed())
 

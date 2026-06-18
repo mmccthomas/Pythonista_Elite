@@ -93,6 +93,52 @@ def _clip_circle_segments(cx, cy, r, rect, n=100):
                 
     return np.array(segments) if segments else np.empty((0, 4))
 
+def _clip_ellipse_segments(bound, rect, n=100):
+    # bound, rect = (x, y, w, h)
+    xmin, ymin, wclip, hclip = rect
+    xmax, ymax = xmin + wclip, ymin + hclip
+        
+    x, y, w, h = bound
+    # Calculate center
+    center_x = x + w / 2
+    center_y = y + h / 2
+    
+    # Calculate semi-axes
+    a = w / 2
+    b = h / 2
+    
+    # Generate angles from 0 to 2*pi
+    t = np.linspace(0, 2 * np.pi, n)
+    
+    # Calculate X and Y coordinates
+    X = center_x + a * np.cos(t)
+    Y = center_y + b * np.sin(t)
+    
+    points =  np.column_stack((X, Y))    
+    
+    # 2. Identify points inside the rectangle
+    inside = (points[:, 0] >= xmin) & (points[:, 0] <= xmax) & \
+             (points[:, 1] >= ymin) & (points[:, 1] <= ymax)
+    
+    segments = []
+    for i in range(len(points) - 1):
+        p1, p2 = points[i], points[i+1]
+        in1, in2 = inside[i], inside[i+1]
+        
+        if in1 and in2:
+            # Both points inside: keep the whole segment
+            segments.append(np.concatenate([p1, p2]))
+        elif in1 or in2:
+            # One point inside, one out: Calculate intersection
+            # This is a simplified "clipping" by snapping to the boundary
+            p1_clipped = np.clip(p1, [xmin, ymin], [xmax, ymax])
+            p2_clipped = np.clip(p2, [xmin, ymin], [xmax, ymax])
+            
+            # Only add if the segment still has length
+            if not np.array_equal(p1_clipped, p2_clipped):
+                segments.append(np.concatenate([p1_clipped, p2_clipped]))
+                
+    return np.array(segments) if segments else np.empty((0, 4))
 
 class Graphics():
     
@@ -316,7 +362,20 @@ class Graphics():
                x1, y1, x2, y2 = segment
                scene.line(*segment)
         return clipped
-                
+        
+    def draw_ellipse(self, rect, colour, n=50, width=2):
+        # draw ellipse outline centred on inside rect
+        # use scene drawing as it will be updated every frame
+        clipped = _clip_ellipse_segments(rect, self.clip_region, n=n)
+        if clipped is not None:
+           scene.stroke(colour)
+           scene.rect(0, 0, 0, 0)
+           scene.stroke_weight(width)
+           for segment in clipped:
+               x1, y1, x2, y2 = segment
+               scene.line(*segment)
+        return clipped 
+                 
     def draw_filled_polygon(self, points, color, width=2):
         # points is (c1, y1, x2, y2)
         # use scene drawing as it will be ipdated every frame

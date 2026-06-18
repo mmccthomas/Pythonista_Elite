@@ -12,6 +12,7 @@ from ui import in_background
 import game_engine
 from copy import copy
 from pathlib import Path
+from game_engine import Point2
 from stars import Starfield
 from graphics import Graphics
 from autopilot import Pilot
@@ -189,6 +190,7 @@ class MainLoop():
        self.on_final_approach = False
        self.tick_count = 0
        self.status_objects = []
+       self.path_locations = []
        # individual counters
        self.univ_status = IntervalTrigger(1.0)
        self.alt_temp_status = IntervalTrigger(0.25)
@@ -268,7 +270,7 @@ class MainLoop():
         dir_path = Path('./files')
         if path is None:
             # Filter for files only (ignoring subdirectories)
-            files = [f for f in dir_path.iterdir() if f.is_file() and f.stem not in ('Elite_ships', 'PLANET_DATA')]
+            files = [f for f in dir_path.iterdir() if f.is_file() and f.stem not in ('Elite_ships1', 'Elite_ships', 'PLANET_DATA')]
             if not files:
                 return None
             # get most recently used file
@@ -516,7 +518,24 @@ class MainLoop():
         if name:
             self.in_dock.find_planet_by_name(name.capitalize())
             self.last_found_name = name
-                                   
+        self.find_route(name)    
+        
+    def find_route(self, target_name):
+        glx = self.cmdr.galaxy_seed.copy()
+        path, pathnames = self.planet.get_planet_route(self.present_planet.name, target_name.capitalize(), glx)      
+        self.obj_status.text = 'Route:\n' + '\n'.join(pathnames)
+        planets = self.planet.get_planet_list(glx)        
+        self.path_locations = [planets[p] for p in path]
+                           
+    def plot_find_path(self):
+        if self.path_locations:
+           previous = self.path_locations[0]
+           sx, sy = self.in_dock._to_screen(Point2(previous.x, previous.y)).as_tuple()
+           for i, p in enumerate(self.path_locations[1:]):
+               cx,cy =  self.in_dock._to_screen(Point2(p.x,p.y)).as_tuple()                              
+               self.gfx.draw_line(sx, sy, cx, cy)
+               sx, sy = cx, cy
+                                                     
     def launch(self):
         # enable flight keys and launch
         self._change_flight_keys()
@@ -616,9 +635,11 @@ class MainLoop():
             
         if self.current_screen == cs.SCR_GALACTIC_CHART:
             self.in_dock.display_galactic_chart()
+            self.plot_find_path()
         else:
-            self.in_dock.display_short_range_chart()
-                                    
+            self.in_dock.display_short_range_chart()            
+            self.path_locations = []
+                                  
     def market_trade_screen(self):
         self.in_dock.display_market_prices()
         key = self.kbd.poll()

@@ -954,7 +954,7 @@ class Demo(scene.Scene):
         ]
 
         try:
-            objects = load_wireframes_from_json('files/Elite_ships.json')
+            objects = load_wireframes_from_json('files/Elite_ships1.json')
         except Exception:
             ship_locs = [
                 'missile', 'coriolis', 'escape_pod', 'plate', 'canister',
