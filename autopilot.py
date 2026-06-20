@@ -223,6 +223,7 @@ class Pilot:
                                   name='Docking', color='lightgreen')
         self.gs.keypad.key_change(key_name='Cancel Target',
                                   name='Docking', color='lightgreen')
+        self.gs.keypad.key_change('Instant Dock', enabled=False)                                 
         ship = self.gs.space.ship
         ship.smooth_climb = 0
         ship.smooth_roll = 0
@@ -617,7 +618,7 @@ class Pilot:
                 # PHASE: fly to IP (ahead of station nose)
                 # dont deviate until within distance
                 self.target_loc = self.ip_waypoint()
-                       
+                self.gs.keypad.key_change('Instant Dock', enabled=True)      
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
                 

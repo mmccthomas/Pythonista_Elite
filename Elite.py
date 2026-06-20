@@ -18,7 +18,7 @@ import constants as cs
 # from constants import logger
 from hud_elite import HudPanel
 from alg_main import MainLoop
-from wireframe_3d_2 import Camera, Vector3, Renderer
+from wireframe_3d import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad

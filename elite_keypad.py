@@ -18,7 +18,7 @@ class EliteKeypad(ui.View):
             [('Launch', 1, 'cyan'), ('Trade', 1, 'cyan'), ('Equip', 1, 'cyan'),
              ('Status', 1, 'cyan'), ('Local Chart', 1, 'cyan'), ('Galaxy Chart', 1, 'cyan'),
              ('Data', 1, 'cyan')],
-            [(' ', 1, 'cyan'), ('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1.25, '#fb9bff'), (' ', 0.75, '#fb9bff'),
+            [('Instant Dock', 1, 'cyan'), ('Menu', 1, '#fb9bff'), ('Pause', 1, '#fb9bff'), ('Compass Planet', 1.25, '#fb9bff'), (' ', 0.75, '#fb9bff'),
              ('Find', 1, 'cyan'), ('Prices', 1, 'cyan')],
             [('Jump', 1, 'lightgreen'), ('Hyper Space', 1, 'lightgreen'), ('Escape', 1, 'lightgreen'),
              ('ECM', 1, 'lightgreen'), ('Bomb', 1, 'lightgreen'), ('Target', 1, 'lightgreen'),

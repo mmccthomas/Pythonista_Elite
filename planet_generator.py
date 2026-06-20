@@ -1,5 +1,5 @@
 # routine to generate good looking rotating planet
-from scene import Scene, SpriteNode, Texture, Shader, run
+from scene import Scene, SceneView, SpriteNode, Texture, Shader, run
 from change_screensize import get_screen_size
 import numpy as np
 from PIL import Image, ImageFilter
@@ -7,6 +7,8 @@ import ui
 import io
 import colorsys
 import random
+import console
+from objc_util import on_main_thread
 import logging
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ class AlienPlanet():
      self.color = color  # 0 is red, 0.25 green
      self.sea_level = random.uniform(0.1, 0.8)
      self.blend = 10  # increase to blend more
-     self.blob_size = 3
+     self.blob_size = 1
      self.rng = np.random.default_rng(42)
      self.edge_margin = 0.15  # ocean margin at edges
      if seed is None:
@@ -166,14 +168,14 @@ class AlienPlanet():
       terrain += warp * warp_strength  # increase 0.3 for more fragmentation
       terrain = (terrain - terrain.min()) / (terrain.max() - terrain.min())
       
-      # âOcean margin: suppress land near the left/right wrap edges
+      # âOcean margin: suppress land near the left/right wrap edges
       # Build a [0..1] weight that is 0 at the edges and 1 in the interior.
       # We use a smoothstep ramp over `edge_margin` fraction of the width.
       # Terrain values are then pulled below sea_level inside this band so the
       # wrap seam is guaranteed to be ocean.
       m = self.edge_margin          # e.g. 0.06
       xs_norm = np.linspace(0.0, 1.0, self.W)          # (W,)
-      # ramp: 0 â 1 over [0, m], flat 1 in middle, 1 â 0 over [1-m, 1]
+      # ramp: 0 â 1 over [0, m], flat 1 in middle, 1 â 0 over [1-m, 1]
       left_ramp = np.clip(xs_norm / m, 0.0, 1.0)
       right_ramp = np.clip((1.0 - xs_norm) / m, 0.0, 1.0)
       edge_weight = np.minimum(left_ramp, right_ramp)   # (W,)
@@ -352,6 +354,7 @@ class AlienPlanet():
 
 class PlanetScene(Scene):
     def setup(self):
+        AlienPlanet()
         self.planet = Planet(size=500,
                              position=self.size/2,
                              # y measured from top
@@ -359,9 +362,19 @@ class PlanetScene(Scene):
                              clip_rect=(0.1, 0.1, 0.9, 0.9))
         # image_path='images/sun_texture400.png')
         self.add_child(self.planet.planet)
+        w, h = get_screen_size()
+        self.dashboard = PlanetDashboard(self, frame=(0, 0, w, h))        
+        self.view.add_subview(self.dashboard)
         
     def update(self):
         self.planet.update(self.t)
+        
+    @on_main_thread
+    def reload_texture(self, image_path='images/planet_texture.png'):
+        # Re-read the freshly generated PNG from disk and push it into the
+        # shader's texture uniform. Called on the main thread.
+        image = Image.open(image_path)
+        self.planet.planet.shader.set_uniform('u_texture', Texture(pil_to_ui(image)))
 
                                 
 class Planet():
@@ -375,7 +388,6 @@ class Planet():
         self.planet = SpriteNode(size=(size, size), position=position)
         if parent:
            parent.add_child(self.planet)
-        self
         # Initialize Shader
         self.planet.shader = Shader(shader_code)
         if ':' in image_path:
@@ -400,15 +412,165 @@ class Planet():
         self.planet.shader.set_uniform('u_screen', (s.w, s.h))
         self.planet.shader.set_uniform('u_time', t)
 
-                                
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Dashboard
+# ──────────────────────────────────────────────────────────────────────────
+#
+# A ui.View containing:
+#   - a SceneView running PlanetScene (top)
+#   - a scrollable stack of parameter sliders (bottom)
+#   - a "+ Add Slider" button that lets you pick any remaining
+#     AlienPlanet parameter and add a slider for it on the fly
+#
+# Editing a slider regenerates AlienPlanet on a background thread (so
+# dragging stays responsive), writes a fresh images/planet_texture.png,
+# and then reloads the texture into the running scene on the main thread.
+
+# Registry of parameters the dashboard knows how to expose as sliders.
+# Each entry: (min, max, default, is_int)
+PARAM_SPECS = {
+    'color':         (0.0, 1.0, 0.28, False),   # hue
+    'sea_level':      (0.05, 0.95, 0.45, False),
+    'blend':          (2, 60, 10, True),
+    'blob_size':      (0, 2, 0, True),           # 0=small 1=mid 2=big (mod 3)
+    'cloud_threshold': (0.3, 0.98, 0.8, False),
+    'seed':           (1, 9, 1, True),
+}
+
+PARAM_ORDER = ['color', 'seed', 'sea_level',
+               'blob_size', 'cloud_threshold',
+               'blend']
+
+
+class ParamSlider(ui.View):
+    """A single labelled slider row: [name+value label]
+                                      [slider..............] [x]
+    """
+    def __init__(self, name, spec, on_change, **kwargs):
+        super().__init__(**kwargs)
+        self.name = name
+        self.lo, self.hi, self.default, self.is_int = spec
+        self.on_change = on_change
+        
+        self.flex = 'W'
+        self.height = 54
+
+        self.label = ui.Label(frame=(0, 0, 220, 10))
+        self.label.font = ('Menlo', 13)
+        self.label.flex = 'W'
+        self.add_subview(self.label)
+
+        self.slider = ui.Slider(frame=(0, 0, 180, 28))
+        self.slider.continuous = True
+        self.slider.flex = 'W'
+        self.slider.action = self._slider_changed
+        self.add_subview(self.slider)        
+        self.set_value(self.default, fire=False)
+
+    def value(self):
+        t = self.slider.value
+        v = self.lo + (self.hi - self.lo) * t
+        return int(round(v)) if self.is_int else round(v, 3)
+
+    def set_value(self, v, fire=True):
+        t = (v - self.lo) / (self.hi - self.lo) if self.hi != self.lo else 0
+        self.slider.value = max(0.0, min(1.0, t))
+        self._update_label()
+        if fire:
+            self._slider_changed(self.slider)
+
+    def _update_label(self):
+        self.label.text = '{}: {}'.format(self.name, self.value())
+
+    def _slider_changed(self, sender):
+        self._update_label()
+        self.on_change(self.name, self.value())        
+
+
+class PlanetDashboard(ui.View):
+    def __init__(self, planet_scene, **kwargs):
+        super().__init__(**kwargs)
+        self.name = 'Alien Planet Generator'
+        self.planet_scene = planet_scene
+        self.background_color = (1, 1, 1)
+
+        # Current AlienPlanet kwargs (only the ones with an active slider
+        # are sent; the rest fall back to AlienPlanet's own defaults)
+        self.params = {}
+        self.sliders = {}   # name -> ParamSlider
+                
+        # --- Scrollable slider stack (bottom) ---
+        w, h = get_screen_size()
+        self.frame = (w-300, 0, 250, h)
+        # Start with a couple of common sliders already present                            
+        for name in ('color', 'sea_level', 'blob_size',
+                     'cloud_threshold', 'seed'):
+            self.add_slider(name)
+        self._layout_sliders()
+        
+        self.regenerate()
+
+    
+
+    def _layout_sliders(self):
+        y = 4
+        for name in PARAM_ORDER:
+            s = self.sliders.get(name)
+            if s is None:
+                continue
+            s.frame = (4, y, self.width - 8, 50)
+            y += 54
+        
+
+    # -- slider management --------------------------------------------
+    def add_slider(self, name):
+        if name in self.sliders or name not in PARAM_SPECS:
+            return
+        spec = PARAM_SPECS[name]
+        slider = ParamSlider(name, spec,
+                              on_change=self.param_changed
+                              )
+        self.sliders[name] = slider
+        self.add_subview(slider)
+        self.params[name] = slider.default
+        self._layout_sliders()        
+
+    # -- regeneration ----------------------------------------------------
+    def param_changed(self, name, value):
+        self.params[name] = value
+        self.regenerate()
+        
+    @ui.in_background
+    def regenerate(self):
+    
+        kwargs = dict(self.params)
+        try:
+            AlienPlanet(1024, 512, **kwargs)
+        except Exception as e:
+            logger.exception('planet generation failed')
+            self._regen_error = str(e)
+        else:
+            self._regen_error = None
+        self._regen_done()
+                       
+    @on_main_thread
+    def _regen_done(self):        
+        if getattr(self, '_regen_error', None):
+            console.hud_alert(self._regen_error, 'error')
+        else:
+            try:
+                self.planet_scene.reload_texture()
+            except Exception as e:
+                logger.exception(f'{e} texture reload failed')       
+    
+
+
 if __name__ == '__main__':
- 
-    from time import time
-    for i in range(1):
-        t = time()
-        color = i/10
-        print(color)
-        img = AlienPlanet(400, 400, color).final
-        print(time()-t)
-        img.show()
+    w, h = get_screen_size()
+    g= PlanetScene()
+    # g.setup()
+    #dashboard = PlanetDashboard(frame=(0, 0, w, h))
     run(PlanetScene())
+    #dashboard.present('sheet')
+    #dashboard.scene_view.scene = dashboard.planet_scene

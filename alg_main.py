@@ -270,7 +270,7 @@ class MainLoop():
         dir_path = Path('./files')
         if path is None:
             # Filter for files only (ignoring subdirectories)
-            files = [f for f in dir_path.iterdir() if f.is_file() and f.stem not in ('Elite_ships1', 'Elite_ships', 'PLANET_DATA')]
+            files = [f for f in dir_path.iterdir() if f.is_file() and not f.stem.startswith('Elite_ships')]
             if not files:
                 return None
             # get most recently used file
@@ -533,7 +533,7 @@ class MainLoop():
            sx, sy = self.in_dock._to_screen(Point2(previous.x, previous.y)).as_tuple()
            for i, p in enumerate(self.path_locations[1:]):
                cx,cy =  self.in_dock._to_screen(Point2(p.x,p.y)).as_tuple()                              
-               self.gfx.draw_line(sx, sy, cx, cy)
+               self.gfx.draw_line(sx, sy, cx, cy, colour=cs.GREY)
                sx, sy = cx, cy
                                                      
     def launch(self):
@@ -923,6 +923,7 @@ class MainLoop():
            self.msg_left.text = ''
            
         if self.message_count > 0:
+            self.gfx.display_centre_text(3, self.message_string, 120, cs.WHITE)
             self.gfx.display_centre_text(cs.NUM_LINES-1, self.message_string, 120, cs.WHITE)
             
         if self.left_message_count > 0:
@@ -980,7 +981,12 @@ class MainLoop():
                     self.space.engage_docking_computer()
                 else:
                     self.pilot.engage_auto_pilot()
-                    
+            case 'Instant Dock':
+                self.break_mode = 'docking'
+                try:
+                   self.space.engage_docking_computer()  
+                except Exception as e:
+                   print(e)
             case 'Cancel Docking':
                 self.pilot.disengage_auto_pilot()
                 
@@ -1058,12 +1064,12 @@ class MainLoop():
         for keyname in ['Jump', 'Missile', 'Target',
                         'Look Port', 'Hyper Space',
                         'Look Stbd', 'Look Fwd',
-                        'Look Aft', 'Fire Laser', 'Compass Planet']:
+                        'Look Aft', 'Fire Laser', 'Compass Planet', 'Instant Dock']:
             self.keypad.key_change(keyname, enabled=enable)
         for keyname in ['To Sun', 'To Planet', 'To Station']:
             self.keypad.key_change(keyname, enabled=cs.TELEPORT and enable)
-            
-        self.keypad.key_change('Cancel Docking', name='Docking')
+        self.keypad.key_change('Equip', enabled=not enable)   
+        self.keypad.key_change('Instant Dock', enabled=False)
         self.keypad.key_change('Compass Sun', name='Compass Planet')
         self.keypad.key_change('Equip', enabled=not enable)
         self.keypad.key_change('Trade', enabled=not enable)

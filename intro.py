@@ -239,5 +239,5 @@ class EliteIntro:
         self.gfx.clear_display()
         self.gfx.draw_sprite(ELITE_TEXT, x=-1, y=10)
         self.gfx.display_centre_text(28, ship_name, color="WHITE")
-        self.gfx.display_centre_text(29, "Press Fire or Space, Commander.", color=cs.GOLD)
+        self.gfx.display_centre_text(29, "Press OK  or Cancel, Commander.", color=cs.GOLD)
         self.gfx.text_render()

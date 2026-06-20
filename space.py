@@ -277,7 +277,7 @@ class Space:
         self.snd.play_sample(cs.SND_DOCK)
         self.dock_player()
         self.gs.break_mode = 'docking'
-        # gs.current_screen = cs.SCR_BREAK_PATTERN
+        self.gs.current_screen = cs.SCR_BREAK_PATTERN
     
     # ------- Game over / damage
     
@@ -341,7 +341,7 @@ class Space:
         y /= 256
         z /= 256
         dist = x*x + y*y + z*z
-        if (self.gs.mcount & 63) == 0:
+        if (self.gs.mcount & 31) == 0:
             if dist < 9472:
                 gs.myship.altitude = 0
                 self.do_game_over('altitude')
@@ -349,10 +349,10 @@ class Space:
             elif dist > 65535:
                 self.low_altitude = False
                 return
-            elif dist < 20480:
+            elif dist < 20480:               
                self.gs.info_message(f"Critical Altitude {dist:.0f}km")
                self.low_altitude = True
-            elif dist < 32768:
+            elif dist < 32768:               
                self.gs.info_message(f"Low Altitude {dist:.0f}km")
                self.low_altitude = True
             else:

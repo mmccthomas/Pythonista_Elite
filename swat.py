@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import colorsys
 import constants as cs
 from vector import Vector, unit_vector, vector_dot_product
-from wireframe_3d_2 import load_wireframes_from_json, WireframeObject, WireSphere
-from wireframe_3d_2 import Vector3, Sprite3D, WireAxes
+from wireframe_3d import load_wireframes_from_json, WireframeObject, WireSphere
+from wireframe_3d import Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
 import logging
@@ -99,7 +99,7 @@ class Swat:
         self.universe: list[UnivObject] = [UnivObject() for _ in range(cs.MAX_UNIV_OBJECTS)]
         self.ship_count: dict[int, int] = {i: 0 for i in range(cs.NO_OF_SHIPS + 1)}
         
-        ships = load_wireframes_from_json('files/Elite_ships1.json')
+        ships = load_wireframes_from_json('files/Elite_ships.json')
         self.ship_dict = {ship.name: ship for ship in ships}
         # add planet and sun
         
@@ -155,13 +155,12 @@ class Swat:
         # then change Sprite3D image
         colour = cs.COLOUR_LIST[self.gs.present_planet.colour]
         colour = colorsys.rgb_to_hsv(*colour)[0]
-        # cloud_threshold = 1.0  # 0.8 +  0.1* (self.gs.present_planet.c % 3)  # lower is more cloud
-        # sea_level = (1 + self.gs.present_planet.b % 8) / 10
+        cloud_threshold = 0.3 +  0.1* (self.gs.present_planet.c % 6)  # lower is more cloud
+        sea_level = 0.4 + 0.1 * (self.gs.present_planet.b % 4)
         # blob_size = 3  # 1 + self.gs.present_planet.d % 2
-        
         img = AlienPlanet(400, 400, colour, seed=self.gs.present_planet.a,
-                          # cloud_threshold=cloud_threshold,
-                          # sea_level=sea_level,
+                          cloud_threshold=cloud_threshold,
+                          sea_level=sea_level,
                           # blob_size=blob_size
                           ).final
         # rel to screen
@@ -317,13 +316,12 @@ class Swat:
 
     def add_new_station(self, sx, sy, sz, rotmat):
         match self.gs.current_planet_data.tech_level:
-            case 12 | 13 | 14 | 15:        
+            case 11 | 12 | 13 | 14:        
                 station = cs.SHIP_STATIONV
-            case 10 | 11:        
+            case 9 | 10:        
                 station = cs.SHIP_DODEC
             case _:
-                station = cs.SHIP_CORIOLIS
-         
+                station = cs.SHIP_CORIOLIS         
         self.add_new_ship(station, sx, sy, sz, rotmat, 0, -127)
         # self.add_axis_display(self.universe[1])
             
@@ -791,7 +789,7 @@ class Swat:
                 ey_screen = gfx.Y_LOW
             # logger.debug(f'{ez=:.0f} {sx=:.0f} {sy=:.0f} {ex_screen=:.0f} {ey_screen=:.0f}')
             gfx.draw_line(sx, sy, ex_screen, ey_screen,
-                          colour=colour, width=2)
+                          colour=colour, width=3)
                                                             
     def _tactics_station(self, index, flags):
         # If this is the space station and it is hostile, consider spawning a cop

@@ -1,5 +1,5 @@
-from wireframe_3d_2 import Vector3, WireframeObject, Camera, Renderer, GetEliteShips
-from wireframe_3d_2 import load_wireframes_from_json, Sprite3D, WireSphere
+from wireframe_3d import Vector3, WireframeObject, Camera, Renderer, GetEliteShips
+from wireframe_3d import load_wireframes_from_json, Sprite3D, WireSphere
 from random import choice, uniform
 import random
 import math
@@ -356,4 +356,4 @@ if __name__ == '__main__':
     #g = Demo()
     #g.setup()
     #g.draw()
-    scene.run(SpaceFlight(), show_fps=True, multi_touch=True)
+    scene.run(Demo2(), show_fps=True, multi_touch=True)

@@ -270,32 +270,7 @@ class PlanetGenerator:
         if max_distance is not None:
             sorted_planets = [planet for planet in sorted_planets
                               if planet.distance <= max_distance]
-        return sorted_planets
-     
-    def get_known_planets(self):
-       with open('files/PLANET_DATA.TXT', 'r') as f:
-        data = f.readlines()
-       
-       # planets = [data[i].split("'")[1] for i in range(1, 1024, 4)]
-       # locations = [data[i].split("(")[1].removesuffix('),') for i in range(1, 1024, 4)]
-       import re
-       planets = {}
-       for i in range(1, 1024, 4):
-           match = re.search(r"'([^']+)'\s*\((\d+),(\d+)\)", data[i])
-           
-           if match:
-              name = match.group(1)
-              # Convert the coordinates to integers
-              x_coord = int(match.group(2))
-              y_coord = int(match.group(3))
-              planets[name] = {'x': x_coord, 'y': y_coord}
-             
-       base_x, base_y = planets['Lave']['x'], planets['Lave']['y']
-       for planet, position in planets.items():
-           x, y = position['x'], position['y']
-           distance = math.sqrt((x-base_x)*(x-base_x) + (y-base_y)*(y-base_y))
-           planets[planet]['distance'] = round(distance)
-       return planets
+        return sorted_planets         
         
     def get_planet_route(self, current_planet_name, target_planet_name, seed):
         """ Find a route between two planet names within fuel range of each planet """
