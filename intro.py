@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 ELITE_TEXT = "./elitetx3.png"
 # Constants for the carousel
 CAROUSEL_RADIUS = 800      # radius of the circle of ships
-CAROUSEL_Y = 400             # y centre of the circle
+CAROUSEL_Y = 200             # y centre of the circle
 CAROUSEL_X = 0             # x centre of the circle
 CAROUSEL_Z = 3000          # z depth for all ships in circle
 INCLINATION_ANGLE = -math.pi/4
@@ -33,6 +33,24 @@ FWD_SPEED = 30           # z units per frame toward camera
 BACK_SPEED = 30           # z units per frame back to rest
 ROTATE_FRAMES = 40          # frames to animate the rotation shift
 
+SHIP_TYPE = {
+    "PLANET":  (-1, ''), "SUN":  (-2,  ''), "None":  (0, ''),
+    "MISSILE":  (1, ''), "CORIOLIS":  (2, 'STATION'), "ESCAPE_POD":  (3, ''),
+    "PLATE": (4, ''), "CANISTER":  (5, 'Debris'), "BOULDER":  (6, 'Debris'),
+    "ASTEROID":  (7, 'Debris'), "SPLINTER":  (8, 'Debris'), 
+    "SHUTTLE":  (9, 'Innocent Trader'), "TRANSPORTER": (10, 'Innocent Trader'), 
+    "COBRA_MK_3":  (11, 'Innocent Trader'), "PYTHON":  (12, 'Innocent Trader'),
+    "BOA": (13, 'Innocent Trader'), "ANACONDA":  (14, 'Innocent Trader'),
+    "ROCK_HERMIT": (15, 'Innocent Trader'), 
+    "VIPER":  (16, 'Police'), 
+    "SIDEWINDER":  (17, 'Pirate'), "MAMBA":  (18, 'Pirate'), "KRAIT":  (19, 'Pirate'), 
+    "ADDER":  (20, 'Pirate'), "GECKO":  (21, 'Pirate'), "COBRA_MK_1":  (22, 'Pirate'),
+    "WORM":  (23, 'Hostile Trader'), "COBRA_MK_3_P":  (24, 'Pirate'), "ASP_MK_2":  (25, 'Pirate'),
+    "PYTHON_P":  (26, 'Pirate'), "FER_DE_LANCE":  (27, 'Bounty Hunter'), "MORAY":  (28, 'Pirate'), 
+    "THARGOID":  (29, 'Hostile Alien'), "THARGON":  (30, 'Hostile Alien'),
+    "CONSTRICTOR":  (31, 'Hostile'), "COUGAR":  (32, 'Innocent Trader'), 
+    "DODO":  (33, 'Station'),  "STATIONV":  (34, 'Station'),
+}
 
 class EliteIntro:
     def __init__(self, gs):
@@ -238,6 +256,6 @@ class EliteIntro:
         ship_name = {v: k for k, v in cs.SHIP_DICT.items()}.get(hero_no, str(hero_no))
         self.gfx.clear_display()
         self.gfx.draw_sprite(ELITE_TEXT, x=-1, y=10)
-        self.gfx.display_centre_text(28, ship_name, color="WHITE")
+        self.gfx.display_centre_text(28, f'{ship_name} ({SHIP_TYPE[ship_name][1]})' , color="WHITE")
         self.gfx.display_centre_text(29, "Press OK  or Cancel, Commander.", color=cs.GOLD)
         self.gfx.text_render()

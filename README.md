@@ -189,6 +189,8 @@ significant changes:
     
 33. Incoming Laser shots are coloured to the ship type.
 34. Universe objects have new colours. Canisters, plates and asteroids are yellow
+35. Added Instant Dock button which is enabled when autopilot has locked to IP, i.e safe
+36. Made clouds and sea level of planet keyed to planet galaxyseed 
     
 
     

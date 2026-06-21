@@ -422,10 +422,11 @@ class Renderer:
     def __init__(self,
                  depth_sort=True,
                  backface_cull=True,
-                 default_line_width=2.0):
+                 default_line_width=3.0):
         self.depth_sort = depth_sort
         self.backface_cull = backface_cull
         self.default_line_width = default_line_width
+        self.show_index = False
     
     # Hidden-line removal
     
@@ -610,6 +611,13 @@ class Renderer:
                      scene.stroke(*edge_color)
                   else:
                      raise ValueError("Color name not found")
+                if self.show_index:
+                   # display index number at centre
+                   x1,y1,x2,y2 = clipped
+                   midx, midy = (x1+x2)/2, (y1+y2)/2 + 5   
+                   scene.text(str(ei), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)
+                   
+                   
                 scene.rect(0, 0, 0, 0)
                 scene.line(*clipped)
             
@@ -949,7 +957,7 @@ def load_ships_from_json(filename):
 
 class Demo(scene.Scene):
     def setup(self):
-        self.select = 17
+        self.select = 13
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
@@ -957,6 +965,7 @@ class Demo(scene.Scene):
         )
         self.renderer = Renderer(depth_sort=True, backface_cull=1)
         self.t = 0
+        self.renderer.show_index = True
 
         self.objects = [
             WireCube(50, 50, 50, position=Vector3(-80, 0, 0), color=GREEN),
@@ -983,12 +992,15 @@ class Demo(scene.Scene):
             
         for ship in objects[:]:
             ship.position = Vector3(
-                uniform(-400, 400),
-                uniform(-400, 400),
-                uniform(800, 1000)
+                uniform(0,0),
+                uniform(0, 0),
+                uniform(200, 200)
             )
-            ship.scale = uniform(0.5, 1.5)
-            ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
+            if ship == objects[self.select]:
+                print(self.objects[self.select].name)
+                # print(ship.position)
+            ship.scale = uniform(0.9, 1.1)
+            #ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)
         self._exploding_obj = None
@@ -1006,12 +1018,13 @@ class Demo(scene.Scene):
     def update(self):
         # make all object spin and move forward and backward
         # periodically explode on object
-        self.t += self.dt * .0005
-        looping_sine = abs(math.sin((math.pi * self.t) / 10))
+        self.t += self.dt * .0001
+        looping_sine = abs(math.sin((math.pi * self.t) / 50))
         for obj in self.objects[self.select: self.select+1]:
-            obj.rotation.y = self.t
-            obj.rotation.z = self.t
-            obj.position_in_world = obj.position.clone() + Vector3(0, 0, 1000 * looping_sine)
+            obj.rotation.y = self.t /10
+            obj.rotation.x = self.t /10
+            #obj.rotation.z = self.t
+            obj.position_in_world = obj.position.clone() # + Vector3(0, 0, 1000 * looping_sine)
             obj.rotation_angles_in_world = obj.rotation.clone()
         """
         if self._exploding_obj is None:
@@ -1037,7 +1050,8 @@ class Demo(scene.Scene):
       
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    #g = Demo()
-    #g.setup()
-    #g.draw()
+    # g = Demo()
+    # g.setup()
+    # g.update()
+    # g.draw()
     scene.run(Demo(), show_fps=True, multi_touch=True)
