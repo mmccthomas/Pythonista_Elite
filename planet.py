@@ -193,23 +193,13 @@ class PlanetGenerator:
         """Entry point for full planet description."""
         self.rnd_a, self.rnd_b = seed.c, seed.d
         self.rnd_c, self.rnd_d = seed.e, seed.f
-        
         try:  # to allow testing
-            planets = self.get_planet_list(self.gs.galaxy_seed)
-            # clues to mission 1
-            if self.gs.cmdr.mission == 1:
-                for index, planet in enumerate(planets):
-                    if seed == planet.glx:
-                        mission_text = self.gs.missions.get_mission_planet_desc(index)
-                        if mission_text is not None:
-                            self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
-                            return mission_text
-            self.gs.in_dock.incoming_message = ''
+            description = self.gs.missions.mission_message()
         except AttributeError:
             pass
-        
-        name = self.get_planet_name(seed)
-        description = self.expand_description("<14> is <22>.", name)
+        # name = self.get_planet_name(seed)
+        if description is None:
+             description = self.expand_description("<14> is <22>.", seed.name)
         return description
 
     def find_planet(self, cx, cy, galaxy_seed):
@@ -264,13 +254,13 @@ class PlanetGenerator:
             dx = planet['x'] - current_glx.x
             dy = planet['y'] - current_glx.y
             planet['distance'] = round(math.hypot(dx, dy))
-            planet['tech']= planet['glx'].tech
+            planet['tech'] = planet['glx'].tech
             planets.append(SimpleNamespace(**planet))
         sorted_planets = sorted(planets, key=lambda x: x.distance)
         if max_distance is not None:
             sorted_planets = [planet for planet in sorted_planets
                               if planet.distance <= max_distance]
-        return sorted_planets         
+        return sorted_planets
         
     def get_planet_route(self, current_planet_name, target_planet_name, seed):
         """ Find a route between two planet names within fuel range of each planet """
@@ -280,7 +270,7 @@ class PlanetGenerator:
         names = [planet.name for planet in planets]
         num_locations = len(locations)
         start_node = names.index(current_planet_name)
-        end_node = names.index(target_planet_name)                
+        end_node = names.index(target_planet_name)
 
         threshold = 7
 
@@ -324,11 +314,10 @@ class PlanetGenerator:
         if path:
             pathnames = [names[index] for index in path]
         else:
-            pathnames = []     
+            pathnames = []
         return path, pathnames
-
         
-    def plot_path(self, path, seed):     
+    def plot_path(self, path, seed):
         if path:
             planets = self.get_planet_list(seed)
             locations = np.array([[planet.x, planet.y] for planet in planets])
@@ -346,10 +335,10 @@ class PlanetGenerator:
         else:
             print("No path found.")
         
+
 if __name__ == '__main__':
     # --- Example Usage ---
     # Lave (starting planet) seed in Galaxy 1
-    import numpy as np
     import matplotlib.pyplot as plt
     # x is glx.d y is glx.b
                      

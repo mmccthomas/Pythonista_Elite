@@ -155,7 +155,7 @@ class Swat:
         # then change Sprite3D image
         colour = cs.COLOUR_LIST[self.gs.present_planet.colour]
         colour = colorsys.rgb_to_hsv(*colour)[0]
-        cloud_threshold = 0.3 +  0.1* (self.gs.present_planet.c % 6)  # lower is more cloud
+        cloud_threshold = 0.3 + 0.1 * (self.gs.present_planet.c % 6)  # lower is more cloud
         sea_level = 0.4 + 0.1 * (self.gs.present_planet.b % 4)
         # blob_size = 3  # 1 + self.gs.present_planet.d % 2
         img = AlienPlanet(400, 400, colour, seed=self.gs.present_planet.a,
@@ -316,12 +316,12 @@ class Swat:
 
     def add_new_station(self, sx, sy, sz, rotmat):
         match self.gs.current_planet_data.tech_level:
-            case 11 | 12 | 13 | 14:        
+            case 11 | 12 | 13 | 14:
                 station = cs.SHIP_STATIONV
-            case 9 | 10:        
+            case 9 | 10:
                 station = cs.SHIP_DODEC
             case _:
-                station = cs.SHIP_CORIOLIS         
+                station = cs.SHIP_CORIOLIS
         self.add_new_ship(station, sx, sy, sz, rotmat, 0, -127)
         # self.add_axis_display(self.universe[1])
             
@@ -497,9 +497,9 @@ class Swat:
         if (gs.cmdr.score & 255) == 0:
             gs.info_message("Right On Commander!")
         gs.sound.play_sample(cs.SND_EXPLODE)
-        # ship.flags |= cs.FLG_REMOVE
-        if ship.type == cs.SHIP_CONSTRICTOR:
-            gs.cmdr.mission = 2  # MISSION_1_COMPLETE
+        
+        gs.missions.check_destroy(ship)
+        
         ship.exploding = True
         ship.explosion_time = 0.0
         
@@ -748,8 +748,8 @@ class Swat:
         cam = gs.camera
         fl = cam.focal_length
         # could change laser colour deoending on ship.
-        colours = {0: cs.WHITE,  # clean             
-                   cs.FLG_POLICE: cs.YELLOW,  # tracked             
+        colours = {0: cs.WHITE,  # clean
+                   cs.FLG_POLICE: cs.YELLOW,  # tracked
                    cs.FLG_ALIEN: cs.PURPLE,  # thargoid
                    cs.FLG_BOLD | cs.FLG_ANGRY: cs.RED}  # pirate/bounty hunter
              
@@ -1005,13 +1005,8 @@ class Swat:
                 obj.flags |= cs.FLG_HAS_ECM
 
     def create_lone_hunter(self):
-        gs = self.gs
-        cmdr = gs.cmdr
-        if (cmdr.mission == 1 and cmdr.galaxy_number == 1
-                and gs.present_planet.x == 144 and gs.present_planet.y == 33
-                and self.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
-            ship_type = cs.SHIP_CONSTRICTOR
-        else:
+        ship_type = self.gs.missions.spawn_ship()
+        if ship_type is None:
             rnd = rand255()
             ship_type = cs.SHIP_COBRA3_LONE + (rnd & 3) + (1 if rnd > 127 else 0)
 
@@ -1099,7 +1094,8 @@ class Swat:
             return
         if self.in_battle:
             return
-        if self.gs.cmdr.mission == 5 and rand255() >= 200:
+        
+        if self.gs.missions.spawn_ship() == cs.SHIP_THARGOID:
             self.create_thargoid()
 
         self.check_for_others()

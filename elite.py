@@ -118,7 +118,6 @@ class GalaxySeed:
 @dataclass
 class Commander:
     name: str = "JAMESON"
-    mission_number: int = 0
     ship_x: int = 0x14
     ship_y: int = 0xAD
     galaxy_seed: GalaxySeed = field(default_factory=GalaxySeed)

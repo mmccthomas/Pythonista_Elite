@@ -191,7 +191,7 @@ significant changes:
 34. Universe objects have new colours. Canisters, plates and asteroids are yellow
 35. Added Instant Dock button which is enabled when autopilot has locked to IP, i.e safe
 36. Made clouds and sea level of planet keyed to planet galaxyseed 
-    
+37. All mission code now in missions module to allow adding extra missions    
 
     
 Getting Started
@@ -232,12 +232,14 @@ Chris `Thomas. June 2026
 Wireframe backface culling gives strange results.
 works ok in wireframe_3d_2 Demo, 
 
-Autopilot pretty good, except in the edge case of immediately behind station
+
  
 Having difficulty with fuel radius. Orignial code used modified hypotenuse
 distance to make fuel outline circular on 256x192 display.
 as we do not have this limitation, does it matter if fuel is circular?
 currently planets outside circle may be in range, and others inside not.
+
+
 
 Finally:
 

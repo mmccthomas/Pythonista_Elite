@@ -518,13 +518,13 @@ class MainLoop():
         if name:
             self.in_dock.find_planet_by_name(name.capitalize())
             self.last_found_name = name
-        self.find_route(name)    
+        self.find_route(name)
         
     def find_route(self, target_name):
         glx = self.cmdr.galaxy_seed.copy()
-        path, pathnames = self.planet.get_planet_route(self.present_planet.name, target_name.capitalize(), glx)      
+        path, pathnames = self.planet.get_planet_route(self.present_planet.name, target_name.capitalize(), glx)
         self.obj_status.text = 'Route:\n' + '\n'.join(pathnames)
-        planets = self.planet.get_planet_list(glx)        
+        planets = self.planet.get_planet_list(glx)
         self.path_locations = [planets[p] for p in path]
                            
     def plot_find_path(self):
@@ -532,7 +532,7 @@ class MainLoop():
            previous = self.path_locations[0]
            sx, sy = self.in_dock._to_screen(Point2(previous.x, previous.y)).as_tuple()
            for i, p in enumerate(self.path_locations[1:]):
-               cx,cy =  self.in_dock._to_screen(Point2(p.x,p.y)).as_tuple()                              
+               cx, cy = self.in_dock._to_screen(Point2(p.x, p.y)).as_tuple()
                self.gfx.draw_line(sx, sy, cx, cy, colour=cs.GREY)
                sx, sy = cx, cy
                                                      
@@ -637,7 +637,7 @@ class MainLoop():
             self.in_dock.display_galactic_chart()
             self.plot_find_path()
         else:
-            self.in_dock.display_short_range_chart()            
+            self.in_dock.display_short_range_chart()
             self.path_locations = []
                                   
     def market_trade_screen(self):
@@ -984,7 +984,7 @@ class MainLoop():
             case 'Instant Dock':
                 self.break_mode = 'docking'
                 try:
-                   self.space.engage_docking_computer()  
+                   self.space.engage_docking_computer()
                 except Exception as e:
                    print(e)
             case 'Cancel Docking':
@@ -1068,7 +1068,7 @@ class MainLoop():
             self.keypad.key_change(keyname, enabled=enable)
         for keyname in ['To Sun', 'To Planet', 'To Station']:
             self.keypad.key_change(keyname, enabled=cs.TELEPORT and enable)
-        self.keypad.key_change('Equip', enabled=not enable)   
+        self.keypad.key_change('Equip', enabled=not enable)
         self.keypad.key_change('Instant Dock', enabled=False)
         self.keypad.key_change('Compass Sun', name='Compass Planet')
         self.keypad.key_change('Equip', enabled=not enable)
@@ -1200,7 +1200,7 @@ def loop():
     #  g.gfx.display_centre_text(20, "Press Fire or Space, Commander.", color="GOLD")
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
-    operations = {1: ['OK'], 8: ['OK'], 35: ['Local Chart'],
+    operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
                   40: ['Select', '$Leesti'],
                   
                   70: ['Launch'],
@@ -1227,7 +1227,7 @@ def loop():
     for i in range(200):
        logger.debug(i)
        if i in operations:
-          if i == 1:
+          if i == 8:
               pass
           for command in operations[i]:
               g.input_queue.put(command)

@@ -244,7 +244,7 @@ class EliteIntro:
         )
         for i, ship_no in enumerate(ship_numbers):
             x, y, z = positions[i]
-            self.swat.add_new_ship(ship_no, x, y, z, None, -127, -127)
+            self.swat.add_new_ship(ship_no, x, y, z, None, -127, -10)
         
     def _car_hero(self):
         """Return the universe object that is the hero (centre) ship."""
@@ -257,5 +257,5 @@ class EliteIntro:
         self.gfx.clear_display()
         self.gfx.draw_sprite(ELITE_TEXT, x=-1, y=10)
         self.gfx.display_centre_text(28, f'{ship_name} ({SHIP_TYPE[ship_name][1]})' , color="WHITE")
-        self.gfx.display_centre_text(29, "Press OK  or Cancel, Commander.", color=cs.GOLD)
+        self.gfx.display_centre_text(29, "Press OK or Cancel, Commander.", color=cs.GOLD)
         self.gfx.text_render()

@@ -87,39 +87,29 @@ class MissionManager:
             "For the moment please accept this Navy Extra Energy Unit as payment. "
             "---MESSAGE ENDS.")
             
-    def get_mission_planet_desc(self, planet_num):
+    def get_mission_planet_desc(self):
         """
         Returns special mission-related text when visiting specific planets.
         Matches the pnum logic from missions.c
         called from planets.py in description
         """
-        if self.gs.cmdr.galaxy_number == 0:
-            mapping = {150: 0, 36: 1, 28: 2}  # Xeer, Reesdice, Arexe
-            if planet_num in mapping:
-                return self.m1_pdesc[mapping[planet_num]]
-
-        if self.gs.cmdr.galaxy_number == 1:
-            # Clues scattered across Galaxy 2
-            g2_clues = [32, 68, 164, 220, 106, 16, 162, 3, 107, 26, 192, 184, 5]
-            #  Bebege, Cearso, Dicela, Eringe, Gexein, Isarin, Letibema,
-            #  Maisso, Onen, Ramaza, Sosole, Tivere,Veriar. -> Errius
-            
-            match planet_num:
-                case _ if planet_num in g2_clues:
-                    return self.m1_pdesc[3]
-                case 253:  # Errius
-                    return self.m1_pdesc[4]
-                case 79:  # Inbibe
-                    return self.m1_pdesc[5]
-                case 53:  # Ausar
-                    return self.m1_pdesc[6]
-                case 118:  # Usleri
-                    return self.m1_pdesc[7]
-                case 193:  # Orarra
-                    return self.m1_pdesc[8]
-
-        if self.gs.cmdr.galaxy_number == 2 and planet_num == 101:
-            return self.m1_pdesc[9]
+        if self.gs.cmdr.mission == 1:
+            name = self.gs.present_planet.name
+            match self.gs.cmdr.galaxy_number:
+                case 0:
+                    mapping = {'Xeer': 0, 'Reesdice': 1, 'Arexe': 2}
+                    if name in mapping:
+                        return self.m1_pdesc[mapping[name]]
+                case 1:
+                    # Clues scattered across Galaxy 2
+                    mapping = {'Bebege': 3, 'Cearso': 3, 'Dicela': 3, 'Eringe': 3,
+                               'Gexein': 3, 'Isarin': 3, 'Letibema': 3, 'Maisso': 3,
+                               'Onen': 3, 'Ramaza': 3, 'Sosole': 3, 'Tivere': 3, 'Veriar': 3,
+                               'Errius': 4, 'Inbibe': 5, 'Ausar': 6, 'Usleri': 7, 'Orarra': 8}
+                    if name in mapping:
+                        return self.m1_pdesc[mapping[name]]
+                case  2:
+                    return self.m1_pdesc[9]
 
         return None
 
@@ -158,7 +148,34 @@ class MissionManager:
             # current_obj.rotz += 0.5  # flight_roll = 0.5
             self.gs.space.update_universe()
             self.gs.swat.update_model(current_obj)
-
+            
+    def check_destroy(self, ship):
+       if ship.type == cs.SHIP_CONSTRICTOR:
+           self.gs.cmdr.mission = 2  # MISSION_1_COMPLETE
+            
+    def spawn_ship(self):
+        # lone hunter on missions
+        gs = self.gs
+        if (gs.cmdr.mission == 1 
+                and gs.cmdr.galaxy_number == 1
+                and gs.present_planet.name == 'Orrara'
+                and gs.swat.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
+            return cs.SHIP_CONSTRICTOR
+            
+        elif self.gs.cmdr.mission == 5 and gs.swat.rand255() >= 200:
+            return cs.SHIP_THARGOID
+        else:
+            return None
+            
+    def mission_message(self):
+        # clues to mission 1
+        if self.gs.cmdr.mission == 1:
+            mission_text = self.get_mission_planet_desc()
+            if mission_text is not None:
+                self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
+                return mission_text
+        self.gs.in_dock.incoming_message = ''
+                           
     def check_mission_brief(self, present_planet):
         """
         Main logic gate for triggering missions based on score and location.
