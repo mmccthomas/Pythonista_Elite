@@ -199,7 +199,7 @@ class PlanetGenerator:
             pass
         # name = self.get_planet_name(seed)
         if description is None:
-             description = self.expand_description("<14> is <22>.", seed.name)
+            description = self.expand_description("<14> is <22>.", seed.name)
         return description
 
     def find_planet(self, cx, cy, galaxy_seed):
@@ -282,6 +282,7 @@ class PlanetGenerator:
                 x1, y1 = locations[i]
                 x2, y2 = locations[j]
                 dx, dy = abs(x1-x2), abs(y1-y2)
+                
                 dist = math.sqrt(dx**2 + 0.25 * dy**2) * 4 / 10
                 # print(names[i], names[j], i, j, dist)
              else:
@@ -300,7 +301,7 @@ class PlanetGenerator:
                 node = path[-1]
                 
                 if node == end:
-                    return path
+                    return path, visited
                     
                 for neighbor in graph[node]:
                     if neighbor not in visited:
@@ -308,14 +309,35 @@ class PlanetGenerator:
                         new_path = list(path)
                         new_path.append(neighbor)
                         queue.append(new_path)
-            return None
-        
-        path = find_path(start_node, end_node, adj)
+            # if the queue is empty, return None and all reachable nodes
+            return None, visited
+
+        def planet_name(index, seed):
+            return self.find_planet(locations[index][0],
+                                    locations[index][1],
+                                    seed).name
+        # adj_names = {planet_name(k, seed) : [planet_name(v1, seed) for v1 in v] for k, v in adj.items()}
+        # print(adj_names)
+        path, visited_nodes = find_path(start_node, end_node, adj)
         if path:
             pathnames = [names[index] for index in path]
+            return path, pathnames, None
         else:
-            pathnames = []
-        return path, pathnames
+            # Get coordinates of target
+            target_coords = locations[end_node]
+            
+            # Calculate distance from all visited nodes to target
+            # We want the one with the smallest distance to the target
+            min_dist = float('inf')
+            closest_reachable = None
+            
+            for i in visited_nodes:
+                dist = math.dist(locations[i], target_coords)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_reachable = names[i]
+                    
+            return None, [], closest_reachable
         
     def plot_path(self, path, seed):
         if path:
@@ -350,11 +372,10 @@ if __name__ == '__main__':
     for i in range(10):
         # print(gfx)
         gen.tweak(gfx)
-        
     lave_seed = GalaxySeed(0xAD, 0x38, 0x14, 0x9C, 0x15, 0x1D)
-    print(f"Planet Name: {gen.get_planet_name(lave_seed)}")
-    print(f"Stats: {gen.generate_planet_stats(lave_seed)}")
-    print(f"Description: {gen.describe_planet(lave_seed)}")
+    # print(f"Planet Name: {gen.get_planet_name(lave_seed)}")
+    # print(f"Stats: {gen.generate_planet_stats(lave_seed)}")
+    # print(f"Description: {gen.describe_planet(lave_seed)}")
     print()
     # Test get_planet_name
     system_list = [([0x87AA, 0x0C38, 0x8053], 'Ra'),
@@ -458,11 +479,13 @@ if __name__ == '__main__':
     # for i, planet in enumerate(planets):
     #    print(i, planet.name, planet.glx.tech)
         
-    path, pathnames = gen.get_planet_route('Lave', 'Ribilebi', GalaxySeed())
+    path, pathnames, _ = gen.get_planet_route('Lave', 'Ribilebi', GalaxySeed())
     print(pathnames)
     gen.plot_path(path, GalaxySeed())
-    
-    path, pathnames = gen.get_planet_route('Lave', 'Atarza', GalaxySeed())
+    new_seed = gen.next_galaxy(GalaxySeed())
+    new_seed = gen.next_galaxy(new_seed)
+
+    path, pathnames, _ = gen.get_planet_route('Birera', 'Dicemari', new_seed)
     print(pathnames)
     gen.plot_path(path, GalaxySeed())
 

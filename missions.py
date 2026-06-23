@@ -1,4 +1,5 @@
 import constants as cs
+import random
 import logging
 logger = logging.getLogger(__name__)
 # Mission State Constants
@@ -11,6 +12,10 @@ MISSION_2_BRIEFED = 5
 MISSION_2_COMPLETE = 6
 ST_SETUP = 0   # Initialise and setup
 ST_UPDATE = 1  # run rotating ship for intro1
+
+
+def rand255():
+   return random.randint(0, 255)
 
 
 class MissionManager:
@@ -72,16 +77,15 @@ class MissionManager:
             "Good Day Commander. I am Agent Blake of Naval Intelligence. As you know, "
             "the Navy have been keeping the Thargoids off your ass out in deep space "
             "for many years now. Well the situation has changed. Our boys are ready "
-            "for a push right to the home system of those murderers.")
-        
-        self.m2_brief_c = (
+            "for a push right to the home system of those murderers."
             "I have obtained the defence plans for their Hive Worlds. The beetles "
             "know we've got something but not what. If I transmit the plans to our "
-            "base on Birera they'll intercept the transmission. I need a ship to "
+            "base on Soiserla they'll intercept the transmission. I need a ship to "
             "make the run. You're elected. The plans are unipulse coded within "
             "this transmission. You will be paid. Good luck Commander. ---MESSAGE ENDS.")
         
         self.m2_debrief = (
+            "Well done Commander."
             "You have served us well and we shall remember. "
             "We did not expect the Thargoids to find out about you."
             "For the moment please accept this Navy Extra Energy Unit as payment. "
@@ -149,6 +153,25 @@ class MissionManager:
             self.gs.space.update_universe()
             self.gs.swat.update_model(current_obj)
             
+    def constrictor_debrief(self):
+        
+        if self.state == ST_SETUP:
+            logger.debug('')
+            # self.gs.cmdr.mission = MISSION_1_DEBRIEFED
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.credits += 100000  # 10000.0 Credits
+            self.state = ST_UPDATE
+            
+        if self.state == ST_UPDATE:
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
+            self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
+            self.gfx.display_pretty_text(0, 4, "You succeeded in your mission to destroy the Constrictor.")
+            self.gfx.display_pretty_text(0, 5, "Please accept a reward of 10000 credits.")
+            self.gfx.display_pretty_text(0, 6, "There will always be a place for you in Her Majesty's Space Navy.")
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
+            self.gfx.update_screen()
+                    
     def check_destroy(self, ship):
        if ship.type == cs.SHIP_CONSTRICTOR:
            self.gs.cmdr.mission = 2  # MISSION_1_COMPLETE
@@ -156,13 +179,14 @@ class MissionManager:
     def spawn_ship(self):
         # lone hunter on missions
         gs = self.gs
-        if (gs.cmdr.mission == 1 
+        
+        if (gs.cmdr.mission == 1
                 and gs.cmdr.galaxy_number == 1
-                and gs.present_planet.name == 'Orrara'
+                and gs.present_planet.name == 'Orarra'
                 and gs.swat.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
             return cs.SHIP_CONSTRICTOR
             
-        elif self.gs.cmdr.mission == 5 and gs.swat.rand255() >= 200:
+        elif self.gs.cmdr.mission == 5 and rand255() >= 220:
             return cs.SHIP_THARGOID
         else:
             return None
@@ -183,7 +207,6 @@ class MissionManager:
         self.cmdr = self.gs.cmdr
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
-        present_planet_id = (present_planet.x, present_planet.y)
         # logger.debug(f'{self.cmdr.mission=}')
         # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
         if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
@@ -197,79 +220,37 @@ class MissionManager:
 
         # Trigger Mission 2: score > 1280 and in Galaxy 3
         if self.cmdr.mission == MISSION_1_DEBRIEFED and score >= 1280 and gal_num == 2:
-            self.thargoid_brief_1()
+            self.thargoid_brief(self.m2_brief_a)
             return MISSION_2_START
 
-        # Trigger Mission 2 Part 2: Reach Ceerdi (Planet 215, 84)
-        if self.cmdr.mission == MISSION_2_START and present_planet_id == (215, 84):
-            
-            self.thargoid_brief_2()
+        # Trigger Mission 2 Part 2: Reach Ceerdi
+        if self.cmdr.mission == MISSION_2_START and present_planet.name == 'Ceerdi':
+            self.thargoid_brief(self.m2_brief_b)
             return MISSION_2_BRIEFED
 
-        # Trigger Mission 2 End: Reach Birera (Planet 63, 72)
-        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet_id == (63, 72):
+        # Trigger Mission 2 End: Reach end planet
+        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet.name == 'Soiserla':
             self.thargoid_debrief()
             return
             
         self.gs.current_screen = cs.SCR_PLANET_DATA
-                                  
-    def constrictor_debrief(self):
-        
-        if self.state == ST_SETUP:
-            logger.debug('')
-            # self.gs.cmdr.mission = MISSION_1_DEBRIEFED
-            self.gs.cmdr.score += 256
-            self.gs.cmdr.credits += 100000  # 10000.0 Credits
-            self.state = ST_UPDATE
             
-        if self.state == ST_UPDATE:
-            self.gfx.clear_display()
-            self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
-            self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
-            self.gfx.display_pretty_text(0, 4, "You succeeded in your mission to destroy the Constrictor.")
-            self.gfx.display_pretty_text(0, 5, "Please accept a reward of 10000 credits.")
-            self.gfx.display_pretty_text(0, 6, "There will always be a place for you in Her Majesty's Space Navy.")
-            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
-            self.gfx.update_screen()
-            
-    def thargoid_brief_1(self):
-        
+    # ------ Thargoid mission
+    
+    def thargoid_brief(self, brief):
         if self.state == ST_SETUP:
             self.state = ST_UPDATE
         if self.state == ST_UPDATE:
             self.gfx.clear_display()
             self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-            self.gfx.display_pretty_text(0, 3, self.m2_brief_a)
+            self.gfx.display_pretty_text(0, 3, brief)
             self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
             self.gfx.update_screen()
-        
-        # read_key
-
-    def thargoid_brief_2(self):
-    
-        if self.state == ST_SETUP:
-            self.state = ST_UPDATE
-        if self.state == ST_UPDATE:
-            self.gfx.clear_display()
-            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-            self.gfx.display_pretty_text(0, 3, self.m2_brief_b)
-            self.gfx.display_pretty_text(0, 10, self.m2_brief_c)
-            # self.gfx.draw_sprite(IMG_BLAKE, 352, 46)
-            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-            self.gfx.update_screen()
-        # read_key
-    
+   
     def thargoid_debrief(self):
         if self.state == ST_SETUP:
             self.gs.cmdr.score += 256
             self.gs.cmdr.energy_unit = 2
-            self.state = ST_UPDATE
-        if self.state == ST_UPDATE:
-            self.gfx.clear_display()
-            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-            self.gfx.display_centre_text(3, "Well done Commander.", 140, cs.GOLD)
-            self.gfx.display_pretty_text(0, 4, self.m2_debrief)
-            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-            self.gfx.update_screen()
-        # read_key
+            self.thargoid_brief(self.m2_debrief)
+            
 

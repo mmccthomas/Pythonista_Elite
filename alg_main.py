@@ -479,13 +479,22 @@ class MainLoop():
             elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
             if -45 < azimuth < 45:
                 n = 0
+                f = f'{chr(start + code[n])}'
             elif 45 <= azimuth < 135:
                 n = 1
+                f = f'{chr(start + code[n])}'
+                
             elif azimuth >= 135 or azimuth < -135:
                 n = 2
+                f = f'{chr(start + code[n])}'
+                
             elif azimuth >= -135 or azimuth < -45:
                 n = 3
-            f = f'{chr(start + code[n])}'
+                f = f'{chr(start + code[n])}'
+            else:
+                f = ' '
+                n = 10
+            
             if elevation > 20:
                 v = f'{chr(start + code[4])}'
             elif elevation < -20:
@@ -494,7 +503,7 @@ class MainLoop():
                 v = ' '
             
             arrows = f'{v}{f}' if n < 2 else f'{f}{v}'
-            textline.append(f'{obj.name:<9} {arrows} {obj.distance/1000:.1f}k')
+            textline.append(f'{obj.name:<12} {arrows:<2} {obj.distance/1000:.1f}k')
         self.obj_status.text = '\n'.join(textline)
                                             
     def set_commander_name(self, path):
@@ -518,11 +527,14 @@ class MainLoop():
         if name:
             self.in_dock.find_planet_by_name(name.capitalize())
             self.last_found_name = name
-        self.find_route(name)
+            self.find_route(name)
         
     def find_route(self, target_name):
         glx = self.cmdr.galaxy_seed.copy()
-        path, pathnames = self.planet.get_planet_route(self.present_planet.name, target_name.capitalize(), glx)
+        path, pathnames, closest_reachable = self.planet.get_planet_route(self.present_planet.name, target_name.capitalize(), glx)
+        if not path:
+           self.obj_status.text = f'No path found, closest {closest_reachable}'
+           return
         self.obj_status.text = 'Route:\n' + '\n'.join(pathnames)
         planets = self.planet.get_planet_list(glx)
         self.path_locations = [planets[p] for p in path]

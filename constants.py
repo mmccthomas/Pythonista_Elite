@@ -33,8 +33,9 @@ UNIVERSE_STATUS = True
 INSTANT_DOCK = False
 MAX_FUEL = 70
 FLIGHT_DIRECTOR = True
-FIRE_ACCURACY = 12  # higher makes it easier to hit target default 8
+FIRE_ACCURACY = 8  # higher makes it easier to hit target default 8
 CLASSIC_DISTANCE = True
+SCANNER_LABELS = True
 
 # --------Screen areas
 # flight area, scanner, with scale

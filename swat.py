@@ -1004,8 +1004,9 @@ class Swat:
             if rnd & 1:
                 obj.flags |= cs.FLG_HAS_ECM
 
-    def create_lone_hunter(self):
-        ship_type = self.gs.missions.spawn_ship()
+    def create_lone_hunter(self, ship_type=None):
+        if not ship_type:
+            ship_type = self.gs.missions.spawn_ship()
         if ship_type is None:
             rnd = rand255()
             ship_type = cs.SHIP_COBRA3_LONE + (rnd & 3) + (1 if rnd > 127 else 0)
@@ -1086,7 +1087,13 @@ class Swat:
         if (rand255() & 7) == 0:
             self.create_trader()
             return
-
+            
+        ship_type = self.gs.missions.spawn_ship()
+        if ship_type == cs.SHIP_THARGOID:
+            self.create_thargoid()
+        elif ship_type == cs.SHIP_CONSTRICTOR:
+            self.create_lone_hunter(ship_type)
+                  
         self.check_for_asteroids()
         self.check_for_cops()
 
@@ -1095,9 +1102,6 @@ class Swat:
         if self.in_battle:
             return
         
-        if self.gs.missions.spawn_ship() == cs.SHIP_THARGOID:
-            self.create_thargoid()
-
         self.check_for_others()
     
     # ---- Player escape

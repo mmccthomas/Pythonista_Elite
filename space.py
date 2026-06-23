@@ -3,7 +3,7 @@ import math
 import random
 import constants as cs
 from vector import Vector, Matrix, unit_vector, set_init_matrix, tidy_matrix
-
+from scene import text, Point
 from swat import Ship
 import traceback
 import logging
@@ -342,17 +342,17 @@ class Space:
         z /= 256
         dist = x*x + y*y + z*z
         if (self.gs.mcount & 31) == 0:
-            if dist < 9472:
+            if dist < 4096:
                 gs.myship.altitude = 0
                 self.do_game_over('altitude')
                 return
             elif dist > 65535:
                 self.low_altitude = False
                 return
-            elif dist < 20480:               
+            elif dist < 9000:
                self.gs.info_message(f"Critical Altitude {dist:.0f}km")
                self.low_altitude = True
-            elif dist < 32768:               
+            elif dist < 32768:
                self.gs.info_message(f"Low Altitude {dist:.0f}km")
                self.low_altitude = True
             else:
@@ -602,7 +602,12 @@ class Space:
             dy = (y2 - y1) / 4
             for i in range(4):
                 gfx.draw_colour_line(x1, y1 + i * dy, x1, y1 + (i + 1) * dy, colour[i % 2], width=3)
-                
+            if cs.SCANNER_LABELS and cs.SCANNER_RECT.contains_point(Point(x1+6, y2)):
+                text(obj.name[:3].capitalize(),
+                     font_name='Copperplate',
+                     font_size=12.0,
+                     x=x1+6, y=y2,
+                     alignment=6)
         gfx.set_clip_region(*cs.FLIGHT_RECT)
         
     def set_compass(self, mode='planet'):

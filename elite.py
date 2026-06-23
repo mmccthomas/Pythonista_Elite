@@ -162,7 +162,6 @@ class Commander:
     )
     market_rnd: int = 0
     score: int = 0
-    tally: int = 0
     mission: int = 0
 
 # --- Global Game State ---
