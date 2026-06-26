@@ -23,7 +23,9 @@ MIN_FIRING_DISTANCE = 8192
 
 def rand255():
    return random.randint(0, 255)
-
+   
+def rand_no(max):
+   return random.randint(0, max)
       
 def angle(theta):
    return math.degrees(math.acos(theta))
@@ -282,6 +284,7 @@ class Swat:
                     
                     obj.energy = ship_data['Max. energy']
                     obj.missiles = ship_data['Missiles']
+                    obj.max_loot = ship_data.get('Max. canisters on demise', 0)
                     self.ship_count[ship_type] = self.ship_count.get(ship_type, 0) + 1
                 elif obj.type == cs.SHIP_PLANET:
                     # generate planet colour, matches charts
@@ -548,8 +551,11 @@ class Swat:
                         self.launch_loot(index, cs.SHIP_ROCK, univ)
                 else:
                     
-                    self.launch_loot(index, cs.SHIP_ALLOY, univ)
-                    self.launch_loot(index, cs.SHIP_CARGO, univ)
+                    if univ.max_loot:
+                        self.launch_loot(index, cs.SHIP_CARGO, parent=univ)        
+                    else:      
+                         self.launch_loot(index, cs.SHIP_ALLOY, parent=univ)
+                    
                 self.explode_object(index)
             self.make_angry(index)
     
@@ -582,25 +588,23 @@ class Swat:
         return ns
         
     def launch_loot(self, index: int, loot: int, parent: UnivObject):
+        """ up to 3 rocks, up to 3 plates, max_loot cannisters if
+        max_loot < 3 """
         if loot == cs.SHIP_ROCK:
-            cnt = rand255() & 3
+            cnt = rand_no(3)
         elif loot == cs.SHIP_ALLOY:
-           cnt = rand255() & 3
-        else:
-            cnt = rand255()
-            if cnt >= 128:
+           cnt = rand_no(3)
+        elif loot == cs.SHIP_CARGO:            
+            if rand_no(1):
                 return
-            try:
-                cnt &= self.ship_list[self.universe[index].type].max_loot
-                cnt &= 15
-            except AttributeError:
-                # no max_loot
-                cnt &= 3
+            cnt = max(parent.max_loot, 2)            
+        else:
+            cnt = 0            
 
         for _ in range(cnt):
             ns = self.launch_enemy(index, loot, 0, 0)
             if ns:
-                setattr(ns, 'parent', parent.name)
+                setattr(ns, 'parent', parent.type)
 
     def launch_shuttle(self):
         gs = self.gs
@@ -658,7 +662,10 @@ class Swat:
             if flags & (cs.FLG_FLY_TO_PLANET | cs.FLG_FLY_TO_STATION):
                 gs.pilot.auto_pilot_ship(index)
             return
-    
+            
+        if self.gs.cloaking_device_active:
+            return
+            
         self._tactics_attack(index, ship, flags)
         
     def track_object(self, ship: UnivObject, direction: float, nvec: Vector):
@@ -820,10 +827,11 @@ class Swat:
             ship.flags |= cs.FLG_INACTIVE
             
     def _tactics_attack(self, index, ship, flags):
-        # Ship is angry — attack!
+        # Ship is angry — attack!        
+        
         #  If the ship is hostile, and a pirate, and we are within the space station
         # safe zone, stop the pirate from attacking by removing all its aggression
-    
+        
         if self.gs.space.safe_mode and not (flags & cs.FLG_BOLD):
             ship.bravery = 0
         # If this is an Anaconda, consider spawning (22% chance) a Worm (61% of the

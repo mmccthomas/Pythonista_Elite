@@ -28,7 +28,7 @@ class EliteKeypad(ui.View):
              (' ', 1, 'lightgreen')],
             [('Look Fwd', 1, 'cyan'), ('Look Aft', 1, 'cyan'), ('Look Port', 1, 'cyan'), ('Look Stbd', 1, 'cyan'),
              ('Left', 1, 'yellow'), ('Select', 1, '#ff8080'), ('Right', 1, 'yellow')],
-            [('Fire Laser', 2, 'orange'),  ('OK', 1, '#ff8080'), ('Cancel', 1, '#ff8080'),
+            [('Fire Laser', 1, 'orange'), ('Cloak', 1, 'lightgreen'), ('OK', 1, '#ff8080'), ('Cancel', 1, '#ff8080'),
              (' ', 1, 'cyan'), ('Down', 1, 'yellow'), (' ', 1, 'cyan')]
         ]
         

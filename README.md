@@ -125,7 +125,7 @@ significant changes:
 24. Coloured slot and front lines of station yellow to allow visual orientation
     Added new station STATIONV for tech level above 12. A throwback to 2001
 
-25. Allow compass to be switched to sun insread of planet
+25. Allow compass to be switched to sun instead of planet
 
 26. New autopilot for player. used state machine to target planet pole, then
     Initial Point in front of station, then dock to station
@@ -192,7 +192,10 @@ significant changes:
 35. Added Instant Dock button which is enabled when autopilot has locked to IP, i.e safe
 36. Made clouds and sea level of planet keyed to planet galaxyseed 
 37. All mission code now in missions module to allow adding extra missions    
-
+38. When enabled by SCANNER_LABELS key, scanner objects have 3 letter identifiers
+    of ship type, e.g. Pyt, Cob, Asp etc.
+39. Added Cloaking Device mission. Success obtains Cloaking device. This hides player
+    from pirates but uses lots of energy.
     
 Getting Started
 
@@ -239,7 +242,14 @@ distance to make fuel outline circular on 256x192 display.
 as we do not have this limitation, does it matter if fuel is circular?
 currently planets outside circle may be in range, and others inside not.
 
+Sort out autopilot pole height vs low altitude crash. should not crash on autopilot
 
+Possible additional missions from PC version:
+Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible.
+• Masking Device (Cloaking Device): You are sent to intercept and destroy a specific group of ships (often identified as Asp Mk IIs). Once you destroy the target, you can scoop the cargo container containing the Cloaking Device, which allows you to become temporarily invisible to enemy radar.
+• Stolen Police Ship: A mission where you must track down and destroy a specific police vessel that has been compromised or stolen. It is essentially a high-bounty hunting task.
+• Asteroid Bombardment: You are assigned to defend a station from an incoming asteroid storm. You must destroy the asteroids before they impact the station's shielding.
+• Thargoid Invasion: This triggers an event in a star system where a station is actively being besieged by a large fleet of Thargoids. You must jump to the system and assist in the defense by destroying the attacking ships.
 
 Finally:
 

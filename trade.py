@@ -132,11 +132,12 @@ class TradeManager:
 
         # If it's a generic cargo canister
         if obj.type == cs.SHIP_CARGO:
-            trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
-            quantity = random.randint(0, 255) & 15
-            self.gs.cmdr.current_cargo[trade_type] += quantity
-            self.gs.info_message(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
-            logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
+            if self.gs.missions.scoop_cargo(obj) is None:
+                trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
+                quantity = random.randint(0, 255) & 15
+                self.gs.cmdr.current_cargo[trade_type] += quantity
+                self.gs.info_message(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
+                logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
             self.gs.swat.remove_ship(universe_obj_index)
             obj.exploding = True
             return
@@ -149,7 +150,7 @@ class TradeManager:
                 self.gs.cmdr.current_cargo[16] += 1
                 self.gs.info_message("Scooped: Alien Items")
                 logging.debug(f'captured alien item {obj.location}')
-                universe.remove_ship(universe_obj_index)
+                self.gs.swat.remove_ship(universe_obj_index)
                 return
                
             self.gs.cmdr.current_cargo[9] += 1

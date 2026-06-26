@@ -606,9 +606,8 @@ class Renderer:
                      scene.stroke(*edge_color)
                 else:                 
                   if edge_color in mcolors.CSS4_COLORS:
-                     rgb_float = mcolors.to_rgb(edge_color)
-                     edge_color =  tuple(int(x * 255) for x in rgb_float)
-                     scene.stroke(*edge_color)
+                     rgb_float = mcolors.to_rgb(edge_color)                     
+                     scene.stroke(*rgb_float)
                   else:
                      raise ValueError("Color name not found")
                 if self.show_index:
@@ -648,7 +647,14 @@ class Renderer:
 
             if p1 and p2:
                 alpha = max(0, 1.0 - t)
-                edge_color = obj.color[:3] + (alpha,)
+                if isinstance(obj.color, (list, tuple)):
+                     edge_color = obj.color[:3]
+                else:                 
+                  if obj.color in mcolors.CSS4_COLORS:
+                      edge_color = mcolors.to_rgb(obj.color)                                          
+                  else:
+                     raise ValueError("Color name not found") 
+                edge_color = edge_color + (alpha,)
                 scene.stroke(*edge_color)
                 scene.rect(0, 0, 0, 0)
                 scene.line(*p1, *p2)
@@ -957,7 +963,7 @@ def load_ships_from_json(filename):
 
 class Demo(scene.Scene):
     def setup(self):
-        self.select = 13
+        self.select = 38
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
@@ -991,19 +997,22 @@ class Demo(scene.Scene):
             objects = ships.ship_objects
             
         for ship in objects[:]:
+            
             ship.position = Vector3(
                 uniform(0,0),
                 uniform(0, 0),
                 uniform(200, 200)
             )
-            if ship == objects[self.select]:
-                print(self.objects[self.select].name)
+            
                 # print(ship.position)
             ship.scale = uniform(0.9, 1.1)
             #ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)
         self._exploding_obj = None
+        for i, ship in enumerate(self.objects):
+           if  hasattr(ship, 'name'):
+              print(i, ship.name)
         self._explosion_t = random.random()
         
         

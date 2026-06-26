@@ -10,13 +10,18 @@ MISSION_1_DEBRIEFED = 3
 MISSION_2_START = 4
 MISSION_2_BRIEFED = 5
 MISSION_2_COMPLETE = 6
+MISSION_3_START = 7
+MISSION_3_BRIEFED = 8
+MISSION_3_COMPLETE = 9
 ST_SETUP = 0   # Initialise and setup
 ST_UPDATE = 1  # run rotating ship for intro1
-
+planet_2_2 = 'Soiserla'
+planet_3_1 = 'Ceisis'
+planet_3_2 = 'Beisria'
+planet_3_3 = 'Onenqu'
 
 def rand255():
    return random.randint(0, 255)
-
 
 class MissionManager:
     def __init__(self, gs):
@@ -24,7 +29,6 @@ class MissionManager:
         self.cmdr = gs.cmdr
         self.universe = gs.universe
         self.gfx = gs.gfx
-        self.kbd = gs.kbd
         self.state = 0
         
         # Mission 1 Text (The Constrictor)
@@ -72,7 +76,14 @@ class MissionManager:
             "We have need of your services again. If you would be so good as to go to "
             "Ceerdi you will be briefed.If successful, you will be rewarded."
             "---MESSAGE ENDS.")
-  
+            
+        self.m1_debrief = (
+                "Congratulations Commander!"
+                "You succeeded in your mission to destroy the Constrictor."
+                "Please accept a reward of 10000 credits."
+                "There will always be a place for you in Her Majesty's Space Navy."
+                "---MESSAGE ENDS.")
+                
         self.m2_brief_b = (
             "Good Day Commander. I am Agent Blake of Naval Intelligence. As you know, "
             "the Navy have been keeping the Thargoids off your ass out in deep space "
@@ -80,7 +91,7 @@ class MissionManager:
             "for a push right to the home system of those murderers."
             "I have obtained the defence plans for their Hive Worlds. The beetles "
             "know we've got something but not what. If I transmit the plans to our "
-            "base on Soiserla they'll intercept the transmission. I need a ship to "
+            f"base on {planet_2_2} they'll intercept the transmission. I need a ship to "
             "make the run. You're elected. The plans are unipulse coded within "
             "this transmission. You will be paid. Good luck Commander. ---MESSAGE ENDS.")
         
@@ -89,6 +100,28 @@ class MissionManager:
             "You have served us well and we shall remember. "
             "We did not expect the Thargoids to find out about you."
             "For the moment please accept this Navy Extra Energy Unit as payment. "
+            "---MESSAGE ENDS.")
+            
+        self.m3_brief_a = (
+                "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
+                "We have need of your services again. If you would be so good as to go to "
+                f"{planet_3_1} you will be briefed."
+                "If successful, you will be rewarded."
+                "---MESSAGE ENDS.")
+                
+        self.m3_brief_b = (
+                "We would like you retrieve some Alien technology stolen from our research station on this planet"
+                "We understand that the perpetrators are in three Asp Mk2s,"
+                "and the Alien tech is split between the three ships."
+                "Your mission should you decide to accept it, is to seek and destroy these ships "
+                f"and retrieve the cargo. They were last seen at {planet_3_2}"             
+                "Good Luck, Commander. ---MESSAGE ENDS."
+            )
+            
+        self.m3_debrief = (
+            "Well done Commander."
+            "You have served us well and we shall remember. "
+            "We have generated a new cloaking device and fitted it to your ship."  
             "---MESSAGE ENDS.")
             
     def get_mission_planet_desc(self):
@@ -128,7 +161,6 @@ class MissionManager:
                         
             self.gfx.clear_display()
             self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
-    
             self.gfx.display_pretty_text(0, 3, self.m1_brief_a)
             
             brief_end = self.m1_brief_b if self.gs.cmdr.galaxy_number == 0 else self.m1_brief_c
@@ -154,24 +186,26 @@ class MissionManager:
             self.gs.swat.update_model(current_obj)
             
     def constrictor_debrief(self):
-        
         if self.state == ST_SETUP:
             logger.debug('')
-            # self.gs.cmdr.mission = MISSION_1_DEBRIEFED
+            self.gs.cmdr.mission = MISSION_1_DEBRIEFED
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000  # 10000.0 Credits
-            self.state = ST_UPDATE
+            self.display_brief(self.m1_debrief)
             
-        if self.state == ST_UPDATE:
-            self.gfx.clear_display()
-            self.gfx.display_centre_text(0, "INCOMING MESSAGE", color=cs.GOLD)
-            self.gfx.display_centre_text(3, "Congratulations Commander!", color=cs.GOLD)
-            self.gfx.display_pretty_text(0, 4, "You succeeded in your mission to destroy the Constrictor.")
-            self.gfx.display_pretty_text(0, 5, "Please accept a reward of 10000 credits.")
-            self.gfx.display_pretty_text(0, 6, "There will always be a place for you in Her Majesty's Space Navy.")
-            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", color=cs.GOLD)
-            self.gfx.update_screen()
-                    
+    def thargoid_debrief(self):
+        if self.state == ST_SETUP:
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.energy_unit = 2
+            self.display_brief(self.m2_debrief)
+            
+    def cloaking_debrief(self):
+        if self.state == ST_SETUP:
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.cloaking_device = True
+            self.gs.keypad.key_change('N/A', name='Cloaking On', color='lightgreen')
+            self.display_brief(self.m3_debrief)
+                            
     def check_destroy(self, ship):
        if ship.type == cs.SHIP_CONSTRICTOR:
            self.gs.cmdr.mission = 2  # MISSION_1_COMPLETE
@@ -186,11 +220,44 @@ class MissionManager:
                 and gs.swat.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
             return cs.SHIP_CONSTRICTOR
             
-        elif self.gs.cmdr.mission == 5 and rand255() >= 220:
+        elif gs.cmdr.mission == 5 and rand255() >= 220:
             return cs.SHIP_THARGOID
+            
+        elif gs.cmdr.mission == MISSION_3_BRIEFED and rand255() >= 220:
+            # 3 Asps
+            no_asps = gs.swat.ship_count.get(cs.SHIP_ASP2, 0)
+            if no_asps < 1:
+                for _ in range(1 - no_asps):
+                   z = 12000
+                   x = random.randint(-1024, 1024)
+                   y = random.randint(-1024, 1024)
+                   if rand255() > 127:
+                       x = -x
+                   if rand255() > 127:
+                       y = -y
+                   ship_type = cs.SHIP_ASP2
+                   newship = gs.swat.add_new_ship(ship_type, x, y, z, None, 0, 0)
+                   if newship != -1:
+                       # give these asps a cargo
+                       gs.swat.ship_list[cs.SHIP_ASP2].max_loot = 1
+                       gs.universe[newship].flags = cs.FLG_ANGRY
+                       if rand255() > 245:
+                           self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
+                       gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
+                       gs.swat.in_battle += 1
+            return None
+            
         else:
             return None
             
+    def scoop_cargo(self, obj):
+        if (obj.type == cs.SHIP_CARGO
+               and obj.parent == cs.SHIP_ASP2
+               and self.gs.cmdr.mission == MISSION_3_BRIEFED):
+           self.gs.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] += 1
+           self.gs.info_message("Scooped: Cloaking Device")
+                
+             
     def mission_message(self):
         # clues to mission 1
         if self.gs.cmdr.mission == 1:
@@ -199,7 +266,17 @@ class MissionManager:
                 self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
                 return mission_text
         self.gs.in_dock.incoming_message = ''
-                           
+        
+    def display_brief(self, brief):
+        if self.state == ST_SETUP:
+            self.state = ST_UPDATE
+        if self.state == ST_UPDATE:
+            self.gfx.clear_display()
+            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
+            self.gfx.display_pretty_text(0, 3, brief)
+            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
+            self.gfx.update_screen()
+                          
     def check_mission_brief(self, present_planet):
         """
         Main logic gate for triggering missions based on score and location.
@@ -207,7 +284,6 @@ class MissionManager:
         self.cmdr = self.gs.cmdr
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
-        # logger.debug(f'{self.cmdr.mission=}')
         # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
         if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
             self.constrictor_briefing()
@@ -220,37 +296,38 @@ class MissionManager:
 
         # Trigger Mission 2: score > 1280 and in Galaxy 3
         if self.cmdr.mission == MISSION_1_DEBRIEFED and score >= 1280 and gal_num == 2:
-            self.thargoid_brief(self.m2_brief_a)
+            self.display_brief(self.m2_brief_a)
             return MISSION_2_START
 
         # Trigger Mission 2 Part 2: Reach Ceerdi
         if self.cmdr.mission == MISSION_2_START and present_planet.name == 'Ceerdi':
-            self.thargoid_brief(self.m2_brief_b)
+            self.display_brief(self.m2_brief_b)
             return MISSION_2_BRIEFED
 
         # Trigger Mission 2 End: Reach end planet
-        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet.name == 'Soiserla':
+        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet.name == 'Soiserla':            
             self.thargoid_debrief()
-            return
+            return MISSION_2_COMPLETE
+            
+        # Trigger Mission 3 
+        if self.cmdr.mission == MISSION_2_COMPLETE and gal_num == 2:
+            logger.error('first brief')
+            #self.state = ST_SETUP
+            self.display_brief(self.m3_brief_a)
+            return MISSION_3_START
+
+        # Trigger Mission 3 Part 2: Reach 1st waypoint
+        if self.cmdr.mission == MISSION_3_START and present_planet.name == planet_3_1:
+            #self.state = ST_SETUP
+            self.display_brief(self.m3_brief_b)
+            return MISSION_3_BRIEFED
+
+        # Trigger Mission 3 End: Reach end planet
+        if (self.cmdr.mission == MISSION_3_BRIEFED
+                and present_planet.name == planet_3_2
+                and self.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] >= 3):      
+            #self.state = ST_SETUP      
+            self.cloaking_debrief()
+            return MISSION_3_COMPLETE
             
         self.gs.current_screen = cs.SCR_PLANET_DATA
-            
-    # ------ Thargoid mission
-    
-    def thargoid_brief(self, brief):
-        if self.state == ST_SETUP:
-            self.state = ST_UPDATE
-        if self.state == ST_UPDATE:
-            self.gfx.clear_display()
-            self.gfx.display_centre_text(0, "INCOMING MESSAGE", 140, cs.GOLD)
-            self.gfx.display_pretty_text(0, 3, brief)
-            self.gfx.display_centre_text(cs.NUM_LINES-1, "Press OK to continue.", 140, cs.GOLD)
-            self.gfx.update_screen()
-   
-    def thargoid_debrief(self):
-        if self.state == ST_SETUP:
-            self.gs.cmdr.score += 256
-            self.gs.cmdr.energy_unit = 2
-            self.thargoid_brief(self.m2_debrief)
-            
-

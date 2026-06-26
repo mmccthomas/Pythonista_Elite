@@ -137,6 +137,7 @@ class Commander:
     docking_computer: bool = False
     galactic_hyperdrive: bool = False
     escape_pod: bool = False
+    cloaking_device: bool = False
     missiles: int = 3
     legal_status: int = 0
     station_stock: List[int] = field(

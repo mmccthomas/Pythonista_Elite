@@ -188,6 +188,7 @@ class MainLoop():
        self.current_name = None
        self.last_found_name = None
        self.on_final_approach = False
+       self.cloaking_device_active = False
        self.tick_count = 0
        self.status_objects = []
        self.path_locations = []
@@ -947,6 +948,7 @@ class MainLoop():
             self.space.regenerate_shields()
  
         if self.energy_status.check():
+            
             if self.energy < 50:
                 self.info_message("ENERGY LOW")
                 self.sound.play_sample(cs.SND_BEEP)
@@ -1044,6 +1046,12 @@ class MainLoop():
             case 'Right':
                 self.space.decrease_flight_roll()
                 self.rolling = True
+            case 'Cloak':
+                self.cloaking_device_active = True
+                self.keypad.key_change('Cloak', name='Cloak Off', color=cs.ORANGE)
+            case 'Cloak Off':
+                self.cloaking_device_active = False
+                self.keypad.key_change('Cloak Off', name='Cloak', color='lightgreen')
             case 'Bomb':
                 if self.cmdr.energy_bomb:
                     self.detonate_bomb = True
@@ -1085,6 +1093,7 @@ class MainLoop():
         self.keypad.key_change('Compass Sun', name='Compass Planet')
         self.keypad.key_change('Equip', enabled=not enable)
         self.keypad.key_change('Trade', enabled=not enable)
+        self.keypad.key_change('N/A', enabled=False)
         if enable:
             self.keypad.key_change('Market', name='Target Prices')
         else:
@@ -1094,7 +1103,8 @@ class MainLoop():
                                  'energy_bomb': 'Bomb',
                                  'docking_computer': 'Docking',
                                  'galactic_hyperdrive': 'New Galaxy',
-                                 'escape_pod': 'Escape'}
+                                 'escape_pod': 'Escape',
+                                 'cloaking_device': 'Cloak'}
         for k, v in self.additional_items.items():
             state = getattr(self.cmdr, k)
             self.keypad.key_change(v, enabled=(state and enable))
@@ -1236,7 +1246,7 @@ def loop():
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(200):
+    for i in range(2000):
        logger.debug(i)
        if i in operations:
           if i == 8:
@@ -1262,18 +1272,18 @@ def loop():
         
 if __name__ == '__main__':
     import cProfile
-    loop()
+    #loop()
     # logger.debug('finished')
     #
-    # cProfile.run('loop()')
+    #cProfile.run('loop()')
     
     import pstats
     import io
     
     def my_function():
         # Example workload
-        # loop()
-        pass
+        loop()
+        
     
     # 1. Create a Profile object
     pr = cProfile.Profile()

@@ -469,6 +469,8 @@ class Docked:
            item("Docking Computers")
         if cmdr.galactic_hyperdrive:
            item("Galactic Hyperspace")
+        if cmdr.cloaking_device:
+           item('Cloaking Device')
         for mount, label in [
             (cmdr.front_laser,  "Front"),
             (cmdr.rear_laser,   "Rear"),

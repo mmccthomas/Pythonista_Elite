@@ -1,4 +1,4 @@
-# This is the entry point for Pythonista Elite
+ # This is the entry point for Pythonista Elite
 # it is based heavily on Elite The New Kind  by Christian Pinder
 # This C project has been converted to Python by Gemini and Claude AI
 # Elements of project Elite FlatLand are present by # Author: Darron Vanaria
@@ -77,7 +77,7 @@ class EliteScene(Scene):
                                   color=cs.WHITE, font=('Copperplate', 18),
                                   anchor_point=(0, 1), parent=self)
         self.kbd = Keyboard(self)
-        # needs player_ship
+
         self.hud = HudPanel()
         self.add_child(self.hud)
 

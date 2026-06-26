@@ -322,6 +322,8 @@ class Space:
                 gs.aft_shield += 1
                 gs.energy -= 1
         gs.energy += 1 + gs.cmdr.energy_unit
+        if gs.cloaking_device_active:
+           gs.energy -= 4
         gs.energy = min(gs.energy, 255)
     
     # ------- Altitude / temperature
