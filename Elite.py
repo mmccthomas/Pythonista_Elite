@@ -10,6 +10,7 @@ import math
 import queue
 import traceback
 import ui
+from imp import reload
 import logging
 from scene import Scene, run, ShapeNode, LabelNode
 from scene import Node, SpriteNode, Texture
@@ -32,7 +33,35 @@ EXPLOSION_SPEED = 0.4
 
 
 class EliteScene(Scene):
- 
+           
+    def _did_change_size(self):
+       """ recalculate all sizes when screen changes 
+       not perfect yet"""
+       
+       W, H = get_screen_size()
+       print('triggered new layout', W, H)
+       reload(cs)
+       self.keypad.frame = cs.KEYBOARD_RECT
+       
+       self.msg.position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50)                         
+       fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
+       self.msg_right.position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20)                                   
+       self.obj_status.position=(cs.GAME_W, cs.GAME_H)       
+       self.obj_status.font=('Copperplate', fontsize)                                    
+       self.msg_left.position=(cs.HUD_LEFT.x + 10, cs.HUD_H)
+       self.renderer.viewport = cs.FLIGHT_RECT  # x, y, w, h       
+       for obj in (self.background, self.hud, self.joystick,
+                   self.joystick_thrust, self.fire_button):        
+           obj.remove_from_parent()
+       
+       self.background = self.create_background()              
+       self.hud = HudPanel()       
+       self.create_controls()
+              
+       for obj in (self.background, self.hud, self.joystick,
+                   self.joystick_thrust, self.fire_button):        
+           self.add_child(obj)       
+                                 
     def setup(self):
         W, H = get_screen_size()
         self.paused = True
@@ -42,25 +71,7 @@ class EliteScene(Scene):
         self.keypad = EliteKeypad(frame=cs.KEYBOARD_RECT,
                                   action=self.button_tapped)
        
-        # control joystick, press to fire
-        self.joystick = Joystick(position=cs.JOYSTICK_1_POSITION,
-                                 color='white',
-                                 show_xy=False,
-                                 msg='',
-                                 radius=cs.JOYSTICK_1_RADIUS)
-        self.joystick_thrust = Joystick(position=cs.JOYSTICK_2_POSITION,
-                                        color='white',
-                                        alpha=0.8,
-                                        show_xy=False,
-                                        msg='',
-                                        mode='NS',
-                                        autoreturn=False,
-                                        radius=cs.JOYSTICK_2_RADIUS)
-        image = pil_to_ui(set_colorkey('Fire2.png'))
-        self.fire_button = SpriteNode(Texture(image),
-                                      size=cs.FIRE_BUTTON_RECT.size,
-                                      position=cs.FIRE_BUTTON_RECT.center(),
-                                      parent=self)
+        self.create_controls()
         # status and debug messages
         self.msg = LabelNode('', position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50),
                              color=cs.WHITE, anchor_point=(0, 0),
@@ -88,6 +99,7 @@ class EliteScene(Scene):
             # for testing
             self.add_child(self.joystick)
             self.add_child(self.joystick_thrust)
+            self.add_child(self.fire_button)
             self.view.add_subview(self.keypad)
         except AttributeError:
             pass
@@ -189,6 +201,27 @@ class EliteScene(Scene):
         
         return background_screen
         
+    def create_controls(self):
+        # control joystick, press to fire
+        self.joystick = Joystick(position=cs.JOYSTICK_1_POSITION,
+                                 color='white',
+                                 show_xy=False,
+                                 msg='',
+                                 radius=cs.JOYSTICK_1_RADIUS)
+        self.joystick_thrust = Joystick(position=cs.JOYSTICK_2_POSITION,
+                                        color='white',
+                                        alpha=0.8,
+                                        show_xy=False,
+                                        msg='',
+                                        mode='NS',
+                                        autoreturn=False,
+                                        radius=cs.JOYSTICK_2_RADIUS)
+        image = pil_to_ui(set_colorkey('Fire2.png'))
+        self.fire_button = SpriteNode(Texture(image),
+                                      size=cs.FIRE_BUTTON_RECT.size,
+                                      position=cs.FIRE_BUTTON_RECT.center(),
+                                      )
+                                       
     def draw_laser_lines(self):
         # create laser lines. These are fixed and always present
         # set alpha = 1 to show

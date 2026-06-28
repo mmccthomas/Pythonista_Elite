@@ -40,7 +40,7 @@ ROOFV = 1
 SIDEV = 0
 
 # Phase constants
-POLE_ALTITUDE = 10000
+POLE_ALTITUDE = 15000
 IP_DIST = 2000    # units ahead of station nose
 IP2_DIST = 6000    # outer waypoint, used when approaching from wrong side
 

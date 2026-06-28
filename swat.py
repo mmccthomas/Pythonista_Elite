@@ -318,7 +318,7 @@ class Swat:
             self.add_new_ship(cs.SHIP_SUN, px, py, pz, None, 0, 0)
 
     def add_new_station(self, sx, sy, sz, rotmat):
-        match self.gs.current_planet_data.tech_level:
+        match self.gs.present_planet.tech:
             case 11 | 12 | 13 | 14:
                 station = cs.SHIP_STATIONV
             case 9 | 10:

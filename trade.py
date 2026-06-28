@@ -100,8 +100,8 @@ class TradeManager:
         obj = universe[universe_obj_index]
         parent = getattr(obj, 'parent', None)
         
-        if obj.flags & cs.FLG_DEAD:
-            return
+        if (obj.flags & cs.FLG_DEAD and obj.type != cs.SHIP_THARGON):
+           return
         if obj.exploding:
             return
         # Cannot scoop missiles
@@ -143,7 +143,7 @@ class TradeManager:
             return
 
         # If it's a specific item (like an escape pod or alloy)
-        elif obj.type == cs.SHIP_ALLOY:
+        elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON :
             
             # allow capture of alien items
             if parent in [cs.SHIP_THARGON, cs.SHIP_THARGOID]:

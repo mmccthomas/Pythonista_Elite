@@ -1223,7 +1223,7 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Leesti'],
+                  #40: ['Select', '$Leesti'],
                   
                   70: ['Launch'],
                   150: ['To Station'],
@@ -1249,7 +1249,7 @@ def loop():
     for i in range(2000):
        logger.debug(i)
        if i in operations:
-          if i == 8:
+          if i == 1:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
@@ -1272,7 +1272,7 @@ def loop():
         
 if __name__ == '__main__':
     import cProfile
-    #loop()
+    loop()
     # logger.debug('finished')
     #
     #cProfile.run('loop()')
@@ -1282,7 +1282,8 @@ if __name__ == '__main__':
     
     def my_function():
         # Example workload
-        loop()
+        #loop()
+        pass
         
     
     # 1. Create a Profile object

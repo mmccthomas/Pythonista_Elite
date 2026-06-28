@@ -242,8 +242,6 @@ distance to make fuel outline circular on 256x192 display.
 as we do not have this limitation, does it matter if fuel is circular?
 currently planets outside circle may be in range, and others inside not.
 
-Sort out autopilot pole height vs low altitude crash. should not crash on autopilot
-
 Possible additional missions from PC version:
 Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible.
 • Masking Device (Cloaking Device): You are sent to intercept and destroy a specific group of ships (often identified as Asp Mk IIs). Once you destroy the target, you can scoop the cargo container containing the Cloaking Device, which allows you to become temporarily invisible to enemy radar.

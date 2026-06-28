@@ -26,7 +26,7 @@ def is_debug_level():
 # --------Global modes
 SOUND = 1
 WIREFRAME = 0
-WIREFRAME_REMOVAL = False
+WIREFRAME_REMOVAL = True
 YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True
@@ -62,7 +62,7 @@ FLIGHT_W = GAME_W - 2 * BORDER
 HUD_W = FLIGHT_W
 HUD_H_L = hud_l_h
 HUD_H_R = hud_r_h
-HUD_H = 300
+HUD_H = GAME_H * 0.33
 HUD_RECT = Rect(BORDER, BORDER,
                 HUD_W, HUD_H + BORDER)
 HUD_LEFT = Rect(BORDER, 4*BORDER,

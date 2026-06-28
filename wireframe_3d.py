@@ -14,6 +14,7 @@
 
 import math
 import scene
+import ui
 import urllib.request
 import re
 import json
@@ -963,7 +964,11 @@ def load_ships_from_json(filename):
 
 class Demo(scene.Scene):
     def setup(self):
-        self.select = 38
+        self.select = 16
+        W, H = get_screen_size()
+        self.up = scene.LabelNode('Up', position=(W-100, 800), parent=self)
+        self.down = scene.LabelNode('Down', position=(W-100, 750), parent=self)
+        self.text = scene.LabelNode(str(self.select), position=(W-100, 850), parent=self)
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
@@ -1023,10 +1028,20 @@ class Demo(scene.Scene):
             obj.explosion_time = 0.0
             self._exploding_obj = obj
             self._explosion_t = 0.0
-                 
+            
+    def touch_ended(self, touch):
+       if self.up.bbox.contains_point(touch.location):
+           self.select = min(self.select + 1, len(self.objects)-1)           
+       elif self.down.bbox.contains_point(touch.location):
+           self.select = max(self.select - 1, 0)           
+           
     def update(self):
         # make all object spin and move forward and backward
         # periodically explode on object
+        try:
+           self.text.text = f'{self.select} {self.objects[self.select].name}'
+        except AttributeError:            
+           self.text.text = f'{self.select}'
         self.t += self.dt * .0001
         looping_sine = abs(math.sin((math.pi * self.t) / 50))
         for obj in self.objects[self.select: self.select+1]:
