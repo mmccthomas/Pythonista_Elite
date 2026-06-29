@@ -760,14 +760,14 @@ class Swat:
         colours = {0: cs.WHITE,  # clean
                    cs.FLG_POLICE: cs.YELLOW,  # tracked
                    cs.FLG_ALIEN: cs.PURPLE,  # thargoid
-                   cs.FLG_BOLD | cs.FLG_ANGRY: cs.RED}  # pirate/bounty hunter
+                   cs.FLG_BOLD | cs.FLG_ANGRY: cs.ORANGE}  # pirate/bounty hunter
              
         for k, v in colours.items():
             if ship.flags & k:
                 colour = v
                 break
             else:
-                colour = cs.RED
+                colour = cs.ORANGE
         # Draw laser line from ship toward player (origin)
         # Project ship position to screen
         

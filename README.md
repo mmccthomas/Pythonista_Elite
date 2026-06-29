@@ -197,6 +197,8 @@ significant changes:
 39. Added Cloaking Device mission. Success obtains Cloaking device. This hides player
     from pirates but uses lots of energy.
 40. Added 'docking denied' function if the station is angry.
+41. Scooping a Thargon drone or debris from a Thargoid yields Alien Items in cargo.
+
     
 Getting Started
 
