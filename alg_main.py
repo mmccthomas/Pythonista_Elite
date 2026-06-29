@@ -8,6 +8,7 @@
 
 import random
 import math
+from time import time
 from ui import in_background
 import game_engine
 from copy import copy
@@ -354,17 +355,17 @@ class MainLoop():
         self.ship = self.space.ship
         if self.mcount == 0:
             logger.debug(f' Dist: {self.pilot.distance_to_target:.0f}km')
+        
         self.pilot.auto_pilot_ship_(self.ship)   # modifies ship in-place
         
         # flight speed tracks velocity
-        self.flight_speed = min(self.myship.max_speed * (1 + 4 * self.pilot.escape), self.ship.velocity)
+        self.flight_speed = min(self.myship.max_speed * (1 + 12 * self.pilot.escape), self.ship.velocity)
         # control joystick
         self.space.joystick_position()
              
     # ── Escape sequence ───────────────────────────────────────────────────────────
     def run_escape_sequence(self):
         # convert to state machine
-        self.current_screen = cs.SCR_ESCAPE_POD
         match self.escape_sequence:
             case "ESCAPE_SETUP":
                 self.flight_speed = 1
@@ -374,54 +375,33 @@ class MainLoop():
                 self.escape_ship = self.swat.add_new_ship(cs.SHIP_COBRA3, 0, 0, 200, None, -127, -127)
                 self.universe[self.escape_ship].velocity = 7
                 self.sound.play_sample(cs.SND_LAUNCH)
-                self.escape_counter = 90
+                self.info_message("Escape pod launched - Ship auto-destruct initiated.", color=cs.WHITE)
+                self.escape_counter = 180
                 self.escape_sequence = "ESCAPE_FLEE"
-            
+                            
             case "ESCAPE_FLEE":
                self.escape_counter -= 1
                if self.escape_counter <= 0:
-                  self.escape_sequence = "ESCAPE_RECOVER"
-               if self.escape_counter == 100:
+                   self.escape_sequence = "ESCAPE_RECOVER"
+               if self.escape_counter == 50:
                    self.universe[self.escape_ship].flags |= cs.FLG_DEAD
                    self.universe[self.escape_ship].exploding = True
                    self.sound.play_sample(cs.SND_EXPLODE)
-               
-               self.gfx.clear_display()
-               self.stars.update_starfield()
-               self.space.update_universe()
-       
+                      
                self.universe[self.escape_ship].location.x = 0
                self.universe[self.escape_ship].location.y = 0
                self.universe[self.escape_ship].location.z += 2
-       
-               self.gfx.display_centre_text(
-                   cs.NUM_LINES - 1,
-                   "Escape pod launched - Ship auto-destruct initiated.",
-                   120, cs.WHITE)
-                  
-               self.gfx.update_screen()
            
             case "ESCAPE_RECOVER":
-                if self.space.close_to_station():
-                    self.escape_sequence == "ESCAPE_DOCK"
-                self.pilot.escape = True
-                self.auto_dock()
-        
-                # if abs(self.flight_roll) < 3 and abs(self.flight_climb) < 3:
-                #    for i in range(cs.MAX_UNIV_OBJECTS):
-                #        if self.universe[i] is not None and self.universe[i].type != 0:
-                #            self.universe[i].location.z -= 1500
-        
-                self.warp_stars = True
-                self.gfx.clear_display()
-                self.stars.update_starfield()
-                self.space.update_universe()
-                
-                self.gfx.update_screen()
+                # autopilot at high speed to station
+                # autodock at 500m from IP
+                if self.pilot._dist_to(self.space.ship, self.pilot.ip_waypoint()) < 500:
+                    self.escape_sequence = "ESCAPE_DOCK"
+                self.pilot.auto_pilot_active = True
             
             case "ESCAPE_DOCK":
                 self.pilot.escape = False
-                self.swat.abandon_ship(self)
+                self.swat.abandon_ship()
         
     # ── Info message ──────────────────────────────────────────────────────────────
     
@@ -909,7 +889,10 @@ class MainLoop():
         # Clear view for space screens
         self.gfx.clear_display()
         self.stars.update_starfield()
- 
+        
+        if self.pilot.escape:
+           self.run_escape_sequence()
+                                                                        
         if self.pilot.auto_pilot_active:
             self.auto_dock()
         else:
@@ -1035,10 +1018,10 @@ class MainLoop():
                 if self.flight_speed > 0:
                     self.flight_speed -= 1
             case 'Up':
-                self.space.increase_flight_climb()
+                self.space.increase_flight_climb(units=0.2)
                 self.climbing = True
             case 'Down':
-                self.space.decrease_flight_climb()
+                self.space.decrease_flight_climb(units=0.2)
                 self.climbing = True
             case 'Left':
                 self.space.increase_flight_roll()
@@ -1059,7 +1042,7 @@ class MainLoop():
                     self.keypad.key_change('Bomb', enabled=False)
             case 'Escape':
                 if self.cmdr.escape_pod and not self.witchspace:
-                    self.current_screen = cs.SCR_ESCAPE_POD
+                    self.pilot.escape = True
             case 'Cancel Escape':
                 self.pilot.disengage_auto_pilot()
             case 'Compass Planet':
@@ -1163,7 +1146,7 @@ class MainLoop():
       # State Machine one of these will be run on each iteration
       # each will call a screen handler to check for key before calling routine
       # logger.debug(f'memory used {resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // (2 ** 20)}MB')
-      
+      self.t1 = time()
       self.check_change_screen()
       match self.current_screen:
           case _ if self.current_screen in cs.SCR_OUTSIDE:
@@ -1192,8 +1175,6 @@ class MainLoop():
               self.equipment_screen()
           case cs.SCR_INVENTORY:
               self.in_dock.display_inventory()
-          case cs.SCR_ESCAPE_POD:
-              self.run_escape_sequence()
           case cs.SCR_GAME_OVER:
               self.run_game_over_screen()
           case cs.SCR_QUIT:
@@ -1202,8 +1183,9 @@ class MainLoop():
           case _:
               # shouldn't' get here
               raise RuntimeError(f'unknown state {self.current_screen}')
+      self.loop_elapsed = time()-self.t1
 
-                                    
+                                                                        
 # ----------Test Loop
 def loop():
     # This to allow stepping through logic without running gui
@@ -1223,12 +1205,12 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  #40: ['Select', '$Leesti'],
+                  # 40: ['Select', '$Leesti'],
                   
                   70: ['Launch'],
-                  150: ['To Station'],
+                  150: ['To Sun'],
                   # 152: [*['Up']*811],
-                  # 155: ['Docking'],
+                  155: ['Escape'],
                   # 150: ['Hyper Space'],
                   
                   # 140: ['Status'],
@@ -1249,7 +1231,7 @@ def loop():
     for i in range(2000):
        logger.debug(i)
        if i in operations:
-          if i == 1:
+          if i == 155:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
@@ -1275,16 +1257,15 @@ if __name__ == '__main__':
     loop()
     # logger.debug('finished')
     #
-    #cProfile.run('loop()')
+    # cProfile.run('loop()')
     
     import pstats
     import io
     
     def my_function():
         # Example workload
-        #loop()
+        # loop()
         pass
-        
     
     # 1. Create a Profile object
     pr = cProfile.Profile()

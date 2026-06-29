@@ -115,6 +115,7 @@ class TradeManager:
         no_fuel_scoop = not self.gs.cmdr.fuel_scoop
         above_ship = obj.location.y >= 0
         full_cargo_hold = self.total_cargo() >= self.gs.cmdr.cargo_capacity
+        
         if (no_fuel_scoop or above_ship or full_cargo_hold):
             logging.debug(f'collided with {obj.name} {obj.location} {obj.location.y=}')
             if no_fuel_scoop:
@@ -146,7 +147,7 @@ class TradeManager:
         elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON :
             
             # allow capture of alien items
-            if parent in [cs.SHIP_THARGON, cs.SHIP_THARGOID]:
+            if parent == cs.SHIP_THARGOID or obj.type == cs.SHIP_THARGON:
                 self.gs.cmdr.current_cargo[16] += 1
                 self.gs.info_message("Scooped: Alien Items")
                 logging.debug(f'captured alien item {obj.location}')

@@ -400,16 +400,18 @@ class Swat:
                 cs.SCR_REAR_VIEW:  gs.cmdr.rear_laser,
                 cs.SCR_RIGHT_VIEW: gs.cmdr.right_laser,
                 cs.SCR_LEFT_VIEW:  gs.cmdr.left_laser,
-            }.get(screen, 0)
-
+            }.get(screen, 0)            
+            heating = {cs.PULSE_LASER: 8,
+                       cs.BEAM_LASER: 12,
+                       cs.MILITARY_LASER: 24,
+                       cs.MINING_LASER: 24}.get(laser, 8)
             if laser != 0:
                 self.laser_counter = 0 if laser > 127 else (laser & 0xFA)
                 laser &= 127
                 self.laser = laser
-                self.laser2 = laser
-
+                self.laser2 = laser                 
                 gs.sound.play_sample(cs.SND_PULSE)
-                gs.laser_temp += 8
+                gs.laser_temp += heating
                 if gs.energy > 1:
                     gs.energy -= 1
 
@@ -1120,10 +1122,11 @@ class Swat:
         cmdr.escape_pod = 0
         cmdr.legal_status = 0
         cmdr.fuel = gs.myship.max_fuel
-        for i in range(gs.NO_OF_STOCK_ITEMS):
+        for i in range(len(gs.trade.STOCK_MARKET)):
             cmdr.current_cargo[i] = 0
         gs.sound.play_sample(cs.SND_DOCK)
         gs.space.dock_player()
+        gs.break_mode = 'docking'
         gs.current_screen = cs.SCR_BREAK_PATTERN
         
         

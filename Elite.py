@@ -10,6 +10,7 @@ import math
 import queue
 import traceback
 import ui
+from time import time
 from imp import reload
 import logging
 from scene import Scene, run, ShapeNode, LabelNode
@@ -310,9 +311,14 @@ class EliteScene(Scene):
             if obj.explosion_time >= 1.0:
                 obj.exploding = False
                 obj.flags |= cs.FLG_REMOVE
+        # if self.mainloop.mcount % 7 == 0:
+        #   self.msg.text = (f'Draw:{(self.elapsed_top *1000):.1f}ms'
+        #                   f' Loop:{(self.mainloop.loop_elapsed *1000):.1f}ms'
+        #                   f'Total {(self.elapsed_top + self.mainloop.loop_elapsed)*1000:.1f}ms')
             
     def draw(self):
         # draw whatever is in mainloop universe
+        self.t1 = time()
         if self.mainloop.current_screen in [*cs.SCR_OUTSIDE, cs.SCR_INTRO_ONE,
                                             cs.SCR_INTRO_TWO, cs.SCR_MISSION]:
             objects = [obj
@@ -334,6 +340,7 @@ class EliteScene(Scene):
                 else:
                     # Draw normal ship (Renderer.draw checks .visible)
                     self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
+        self.elapsed_top = time() - self.t1
                 
     def key_change(self, key_name, name=None, color=None, enabled=None):
         # change appearance of key

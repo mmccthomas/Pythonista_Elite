@@ -222,10 +222,24 @@ class Space:
     @staticmethod
     def _cos(deg):
         return math.cos(math.radians(deg))
+    
+    def deny_docking(self):
+        gs = self.gs
+        if gs.universe[STATION].flags & cs.FLG_ANGRY:
+           # docking denied
+           gs.info_message('Docking Denied! Turn Around')
+           gs.universe[STATION].location.z *= -1
+           gs.universe[PLANET].location.z *= -1
+           return True
+        return False
         
     def is_docking(self, sn):
         gs = self.gs
         logger.debug('checking dock')
+        
+        if self.deny_docking():           
+           return False
+           
         if gs.auto_pilot:
             return True
             
@@ -274,6 +288,8 @@ class Space:
             self.snd.play_sample(cs.SND_CRASH)
 
     def engage_docking_computer(self):
+        if self.deny_docking():        
+            return False
         self.snd.play_sample(cs.SND_DOCK)
         self.dock_player()
         self.gs.break_mode = 'docking'

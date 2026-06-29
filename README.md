@@ -109,7 +109,7 @@ significant changes:
 19. To cater for variable screen size, simplify translation of planet space (0-255) to flight rectangle.
     Use Point2 objects to avoid repetition of x, y operations, allowing mathematical operations on x,y pairs
     
-20. Last measured loop time was 4ms, out of budget of 16.6ms , so writing time is not an issue
+20. Last measured loop and drawing time was 5ms, out of budget of 16.6ms , so writing time is not an issue
 
 21. I decided to make direction joystick analogue (-1.0 to + 1.0 in each axis)
     added Proportional and Integral  control to make more responsive and natural.
@@ -196,6 +196,7 @@ significant changes:
     of ship type, e.g. Pyt, Cob, Asp etc.
 39. Added Cloaking Device mission. Success obtains Cloaking device. This hides player
     from pirates but uses lots of energy.
+40. Added 'docking denied' function if the station is angry.
     
 Getting Started
 
