@@ -493,7 +493,8 @@ class Swat:
             obj.rotx = 4
             obj.acceleration = 2
             obj.flags |= cs.FLG_ANGRY
-
+            obj.flags |= cs.FLG_BOLD
+            
     def explode_object(self, index: int):
         gs = self.gs
         ship = self.universe[index]
@@ -537,7 +538,7 @@ class Swat:
             x, y, z = univ.location.to_tuple
             
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
-
+            
             if index != STATION:
                 if univ.type in (cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR):
                     if self.laser == (cs.MILITARY_LASER & 127):
@@ -551,8 +552,7 @@ class Swat:
                 if univ.type == cs.SHIP_ASTEROID:
                     if self.laser == (cs. MINING_LASER & 127):
                         self.launch_loot(index, cs.SHIP_ROCK, univ)
-                else:
-                    
+                else:                    
                     if univ.max_loot:
                         self.launch_loot(index, cs.SHIP_CARGO, parent=univ)        
                     else:      

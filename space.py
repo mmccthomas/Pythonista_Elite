@@ -463,9 +463,9 @@ class Space:
         if gs.current_screen in (cs.SCR_REAR_VIEW, cs.SCR_GAME_OVER):
             gs.camera.yaw = math.radians(180)
         elif gs.current_screen == cs.SCR_LEFT_VIEW:
-            gs.camera.yaw = math.radians(90)
-        elif gs.current_screen == cs.SCR_RIGHT_VIEW:
             gs.camera.yaw = math.radians(-90)
+        elif gs.current_screen == cs.SCR_RIGHT_VIEW:
+            gs.camera.yaw = math.radians(90)
         elif gs.current_screen == cs.SCR_FRONT_VIEW:
             gs.camera.yaw = math.radians(0)
            
