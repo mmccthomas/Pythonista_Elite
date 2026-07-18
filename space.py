@@ -4,7 +4,7 @@ import random
 import constants as cs
 from vector import Vector, Matrix, unit_vector, set_init_matrix, tidy_matrix
 from scene import text, Point
-from swat import Ship
+from swat_2 import Ship
 import traceback
 import logging
 logger = logging.getLogger(__name__)

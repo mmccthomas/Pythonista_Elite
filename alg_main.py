@@ -19,7 +19,7 @@ from graphics import Graphics
 from autopilot import Pilot
 from trade import TradeManager
 from space import Space
-from swat import Swat, UnivObject
+from swat_2 import Swat, UnivObject
 from elite import EliteState, Commander, GalaxySeed
 import elite
 from planet import PlanetGenerator

@@ -434,7 +434,18 @@ class Renderer:
     def _rotate_normal(self, n, rx, ry, rz):
         """Rotate a local-space normal into world space using Euler angles."""
         return n.rotate_z(rz).rotate_y(ry).rotate_x(rx)
-
+        
+    def _rotate_normal_matrix(self, n, rotmat):
+        """Rotate a local-space normal into world space using a rotation matrix."""
+        right = Vector3(rotmat[0].x, rotmat[0].y, rotmat[0].z)
+        up = Vector3(rotmat[1].x, rotmat[1].y, rotmat[1].z)
+        forward = Vector3(rotmat[2].x, rotmat[2].y, rotmat[2].z)
+        return Vector3(
+            right.x*n.x + up.x*n.y + forward.x*n.z,
+            right.y*n.x + up.y*n.y + forward.y*n.z,
+            right.z*n.x + up.z*n.y + forward.z*n.z,
+        )
+        
     def _visible_edge_set(self, obj, world_verts, cam_pos):
         """
         Return a set of edge indices that should be drawn.
@@ -456,16 +467,22 @@ class Renderer:
             # No face data — draw everything
             return set(range(len(obj.edges)))
 
-        # Rotate all face normals into world space once ---
-        rx = obj.rotation_angles_in_world.x
-        ry = obj.rotation_angles_in_world.y
-        rz = obj.rotation_angles_in_world.z
-        world_normals = [self._rotate_normal(n, rx, ry, rz) for n in fn]
+         # Rotate all face normals into world space once ---
+        if hasattr(obj, 'rotmat_world'):
+            world_normals = [self._rotate_normal_matrix(n, obj.rotmat_world) for n in fn]
+        else:
+            rx = obj.rotation_angles_in_world.x
+            ry = obj.rotation_angles_in_world.y
+            rz = obj.rotation_angles_in_world.z
+            world_normals = [self._rotate_normal(n, rx, ry, rz) for n in fn]
 
         # Front-face test for each face ---
         # dot(world_normal, world_point_on_face - cam_pos) <= 0  →  front face
+        # face_rep_verts are list of world_vertices associated with each face.
+        # face_rep_verts can be duplicated or none
         num_faces = len(world_normals)
         face_front = []
+        single = False
         for fi in range(num_faces):
             rep_vi = frv[fi]
             if rep_vi is None or rep_vi >= len(world_verts):
@@ -480,7 +497,7 @@ class Renderer:
         visible = set()
         for ei, e in enumerate(ewf):
             v1, v2, f1, f2 = e
-            if f1 == f2:
+            if f1 == f2 and single:
                 # Single-face edge — always draw (silhouette / crease)
                 visible.add(ei)
             elif f1 < num_faces and f2 < num_faces:
@@ -560,8 +577,9 @@ class Renderer:
                 continue
 
             # --- Wireframe mesh
+            
             if hasattr(obj, 'rotmat_world'):
-                world_verts = obj.get_world_vertices_from_transform(
+                    world_verts = obj.get_world_vertices_from_transform(
                     obj.position_in_world, obj.rotmat_world
                 )
             else:
@@ -812,7 +830,7 @@ class GetEliteShips:
             obj = self.ship_from_url(url)
             logger.debug(f'got {name}')
             self.ship_objects.append(obj)
-        save_wireframes_to_json(self.ship_objects, 'files/Elite_ships.json')
+        save_wireframes_to_json(self.ship_objects, 'files/Elite_ships_.json')
         
     def ship_from_url(self, url, **kwargs):
         parsed = self.fetch_elite_ship(url)
@@ -901,7 +919,7 @@ def save_wireframes_to_json(wireframe_list, filename):
     serializable_list = [obj.wireframe_to_dict() for obj in wireframe_list]
     try:
         with open(filename, 'w') as f:
-            json.dump(serializable_list, f)
+            json.dump(serializable_list, f, indent=2)
         print(f"Successfully saved {len(wireframe_list)} objects to {filename}")
     except Exception as e:
         print(f"Failed to save data: {e}")
@@ -974,7 +992,8 @@ class Demo(scene.Scene):
             fov=math.radians(60),
             z_far=10000
         )
-        self.renderer = Renderer(depth_sort=True, backface_cull=1)
+        
+        self.renderer = Renderer(depth_sort=True, backface_cull=True)
         self.t = 0
         self.renderer.show_index = True
 
@@ -1043,12 +1062,12 @@ class Demo(scene.Scene):
         except AttributeError:            
            self.text.text = f'{self.select}'
         self.t += self.dt * .0001
-        looping_sine = abs(math.sin((math.pi * self.t) / 50))
+        looping_sine = abs(math.sin((math.pi * self.t) / 10))
         for obj in self.objects[self.select: self.select+1]:
             obj.rotation.y = self.t /10
-            obj.rotation.x = self.t /10
-            #obj.rotation.z = self.t
-            obj.position_in_world = obj.position.clone() # + Vector3(0, 0, 1000 * looping_sine)
+            obj.rotation.x = self.t /5
+            #obj.position.z = looping_sine
+            obj.position_in_world = obj.position.clone() + Vector3(0, 0, 2000 * looping_sine)
             obj.rotation_angles_in_world = obj.rotation.clone()
         """
         if self._exploding_obj is None:
@@ -1074,8 +1093,8 @@ class Demo(scene.Scene):
       
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    # g = Demo()
-    # g.setup()
-    # g.update()
-    # g.draw()
+    #g = Demo()
+    #g.setup()
+    #g.update()
+    #g.draw()
     scene.run(Demo(), show_fps=True, multi_touch=True)
