@@ -11,6 +11,11 @@
 #     facing are skipped entirely.
 #   - wireframe_to_dict() / load_wireframes_from_json() serialise/restore the
 #     new fields so the JSON cache works unchanged.
+# Filled polygons added July 2026:
+# compute triangle_strip for each face to produce coloured dynamic face
+# face coordinates are extracted from face_with_edges data.
+# face_colors can be applied per face.
+# if not specified, shading is apolied depending on angle
 
 import math
 import scene
@@ -19,9 +24,12 @@ import urllib.request
 import re
 import json
 from random import choice, uniform
+from collections import defaultdict, deque
 import random
 import matplotlib.colors as mcolors
 from change_screensize import get_screen_size
+import constants as cs
+import traceback
 import logging
 logger = logging.getLogger(__name__)
 
@@ -118,6 +126,269 @@ class Vector2:
     def clone(self):
         return Vector2(self.x, self.y)
 
+
+         
+def get_face_vertex_indices(edges_with_faces):
+    """
+    Reconstructs the ordered vertex sequence for each face in a mesh given edge-face connections.
+    
+    Parameters:
+        edges_with_faces (list of lists): List where each item is [v1, v2, f1, f2]
+        
+    Returns:
+        dict: A mapping of {face_index: [ordered_vertex_indices]}
+    """
+    # Step 1: Collect all undirected edges belonging to each face
+    face_edges = defaultdict(list)
+    for v1, v2, f1, f2 in edges_with_faces:
+        face_edges[f1].append((v1, v2))
+        
+        # Avoid duplicating self-referencing boundary edges (where f1 == f2)
+        if f1 != f2:
+            face_edges[f2].append((v1, v2))
+
+    face_vertices = {}
+
+    # Step 2: Assemble the edges into a continuous, ordered vertex loop for each face
+    for face_id, edges in face_edges.items():
+        if not edges:
+            continue
+            
+        # Build an adjacency lookup for this specific face's perimeter
+        adj = defaultdict(list)
+        for u, v in edges:
+            adj[u].append(v)
+            adj[v].append(u)
+
+        # Traverse the adjacency graph to form a continuous closed loop
+        start_vert = edges[0][0]
+        loop = [start_vert]
+        visited_verts = {start_vert}
+        curr = edges[0][1]
+
+        while curr != start_vert and curr not in visited_verts:
+            loop.append(curr)
+            visited_verts.add(curr)
+            
+            # Move to the next connected neighbor not yet visited
+            neighbors = adj[curr]
+            next_vert = None
+            for n in neighbors:
+                if n not in visited_verts or (len(loop) > 2 and n == start_vert):
+                    next_vert = n
+                    break
+            
+            if next_vert is None:
+                break  # Prevents infinite loops on non-manifold or malformed faces
+                
+            curr = next_vert
+
+        face_vertices[face_id] = loop
+
+    # Return sorted by face index (0, 1, 2, ...)
+    return dict(sorted(face_vertices.items()))
+    
+def polygon_centroid(vertices, eps=1e-7):
+    """
+    Calculates the (x, y) centroid of a simple 2D polygon.
+    
+    Parameters:
+        vertices (list of tuples/lists): Polygon coordinates [(x0, y0), (x1, y1), ...]
+        eps (float): Epsilon threshold for zero-area check.
+        
+    Returns:
+        tuple: (cx, cy) centroid coordinates, or None if the polygon is degenerate/collapsed.
+    """
+    n = len(vertices)
+    if n < 3:
+        return None  # Cannot form a 2D polygon with < 3 vertices
+
+    signed_area = 0.0
+    cx = 0.0
+    cy = 0.0
+
+    for i in range(n):
+        x0, y0 = vertices[i]
+        x1, y1 = vertices[(i + 1) % n]  # Wraps around to the first vertex
+
+        # Common cross-product term: (x_i * y_{i+1} - x_{i+1} * y_i)
+        cross = (x0 * y1) - (x1 * y0)
+
+        signed_area += cross
+        cx += (x0 + x1) * cross
+        cy += (y0 + y1) * cross
+
+    signed_area *= 0.5
+
+    # Guard against zero-area / collapsed line polygons
+    if abs(signed_area) < eps:
+        return None
+
+    # Final centroid coordinates
+    factor = 1.0 / (6.0 * signed_area)
+    cx *= factor
+    cy *= factor
+
+    return (cx, cy)
+
+def is_ccw(polygon):
+    """Check if the polygon vertices are ordered counter-clockwise."""
+    area = 0.0
+    n = len(polygon)
+    for i in range(n):
+        j = (i + 1) % n
+        area += polygon[i][0] * polygon[j][1]
+        area -= polygon[j][0] * polygon[i][1]
+    return area > 0
+
+def cross_product_2d(a, b, c):
+    """Calculates the 2D cross product of vectors (b - a) and (c - a)."""
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+def point_in_triangle(p, a, b, c):
+    """Determines if point p lies strictly inside triangle abc."""
+    cp1 = cross_product_2d(a, b, p)
+    cp2 = cross_product_2d(b, c, p)
+    cp3 = cross_product_2d(c, a, p)
+    
+    has_neg = (cp1 < 0) or (cp2 < 0) or (cp3 < 0)
+    has_pos = (cp1 > 0) or (cp2 > 0) or (cp3 > 0)
+    
+    return not (has_neg and has_pos)
+
+
+def is_collinear_or_zero_area(vertices, eps=1e-7):
+    """
+    Checks if a polygon has collapsed into a line segment or point
+    by calculating its total signed Area via the Shoelace formula.
+    """
+    if len(vertices) < 3:
+        return True
+
+    total_area = 0.0
+    n = len(vertices)
+    for i in range(n):
+        j = (i + 1) % n
+        total_area += vertices[i][0] * vertices[j][1]
+        total_area -= vertices[j][0] * vertices[i][1]
+
+    # If the signed area is virtually zero, all points are collinear or degenerate
+    return abs(total_area * 0.5) < eps
+
+
+def triangulate_ear_clipping(vertices, eps=1e-7):
+    """
+    Triangulates a simple polygon using Ear Clipping.
+    Guarded against collapsed/collinear/degenerate polygons, returning [] if invalid.
+    """
+    # Guard 1: Must have at least 3 vertices
+    if not vertices or len(vertices) < 3:
+        return []
+
+    # Guard 2: Check if vertices collapse to a straight line or zero-area polygon
+    if is_collinear_or_zero_area(vertices, eps=eps):
+        return []
+
+    n = len(vertices)
+    indices = list(range(n))
+
+    # Determine winding order using shoelace sum
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += vertices[i][0] * vertices[j][1]
+        area -= vertices[j][0] * vertices[i][1]
+
+    if area < 0:
+        indices.reverse()
+
+    triangles = []
+    
+    # Track unclipped vertices to prevent infinite loops on non-simple geometry
+    max_attempts = len(indices) * len(indices)
+    attempts = 0
+
+    while len(indices) > 3:
+        ear_found = False
+        num_verts = len(indices)
+
+        for i in range(num_verts):
+            prev_idx = indices[(i - 1) % num_verts]
+            curr_idx = indices[i]
+            next_idx = indices[(i + 1) % num_verts]
+
+            a, b, c = vertices[prev_idx], vertices[curr_idx], vertices[next_idx]
+
+            # 2D cross product check for convexity
+            cp = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+            if cp <= eps:  # Ignore collinear or reflex ears
+                continue
+
+            # Check if any remaining vertex lies inside the candidate ear triangle
+            is_valid_ear = True
+            for j in range(num_verts):
+                if j in ((i - 1) % num_verts, i, (i + 1) % num_verts):
+                    continue
+                p = vertices[indices[j]]
+                
+                # Point-in-triangle test via cross products
+                cp1 = (a[0] - p[0]) * (b[1] - p[1]) - (a[1] - p[1]) * (b[0] - p[0])
+                cp2 = (b[0] - p[0]) * (c[1] - p[1]) - (b[1] - p[1]) * (c[0] - p[0])
+                cp3 = (c[0] - p[0]) * (a[1] - p[1]) - (c[1] - p[1]) * (a[0] - p[0])
+
+                if (cp1 >= -eps and cp2 >= -eps and cp3 >= -eps) or \
+                   (cp1 <= eps and cp2 <= eps and cp3 <= eps):
+                    is_valid_ear = False
+                    break
+
+            if is_valid_ear:
+                triangles.append((prev_idx, curr_idx, next_idx))
+                indices.pop(i)
+                ear_found = True
+                break
+
+        attempts += 1
+        # Guard 3: Fallback safety net for invalid/self-crossing loops
+        if not ear_found or attempts > max_attempts:
+            return []
+
+    triangles.append((indices[0], indices[1], indices[2]))
+    return triangles
+    
+def in_frame(points):
+    # points is a list of tuples
+    # check if all in frame_rect
+        
+    for p in points:
+       if not cs.FLIGHT_RECT.contains_point(scene.Point(*p)):
+          return False
+    return True   
+def triangles_to_strip(triangles):
+    """
+    Converts an unsorted list of triangles into a single continuous triangle strip 
+    using degenerate triangles to bridge discontinuities.
+    """
+    if not triangles:
+        return []
+
+    strip = list(triangles[0])
+
+    for t in triangles[1:]:
+        # Bridge the last vertex of the previous triangle to the first vertex 
+        # of the new triangle using degenerate (zero-area) triangles.
+        last_vert = strip[-1]
+        first_vert = t[0]
+
+        # Double the boundary vertices to create zero-area triangles
+        strip.extend([last_vert, first_vert])
+        
+        # Enforce consistent winding order if needed by checking strip parity
+        if len(strip) % 2 != 0:
+            strip.extend([t[0], t[1], t[2]])
+        else:
+            strip.extend([t[1], t[0], t[2]])
+
+    return strip
 
 class WireframeObject:
     """
@@ -423,10 +694,12 @@ class Renderer:
     def __init__(self,
                  depth_sort=True,
                  backface_cull=True,
-                 default_line_width=3.0):
+                 default_line_width=3.0,
+                 fill=True):
         self.depth_sort = depth_sort
         self.backface_cull = backface_cull
         self.default_line_width = default_line_width
+        self.fill = fill
         self.show_index = False
     
     # Hidden-line removal
@@ -459,10 +732,24 @@ class Renderer:
         Falls back to returning all edge indices if the required face data
         is missing.
         """
+        def get_frv(ewf, fn):
+           # choose a vertex index which is linked to face
+           if fn is None:
+             return None
+           no_faces = len(fn)
+           frv = []
+           for f_no in range(no_faces):
+             nodes = []
+             for edge_face in ewf:
+               if f_no in edge_face[2:]:
+                  frv.append(edge_face[0])
+                  break
+             else:
+                frv.append(None)
+           return frv
         ewf = getattr(obj, 'edges_with_faces', None)
-        fn = getattr(obj, 'face_normals',     None)
-        frv = getattr(obj, 'face_rep_verts',   None)
-
+        fn = getattr(obj, 'face_normals',     None)        
+        frv = get_frv(ewf, fn)
         if ewf is None or fn is None or frv is None:
             # No face data — draw everything
             return set(range(len(obj.edges)))
@@ -482,16 +769,23 @@ class Renderer:
         # face_rep_verts can be duplicated or none
         num_faces = len(world_normals)
         face_front = []
+        self.face_angles = []        
         single = False
         for fi in range(num_faces):
             rep_vi = frv[fi]
             if rep_vi is None or rep_vi >= len(world_verts):
                 # No representative vertex; assume front-facing (safe default)
                 face_front.append(True)
+                self.face_angles.append(0)
                 continue
             n = world_normals[fi]
             p = world_verts[rep_vi]
-            face_front.append(n.dot(p - cam_pos) <= 0)
+            p = p - cam_pos
+            n1 = n.normalize()
+            p1 = p.normalize()
+            angle = n1.dot(p1)            
+            self.face_angles.append(angle)            
+            face_front.append(angle <= 0)
 
         # Mark visible edges ---
         visible = set()
@@ -508,7 +802,45 @@ class Renderer:
                 visible.add(ei)
 
         return visible
-    
+        
+    def get_line_color(self, obj, ei):
+       # colour of a segment is defined by 
+       # list of colour for each segment
+       # colour of single line from a dictionary with default
+       # colour from edge_color attribute
+       # colour from color attribute
+       #
+       try:
+           if hasattr(obj, 'edge_color'):
+               default = obj.edge_color
+           else:
+               default = obj.color   
+           if hasattr(obj, 'edge_colors'):
+               if isinstance(obj.edge_colors, list):                         
+                   color=mcolors.to_rgb(obj.edge_colors[ei])
+               elif isinstance(obj.edge_colors, dict):
+                   color=mcolors.to_rgb(obj.edge_colors.get(str(ei), default))
+           else:
+                color = mcolors.to_rgb(default)
+           scene.stroke(*color)
+       except ValueError:                        
+           raise ValueError("Color name not found")
+           
+    def get_face_color(self, obj, face_id):
+        if hasattr(obj, 'face_colors'):
+            if isinstance(obj.face_colors, list):                         
+                color=mcolors.to_rgb(obj.face_colors[face_id])
+            elif isinstance(obj.face_colors, dict):
+                color=mcolors.to_rgb(obj.face_colors.get(str(face_id), obj.color))
+        else:
+            color = mcolors.to_rgb(obj.color)
+        # shade the fill
+        # directly normal is brightest
+        shade = -self.face_angles[face_id]                  
+        color = Vector3(*color) * shade
+        color = color.to_tuple
+        scene.fill(color)                
+                 
     # Main draw
     def draw(self, objects, camera, screen_size):
         sw, sh = screen_size.w, screen_size.h
@@ -595,16 +927,22 @@ class Renderer:
                 )
             else:
                 visible_edges = None      # draw all edges
+                                               
+            if obj.edges_with_faces is not None:
+                edges = [ewf[:2] for ewf in obj.edges_with_faces]
+                if self.fill:
+                   # draw faces first to allowlines to overlay
+                   self.apply_triangle_strips(obj, screen_pts)
+            else:
+                edges = obj.edges            
             
-            color = obj.color
-            line_width = getattr(obj, 'line_width', self.default_line_width)
-            has_edge_colors = hasattr(obj, 'edge_colors')
+            line_width = getattr(obj, 'line_width', self.default_line_width)            
             scene.stroke_weight(line_width)
 
             vx, vy, vw, vh = getattr(self, 'viewport',
                                      scene.Rect(0, 0, sw, sh))
 
-            for ei, (i1, i2) in enumerate(obj.edges):
+            for ei, (i1, i2) in enumerate(edges):
                 if visible_edges is not None and ei not in visible_edges:
                     continue          # hidden-line removal culled this edge
 
@@ -618,26 +956,19 @@ class Renderer:
                 )
                 if clipped is None:
                     continue
-
-                edge_color = obj.edge_colors[ei] if has_edge_colors else color
-                #print(obj, edge_color)
-                if isinstance(edge_color, (list, tuple)):
-                     scene.stroke(*edge_color)
-                else:                 
-                  if edge_color in mcolors.CSS4_COLORS:
-                     rgb_float = mcolors.to_rgb(edge_color)                     
-                     scene.stroke(*rgb_float)
-                  else:
-                     raise ValueError("Color name not found")
+                
+                self.get_line_color(obj, ei)
                 if self.show_index:
                    # display index number at centre
                    x1,y1,x2,y2 = clipped
                    midx, midy = (x1+x2)/2, (y1+y2)/2 + 5   
-                   scene.text(str(ei), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)
-                   
+                   scene.tint(1,1,1,1)     
+                   scene.text(str(ei), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)                   
                    
                 scene.rect(0, 0, 0, 0)
                 scene.line(*clipped)
+                
+            
             
     def explode(self, obj, camera, screen_size):
         """ Explosion helper """
@@ -646,8 +977,11 @@ class Renderer:
         t = getattr(obj, 'explosion_time', 1.0)
         world_verts = obj.get_world_vertices()
         center = obj.position_in_world
-
-        for ei, (i1, i2) in enumerate(obj.edges):
+        if obj.edges_with_faces is not None:
+            edges = [ewf[:2] for ewf in obj.edges_with_faces]                
+        else:
+            edges = obj.edges
+        for ei, (i1, i2) in enumerate(edges):
             v1, v2 = world_verts[i1], world_verts[i2]
             if t > 0:
                 edge_center = (v1 + v2) / 2
@@ -677,9 +1011,131 @@ class Renderer:
                 scene.stroke(*edge_color)
                 scene.rect(0, 0, 0, 0)
                 scene.line(*p1, *p2)
-    
+                
+    def apply_triangle_strips(self, obj, screen_pts):
+     
+         """This converts the 2d  polygon faces of the 3d object into 
+           triangle_strips for solid filled display 
+           3d world coordinates need to be converted to 2d screen coordinates
+           They need to be clipoed to the screen viewport, possibly adding
+           more vertices.
+           Polygons are then converted to triangles, and finally assembled 
+           to triangle strips for display
+         """
+           
+         bounds  = (self.viewport.min_x, self.viewport.min_y,
+                  self.viewport.max_x, self.viewport.max_y)                                          
+         faces = get_face_vertex_indices(obj.edges_with_faces)                                
+         for face_id, verts in faces.items():
+             try:
+                 if self.face_angles[face_id] >= 0:
+                    continue
+                 self.get_face_color(obj, face_id)                 
+                 
+                 polygon = [screen_pts[vert] for vert in verts if screen_pts[vert]]                                      
+                 
+                 # check all points in FRAME_RECT
+                 polygon = self.clip_polygon_to_rect(polygon, bounds)       
+                 tri_indices = triangulate_ear_clipping(polygon)                                    
+                 strip_indices = triangles_to_strip(tri_indices)
+                 
+                 points = [polygon[index] for index in strip_indices]                 
+                 scene.triangle_strip(points)                        
+                        
+                 # plot face number at centre of face           
+                 centroid = polygon_centroid(polygon)
+                 if self.show_index and centroid:
+                     # display index number at centre                  
+                     midx, midy = centroid
+                     scene.tint(0, 0, 0, 1)             
+                     scene.text(str(face_id), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)     
+             except (TypeError, AttributeError, IndexError) as e:
+                  logger.debug(f'{traceback.format_exc()}')       
+                  logger.debug(f'{obj.name} {face_id} {self.face_angles}')
+                  
+               
     # -----Private geometry helpers
     
+    def clip_polygon_to_rect(self, polygon, bounds):
+        """
+        Clips a 2D polygon to an axis-aligned rectangle using the
+        Sutherland-Hodgman algorithm.
+    
+        Parameters:
+            polygon (list of tuples/lists): Polygon vertices [(x0, y0), (x1, y1), ...]
+            
+        Returns:
+            list of tuples: Vertices of the clipped polygon [(x0, y0), ...], 
+                            or [] if completely outside.
+        """
+        
+        def is_inside(p, stage):
+            if p is None:
+               return False
+            x, y = p
+            x_min, y_min, x_max, y_max = bounds
+            match stage:
+                case 0:
+                    return x >= x_min
+                case 1:
+                    return x <= x_max
+                case 2:
+                    return y >= y_min
+                case 3:
+                    return y <= y_max
+           
+        def intersect(p1, p2, stage):
+           """Calculates the intersection of line segment p1-p2 with boundary stage."""
+           if p1 is None:
+              raise ValueError
+           x1, y1 = p1
+           x2, y2 = p2
+           dx = x2 - x1
+           dy = y2 - y1
+           x_min, y_min, x_max, y_max = bounds
+           match stage:
+               case 0:    # Left boundary (x = x_min)                  
+                  y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
+                  return (x_min, y)               
+               case 1:  # Right boundary (x = x_max)               
+                  y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
+                  return (x_max, y)               
+               case 2:  # Top boundary (y = y_min)               
+                   x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
+                   return (x, y_min)               
+               case 3:  # Bottom boundary (y = y_max)               
+                  x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
+                  return (x, y_max)                           
+        
+        output_verts = polygon[:]
+        # Process all four boundary clipping stages sequentially
+        for stage in range(4):
+            if not output_verts:
+                break
+    
+            input_verts = output_verts
+            output_verts = []
+    
+            s = input_verts[-1]  # Start with the last vertex to close loop
+    
+            for e in input_verts:
+                e_inside = is_inside(e, stage)
+                s_inside = is_inside(s, stage)
+    
+                if e_inside:
+                    if s_inside:
+                        output_verts.append(e)
+                    else:
+                        output_verts.append(intersect(s, e, stage))
+                        output_verts.append(e)
+                elif s_inside:
+                    output_verts.append(intersect(s, e, stage))
+    
+                s = e
+
+        return output_verts
+
+
     def _clip_line(self, x1, y1, x2, y2, x_min, y_min, x_max, y_max):
         """Liang-Barsky line clip. Returns clipped (x1,y1,x2,y2) or None."""
         dx, dy = x2 - x1, y2 - y1
@@ -697,7 +1153,7 @@ class Renderer:
         if t0 > t1:
             return None
         return (x1 + t0*dx, y1 + t0*dy, x1 + t1*dx, y1 + t1*dy)
-
+ 
     def _to_camera(self, world_v, camera):
         """World vertex → camera space using full roll/pitch/yaw basis."""
         v = world_v - camera.position
@@ -938,13 +1394,19 @@ def _obj_from_dict(item):
     obj.header = item.get("header", {})
 
     obj.original_vertices = [Vector3(*v) for v in item["original_vertices"]]
-    obj.edges = [tuple(e) for e in item["edges"]]
+    if 'edges' in item:
+       obj.edges = [tuple(e) for e in item["edges"]]
     if isinstance(item["color"], str):
         obj.color=item["color"]
     else:
         obj.color=tuple(item["color"])
+    if 'edge_color' in item:
+        obj.edge_color = item["edge_color"]
     if 'edge_colors' in item:
-        obj.edge_colors = list(item["edge_colors"])
+        obj.edge_colors = item["edge_colors"]
+    # list or dict
+    if 'face_colors' in item:
+        obj.face_colors = item["face_colors"]
 
     obj.position_in_world = Vector3(*item["position_in_world"])
     obj.rotation_angles_in_world = Vector3(*item["rotation_angles_in_world"])
@@ -954,10 +1416,7 @@ def _obj_from_dict(item):
         obj.edges_with_faces = [tuple(e) for e in item["edges_with_faces"]]
 
     if "face_normals" in item:
-        obj.face_normals = [Vector3(*n) for n in item["face_normals"]]
-
-    if "face_rep_verts" in item:
-        obj.face_rep_verts = item["face_rep_verts"]
+        obj.face_normals = [Vector3(*n) for n in item["face_normals"]]    
 
     return obj
 
@@ -982,18 +1441,21 @@ def load_ships_from_json(filename):
 
 class Demo(scene.Scene):
     def setup(self):
-        self.select = 16
+        self.select = 40
         W, H = get_screen_size()
         self.up = scene.LabelNode('Up', position=(W-100, 800), parent=self)
         self.down = scene.LabelNode('Down', position=(W-100, 750), parent=self)
         self.text = scene.LabelNode(str(self.select), position=(W-100, 850), parent=self)
+        self.fill_mode = scene.LabelNode('Fill', position=(W-100, 650), parent=self)
+        self.stop_mode = scene.LabelNode('Stop', position=(W-100, 550), parent=self)
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
             z_far=10000
         )
         
-        self.renderer = Renderer(depth_sort=True, backface_cull=True)
+        self.stop = False
+        self.renderer = Renderer(depth_sort=True, backface_cull=True, fill=True)
         self.t = 0
         self.renderer.show_index = True
 
@@ -1007,6 +1469,9 @@ class Demo(scene.Scene):
 
         try:
             objects = load_wireframes_from_json('files/Elite_ships.json')
+            objects1 = load_wireframes_from_json('stationv.json')
+            objects = objects + objects1
+            pass
         except Exception:
             ship_locs = [
                 'missile', 'coriolis', 'escape_pod', 'plate', 'canister',
@@ -1020,16 +1485,10 @@ class Demo(scene.Scene):
             ships = GetEliteShips('6502sp', ship_locs)
             objects = ships.ship_objects
             
-        for ship in objects[:]:
-            
-            ship.position = Vector3(
-                uniform(0,0),
-                uniform(0, 0),
-                uniform(200, 200)
-            )
-            
-                # print(ship.position)
-            ship.scale = uniform(0.9, 1.1)
+        for ship in objects[:]:            
+            ship.position = Vector3(0, 0, 200)            
+            # print(ship.position)
+            ship.scale = 1.0
             #ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)
@@ -1052,7 +1511,11 @@ class Demo(scene.Scene):
        if self.up.bbox.contains_point(touch.location):
            self.select = min(self.select + 1, len(self.objects)-1)           
        elif self.down.bbox.contains_point(touch.location):
-           self.select = max(self.select - 1, 0)           
+           self.select = max(self.select - 1, 0)          
+       elif self.fill_mode.bbox.contains_point(touch.location):
+           self.renderer.fill = not  self.renderer.fill   
+       elif self.stop_mode.bbox.contains_point(touch.location):
+           self.stop = not  self.stop 
            
     def update(self):
         # make all object spin and move forward and backward
@@ -1062,13 +1525,14 @@ class Demo(scene.Scene):
         except AttributeError:            
            self.text.text = f'{self.select}'
         self.t += self.dt * .0001
-        looping_sine = abs(math.sin((math.pi * self.t) / 10))
-        for obj in self.objects[self.select: self.select+1]:
-            obj.rotation.y = self.t /10
-            obj.rotation.x = self.t /5
-            #obj.position.z = looping_sine
-            obj.position_in_world = obj.position.clone() + Vector3(0, 0, 2000 * looping_sine)
-            obj.rotation_angles_in_world = obj.rotation.clone()
+        if not self.stop:
+            looping_sine = abs(math.sin((math.pi * self.t) / 10))
+            for obj in self.objects[self.select: self.select+1]:
+                obj.rotation.y = self.t /10
+                obj.rotation.x = self.t /5
+                #obj.position.z = looping_sine
+                obj.position_in_world = obj.position.clone() + Vector3(0, 0, 1000 * looping_sine)
+                obj.rotation_angles_in_world = obj.rotation.clone()
         """
         if self._exploding_obj is None:
             self._pick_new_explosion()
@@ -1093,8 +1557,12 @@ class Demo(scene.Scene):
       
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    #g = Demo()
-    #g.setup()
-    #g.update()
-    #g.draw()
+    from time import time 
+    g = Demo()
+    g.setup()
+    g.update()
+    #
+    t=time()
+    g.draw()
+    print(time()-t)
     scene.run(Demo(), show_fps=True, multi_touch=True)

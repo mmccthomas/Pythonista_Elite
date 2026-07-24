@@ -198,6 +198,8 @@ significant changes:
     from pirates but uses lots of energy.
 40. Added 'docking denied' function if the station is angry.
 41. Scooping a Thargon drone or debris from a Thargoid yields Alien Items in cargo.
+42. Added filled colours for ships !
+43. Added super new STATIONV in tech level 12 and above planets. Straight out of 2001
 
     
 Getting Started
@@ -234,16 +236,9 @@ Chris `Thomas. June 2026
 
 # TODO list 
 
-
-Wireframe backface culling gives strange results.
-works ok in wireframe_3d_2 Demo, 
-
-
+Added ability for ships to target each other.
+not functional yet.
  
-Having difficulty with fuel radius. Orignial code used modified hypotenuse
-distance to make fuel outline circular on 256x192 display.
-as we do not have this limitation, does it matter if fuel is circular?
-currently planets outside circle may be in range, and others inside not.
 
 Possible additional missions from PC version:
 Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible.

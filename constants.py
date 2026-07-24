@@ -27,6 +27,7 @@ def is_debug_level():
 SOUND = 1
 WIREFRAME = 0
 WIREFRAME_REMOVAL = True
+FILL = True
 YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True

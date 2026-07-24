@@ -102,6 +102,8 @@ class Swat:
         self.ship_count: dict[int, int] = {i: 0 for i in range(cs.NO_OF_SHIPS + 1)}
         
         ships = load_wireframes_from_json('files/Elite_ships.json')
+        station5 = load_wireframes_from_json('stationv.json')
+        ships = ships + station5
         self.ship_dict = {ship.name: ship for ship in ships}
         # add planet and sun
         
@@ -947,7 +949,7 @@ class Swat:
                 return
             if self._tactics_fire_missile(index, ship):
                 return
-    
+        
         self._tactics_combat(index, ship, flags)
         
     def _tactics_escape_pod(self, index, ship, energy, maxeng):
@@ -1005,7 +1007,7 @@ class Swat:
         direction = vector_dot_product(nvec, ship.rotmat[NOSEV])
     
         if (distance < MIN_FIRING_DISTANCE and direction >= self._cos(33.6)
-                and self.ship_list[ship.type].laser_strength != 0):
+                and self.ship_list[ship.type].laser_strength != 0):            
             self._tactics_fire_at_target(index, ship, target_index, rel_loc, distance, direction, nvec)
             return
     
@@ -1048,7 +1050,12 @@ class Swat:
         # If the ship is not pointing at its target, skip to the next part
         if direction >= self._cos(23.5):
             ship.flags |= cs.FLG_FIRING | cs.FLG_HOSTILE
-            gs.msg_left.text = f'{ship.name} firing '
+            if ship.target == 0:
+                target_str = 'player'
+            else:
+                target_str = self.gs.universe[ship.target].name
+            self.gs.msg_left.text = f'{ship.name} firing at {target_str}'
+            #gs.msg_left.text = f'{ship.name} firing '
             logger.debug(gs.msg_left.text)
             self.ship_fire(ship, target_obj)
         # If the target is in the ship's crosshairs, register damage, slow down
