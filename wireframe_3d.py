@@ -19,17 +19,16 @@
 
 import math
 import scene
-import ui
 import urllib.request
 import re
 import json
-from random import choice, uniform
-from collections import defaultdict, deque
+from collections import defaultdict
 import random
 import matplotlib.colors as mcolors
 from change_screensize import get_screen_size
 import constants as cs
 import traceback
+from joystick import Joystick
 import logging
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,23 @@ class Vector2:
         return Vector2(self.x, self.y)
 
 
-         
+def normal_for_face(pts):
+    """Newell's method: robust polygon normal for a planar quad/n-gon."""
+    
+    n = [0, 0, 0]
+    cnt = len(pts)
+    for i in range(cnt):
+        cur = pts[i]
+        nxt = pts[(i + 1) % cnt]
+        n[0] += (cur[1] - nxt[1]) * (cur[2] + nxt[2])
+        n[1] += (cur[2] - nxt[2]) * (cur[0] + nxt[0])
+        n[2] += (cur[0] - nxt[0]) * (cur[1] + nxt[1])
+    length = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
+    if length == 0:
+        return n
+    return [round(n[0] / length, 3), round(n[1] / length, 3), round(n[2] / length, 3)]
+
+                  
 def get_face_vertex_indices(edges_with_faces):
     """
     Reconstructs the ordered vertex sequence for each face in a mesh given edge-face connections.
@@ -187,7 +202,8 @@ def get_face_vertex_indices(edges_with_faces):
 
     # Return sorted by face index (0, 1, 2, ...)
     return dict(sorted(face_vertices.items()))
-    
+
+        
 def polygon_centroid(vertices, eps=1e-7):
     """
     Calculates the (x, y) centroid of a simple 2D polygon.
@@ -231,6 +247,7 @@ def polygon_centroid(vertices, eps=1e-7):
 
     return (cx, cy)
 
+
 def is_ccw(polygon):
     """Check if the polygon vertices are ordered counter-clockwise."""
     area = 0.0
@@ -241,9 +258,11 @@ def is_ccw(polygon):
         area -= polygon[j][0] * polygon[i][1]
     return area > 0
 
+
 def cross_product_2d(a, b, c):
     """Calculates the 2D cross product of vectors (b - a) and (c - a)."""
     return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
 
 def point_in_triangle(p, a, b, c):
     """Determines if point p lies strictly inside triangle abc."""
@@ -354,18 +373,20 @@ def triangulate_ear_clipping(vertices, eps=1e-7):
 
     triangles.append((indices[0], indices[1], indices[2]))
     return triangles
-    
+
+        
 def in_frame(points):
     # points is a list of tuples
     # check if all in frame_rect
-        
     for p in points:
        if not cs.FLIGHT_RECT.contains_point(scene.Point(*p)):
           return False
-    return True   
+    return True
+    
+    
 def triangles_to_strip(triangles):
     """
-    Converts an unsorted list of triangles into a single continuous triangle strip 
+    Converts an unsorted list of triangles into a single continuous triangle strip
     using degenerate triangles to bridge discontinuities.
     """
     if not triangles:
@@ -374,7 +395,7 @@ def triangles_to_strip(triangles):
     strip = list(triangles[0])
 
     for t in triangles[1:]:
-        # Bridge the last vertex of the previous triangle to the first vertex 
+        # Bridge the last vertex of the previous triangle to the first vertex
         # of the new triangle using degenerate (zero-area) triangles.
         last_vert = strip[-1]
         first_vert = t[0]
@@ -389,6 +410,7 @@ def triangles_to_strip(triangles):
             strip.extend([t[1], t[0], t[2]])
 
     return strip
+
 
 class WireframeObject:
     """
@@ -701,6 +723,7 @@ class Renderer:
         self.default_line_width = default_line_width
         self.fill = fill
         self.show_index = False
+        self.get_normals = False
     
     # Hidden-line removal
     
@@ -739,7 +762,7 @@ class Renderer:
            no_faces = len(fn)
            frv = []
            for f_no in range(no_faces):
-             nodes = []
+             
              for edge_face in ewf:
                if f_no in edge_face[2:]:
                   frv.append(edge_face[0])
@@ -748,7 +771,7 @@ class Renderer:
                 frv.append(None)
            return frv
         ewf = getattr(obj, 'edges_with_faces', None)
-        fn = getattr(obj, 'face_normals',     None)        
+        fn = getattr(obj, 'face_normals', None)
         frv = get_frv(ewf, fn)
         if ewf is None or fn is None or frv is None:
             # No face data — draw everything
@@ -769,7 +792,7 @@ class Renderer:
         # face_rep_verts can be duplicated or none
         num_faces = len(world_normals)
         face_front = []
-        self.face_angles = []        
+        self.face_angles = []
         single = False
         for fi in range(num_faces):
             rep_vi = frv[fi]
@@ -783,8 +806,8 @@ class Renderer:
             p = p - cam_pos
             n1 = n.normalize()
             p1 = p.normalize()
-            angle = n1.dot(p1)            
-            self.face_angles.append(angle)            
+            angle = n1.dot(p1)
+            self.face_angles.append(angle)
             face_front.append(angle <= 0)
 
         # Mark visible edges ---
@@ -804,7 +827,7 @@ class Renderer:
         return visible
         
     def get_line_color(self, obj, ei):
-       # colour of a segment is defined by 
+       # colour of a segment is defined by
        # list of colour for each segment
        # colour of single line from a dictionary with default
        # colour from edge_color attribute
@@ -814,32 +837,32 @@ class Renderer:
            if hasattr(obj, 'edge_color'):
                default = obj.edge_color
            else:
-               default = obj.color   
+               default = obj.color
            if hasattr(obj, 'edge_colors'):
-               if isinstance(obj.edge_colors, list):                         
-                   color=mcolors.to_rgb(obj.edge_colors[ei])
+               if isinstance(obj.edge_colors, list):
+                   color = mcolors.to_rgb(obj.edge_colors[ei])
                elif isinstance(obj.edge_colors, dict):
-                   color=mcolors.to_rgb(obj.edge_colors.get(str(ei), default))
+                   color = mcolors.to_rgb(obj.edge_colors.get(str(ei), default))
            else:
-                color = mcolors.to_rgb(default)
+               color = mcolors.to_rgb(default)
            scene.stroke(*color)
-       except ValueError:                        
+       except ValueError:
            raise ValueError("Color name not found")
            
     def get_face_color(self, obj, face_id):
         if hasattr(obj, 'face_colors'):
-            if isinstance(obj.face_colors, list):                         
-                color=mcolors.to_rgb(obj.face_colors[face_id])
+            if isinstance(obj.face_colors, list):
+                color = mcolors.to_rgb(obj.face_colors[face_id])
             elif isinstance(obj.face_colors, dict):
-                color=mcolors.to_rgb(obj.face_colors.get(str(face_id), obj.color))
+                color = mcolors.to_rgb(obj.face_colors.get(str(face_id), obj.color))
         else:
             color = mcolors.to_rgb(obj.color)
         # shade the fill
         # directly normal is brightest
-        shade = -self.face_angles[face_id]                  
+        shade = -self.face_angles[face_id]
         color = Vector3(*color) * shade
         color = color.to_tuple
-        scene.fill(color)                
+        scene.fill(color)
                  
     # Main draw
     def draw(self, objects, camera, screen_size):
@@ -911,14 +934,14 @@ class Renderer:
             # --- Wireframe mesh
             
             if hasattr(obj, 'rotmat_world'):
-                    world_verts = obj.get_world_vertices_from_transform(
+                world_verts = obj.get_world_vertices_from_transform(
                     obj.position_in_world, obj.rotmat_world
                 )
             else:
                 world_verts = obj.get_world_vertices()
 
-            cam_verts = [self._to_camera(v, camera) for v in world_verts]
-            screen_pts = [self._project(v, fl, camera) for v in cam_verts]
+            self.cam_verts = [self._to_camera(v, camera) for v in world_verts]
+            screen_pts = [self._project(v, fl, camera) for v in self.cam_verts]
 
             # Hidden-line removal — only when enabled and face data present
             if self.backface_cull:
@@ -930,13 +953,14 @@ class Renderer:
                                                
             if obj.edges_with_faces is not None:
                 edges = [ewf[:2] for ewf in obj.edges_with_faces]
+                
                 if self.fill:
                    # draw faces first to allowlines to overlay
                    self.apply_triangle_strips(obj, screen_pts)
             else:
-                edges = obj.edges            
+                edges = obj.edges
             
-            line_width = getattr(obj, 'line_width', self.default_line_width)            
+            line_width = getattr(obj, 'line_width', self.default_line_width)
             scene.stroke_weight(line_width)
 
             vx, vy, vw, vh = getattr(self, 'viewport',
@@ -960,16 +984,14 @@ class Renderer:
                 self.get_line_color(obj, ei)
                 if self.show_index:
                    # display index number at centre
-                   x1,y1,x2,y2 = clipped
-                   midx, midy = (x1+x2)/2, (y1+y2)/2 + 5   
-                   scene.tint(1,1,1,1)     
-                   scene.text(str(ei), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)                   
+                   x1, y1, x2, y2 = clipped
+                   midx, midy = (x1+x2)/2, (y1+y2)/2 + 5
+                   scene.tint(1, 1, 1, 1)
+                   scene.text(str(ei), font_name='Copperplate', font_size=15, x=midx, y=midy,        alignment=5)
                    
                 scene.rect(0, 0, 0, 0)
                 scene.line(*clipped)
-                
-            
-            
+                                        
     def explode(self, obj, camera, screen_size):
         """ Explosion helper """
         scene.no_fill()
@@ -978,7 +1000,7 @@ class Renderer:
         world_verts = obj.get_world_vertices()
         center = obj.position_in_world
         if obj.edges_with_faces is not None:
-            edges = [ewf[:2] for ewf in obj.edges_with_faces]                
+            edges = [ewf[:2] for ewf in obj.edges_with_faces]
         else:
             edges = obj.edges
         for ei, (i1, i2) in enumerate(edges):
@@ -1001,61 +1023,84 @@ class Renderer:
             if p1 and p2:
                 alpha = max(0, 1.0 - t)
                 if isinstance(obj.color, (list, tuple)):
-                     edge_color = obj.color[:3]
-                else:                 
+                    edge_color = obj.color[:3]
+                else:
                   if obj.color in mcolors.CSS4_COLORS:
-                      edge_color = mcolors.to_rgb(obj.color)                                          
+                      edge_color = mcolors.to_rgb(obj.color)
                   else:
-                     raise ValueError("Color name not found") 
+                     raise ValueError("Color name not found")
                 edge_color = edge_color + (alpha,)
                 scene.stroke(*edge_color)
                 scene.rect(0, 0, 0, 0)
                 scene.line(*p1, *p2)
                 
+    def sort_faces(self, faces):
+        coords = self.cam_verts
+        
+        def get_avg_z(indices, point_list):
+            """Calculates the average z value for a set of list indices."""
+            return sum(point_list[idx].z for idx in indices) / len(indices)
+        
+        # Sort dictionary by descending average z-value
+        sorted_data = dict(
+            sorted(
+                faces.items(),
+                key=lambda item: get_avg_z(item[1], coords),
+                reverse=True  # Set to False if you want ascending order
+            )
+        )
+        return sorted_data
+ 
     def apply_triangle_strips(self, obj, screen_pts):
      
-         """This converts the 2d  polygon faces of the 3d object into 
-           triangle_strips for solid filled display 
-           3d world coordinates need to be converted to 2d screen coordinates
-           They need to be clipoed to the screen viewport, possibly adding
-           more vertices.
-           Polygons are then converted to triangles, and finally assembled 
-           to triangle strips for display
-         """
-           
-         bounds  = (self.viewport.min_x, self.viewport.min_y,
-                  self.viewport.max_x, self.viewport.max_y)                                          
-         faces = get_face_vertex_indices(obj.edges_with_faces)                                
-         for face_id, verts in faces.items():
-             try:
-                 if self.face_angles[face_id] >= 0:
-                    continue
-                 self.get_face_color(obj, face_id)                 
-                 
-                 polygon = [screen_pts[vert] for vert in verts if screen_pts[vert]]                                      
-                 
-                 # check all points in FRAME_RECT
-                 polygon = self.clip_polygon_to_rect(polygon, bounds)       
-                 tri_indices = triangulate_ear_clipping(polygon)                                    
-                 strip_indices = triangles_to_strip(tri_indices)
-                 
-                 points = [polygon[index] for index in strip_indices]                 
-                 scene.triangle_strip(points)                        
-                        
-                 # plot face number at centre of face           
-                 centroid = polygon_centroid(polygon)
-                 if self.show_index and centroid:
-                     # display index number at centre                  
-                     midx, midy = centroid
-                     scene.tint(0, 0, 0, 1)             
-                     scene.text(str(face_id), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)     
-             except (TypeError, AttributeError, IndexError) as e:
-                  logger.debug(f'{traceback.format_exc()}')       
-                  logger.debug(f'{obj.name} {face_id} {self.face_angles}')
-                  
+        """This converts the 2d  polygon faces of the 3d object into
+          triangle_strips for solid filled display
+          
+          3d world coordinates need to be converted to 2d screen coordinates
+          They need to be clipoed to the screen viewport, possibly adding
+          more vertices.
+          Polygons are then converted to triangles, and finally assembled
+          to triangle strips for display
+        """
+          
+        bounds = (self.viewport.min_x, self.viewport.min_y,
+                  self.viewport.max_x, self.viewport.max_y)
+        faces = get_face_vertex_indices(obj.edges_with_faces)
+        
+        # TODO sort faces by z to draw furthest first
+        # faces = self.sort_faces(faces)
+        for face_id, verts in faces.items():
+            try: 
+                if self.get_normals:
+                    points = [obj.original_vertices[v].to_tuple for v in verts]
+                    normal = normal_for_face(points[::-1])
+                    print(face_id, verts, normal)
+                if self.face_angles[face_id] >= 0:
+                   continue
+                self.get_face_color(obj, face_id)
+                
+                polygon = [screen_pts[vert] for vert in verts if screen_pts[vert]]
+                
+                # check all points in FRAME_RECT
+                polygon = self.clip_polygon_to_rect(polygon, bounds)
+                tri_indices = triangulate_ear_clipping(polygon)
+                strip_indices = triangles_to_strip(tri_indices)
+                
+                points = [polygon[index] for index in strip_indices]
+                scene.triangle_strip(points)
+                       
+                # plot face number at centre of face
+                centroid = polygon_centroid(polygon)
+                if self.show_index and centroid:
+                    # display index number at centre
+                    midx, midy = centroid
+                    scene.tint(0, 0, 0, 1)
+                    scene.text(str(face_id), font_name='Copperplate', font_size=15, x=midx, y=midy, alignment=5)
+            except (TypeError, AttributeError, IndexError):
+                logger.debug(f'{traceback.format_exc()}')
+                logger.debug(f'{obj.name} {face_id} {self.face_angles}')
                
     # -----Private geometry helpers
-    
     def clip_polygon_to_rect(self, polygon, bounds):
         """
         Clips a 2D polygon to an axis-aligned rectangle using the
@@ -1065,7 +1110,7 @@ class Renderer:
             polygon (list of tuples/lists): Polygon vertices [(x0, y0), (x1, y1), ...]
             
         Returns:
-            list of tuples: Vertices of the clipped polygon [(x0, y0), ...], 
+            list of tuples: Vertices of the clipped polygon [(x0, y0), ...],
                             or [] if completely outside.
         """
         
@@ -1090,22 +1135,21 @@ class Renderer:
               raise ValueError
            x1, y1 = p1
            x2, y2 = p2
-           dx = x2 - x1
-           dy = y2 - y1
+           
            x_min, y_min, x_max, y_max = bounds
            match stage:
-               case 0:    # Left boundary (x = x_min)                  
+               case 0:    # Left boundary (x = x_min)
                   y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
-                  return (x_min, y)               
-               case 1:  # Right boundary (x = x_max)               
+                  return (x_min, y)
+               case 1:  # Right boundary (x = x_max)
                   y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
-                  return (x_max, y)               
-               case 2:  # Top boundary (y = y_min)               
+                  return (x_max, y)
+               case 2:  # Top boundary (y = y_min)
                    x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
-                   return (x, y_min)               
-               case 3:  # Bottom boundary (y = y_max)               
+                   return (x, y_min)
+               case 3:  # Bottom boundary (y = y_max)
                   x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
-                  return (x, y_max)                           
+                  return (x, y_max)
         
         output_verts = polygon[:]
         # Process all four boundary clipping stages sequentially
@@ -1134,7 +1178,6 @@ class Renderer:
                 s = e
 
         return output_verts
-
 
     def _clip_line(self, x1, y1, x2, y2, x_min, y_min, x_max, y_max):
         """Liang-Barsky line clip. Returns clipped (x1,y1,x2,y2) or None."""
@@ -1397,9 +1440,9 @@ def _obj_from_dict(item):
     if 'edges' in item:
        obj.edges = [tuple(e) for e in item["edges"]]
     if isinstance(item["color"], str):
-        obj.color=item["color"]
+        obj.color = item["color"]
     else:
-        obj.color=tuple(item["color"])
+        obj.color = tuple(item["color"])
     if 'edge_color' in item:
         obj.edge_color = item["edge_color"]
     if 'edge_colors' in item:
@@ -1416,7 +1459,7 @@ def _obj_from_dict(item):
         obj.edges_with_faces = [tuple(e) for e in item["edges_with_faces"]]
 
     if "face_normals" in item:
-        obj.face_normals = [Vector3(*n) for n in item["face_normals"]]    
+        obj.face_normals = [Vector3(*n) for n in item["face_normals"]]
 
     return obj
 
@@ -1441,23 +1484,35 @@ def load_ships_from_json(filename):
 
 class Demo(scene.Scene):
     def setup(self):
-        self.select = 40
+        self.select = 4
         W, H = get_screen_size()
         self.up = scene.LabelNode('Up', position=(W-100, 800), parent=self)
         self.down = scene.LabelNode('Down', position=(W-100, 750), parent=self)
         self.text = scene.LabelNode(str(self.select), position=(W-100, 850), parent=self)
         self.fill_mode = scene.LabelNode('Fill', position=(W-100, 650), parent=self)
-        self.stop_mode = scene.LabelNode('Stop', position=(W-100, 550), parent=self)
+        self.numbers_mode = scene.LabelNode('Show Numbers', position=(W-100, 600), parent=self)
+        self.zoom_value = scene.LabelNode('Distance 100', position=(W-100, 350), parent=self)
+        self.zoom_in = scene.LabelNode('Zoom In', position=(W-100, 250), parent=self)
+        self.zoom_out = scene.LabelNode('Zoom Out', position=(W-100, 200), parent=self)
+        
         self.camera = Camera(
             position=Vector3(0, 0, -500),
             fov=math.radians(60),
             z_far=10000
         )
+        self.joystick = Joystick(position=cs.JOYSTICK_1_POSITION,
+                                 color='white',
+                                 show_xy=False,
+                                 msg='',
+                                 radius=cs.JOYSTICK_1_RADIUS)
+        self.add_child(self.joystick)
         
-        self.stop = False
+        self.zoom = 1
+        self.show_numbers = True
         self.renderer = Renderer(depth_sort=True, backface_cull=True, fill=True)
         self.t = 0
         self.renderer.show_index = True
+        self.x = self.y = 0.0
 
         self.objects = [
             WireCube(50, 50, 50, position=Vector3(-80, 0, 0), color=GREEN),
@@ -1485,19 +1540,18 @@ class Demo(scene.Scene):
             ships = GetEliteShips('6502sp', ship_locs)
             objects = ships.ship_objects
             
-        for ship in objects[:]:            
-            ship.position = Vector3(0, 0, 200)            
+        for ship in objects[:]:
+            ship.position = Vector3(0, 0, 200)
             # print(ship.position)
             ship.scale = 1.0
-            #ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
+            # ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)
         self._exploding_obj = None
         for i, ship in enumerate(self.objects):
-           if  hasattr(ship, 'name'):
-              print(i, ship.name)
+           if hasattr(ship, 'name'):
+               print(i, ship.name)
         self._explosion_t = random.random()
-        
         
     def _pick_new_explosion(self):
         candidates = [o for o in self.objects if hasattr(o, 'name')]
@@ -1507,31 +1561,62 @@ class Demo(scene.Scene):
             self._exploding_obj = obj
             self._explosion_t = 0.0
             
+    def touch_began(self, touch):
+        if self.joystick.bbox.contains_point(touch.location):
+            self.joystick.touch_began(touch)
+            self.is_joystick_active = True
+            
+    def touch_moved(self, touch):
+        """Processes movement independently for each active touch ID."""
+        self.moved = True
+        if self.joystick.bbox.contains_point(touch.location):
+            self.joystick.touch_moved(touch)
+            self.x = self.joystick.x
+            self.y = self.joystick.y
+                     
     def touch_ended(self, touch):
        if self.up.bbox.contains_point(touch.location):
-           self.select = min(self.select + 1, len(self.objects)-1)           
+           self.select = min(self.select + 1, len(self.objects) - 1)
        elif self.down.bbox.contains_point(touch.location):
-           self.select = max(self.select - 1, 0)          
+           self.select = max(self.select - 1, 0)
        elif self.fill_mode.bbox.contains_point(touch.location):
-           self.renderer.fill = not  self.renderer.fill   
-       elif self.stop_mode.bbox.contains_point(touch.location):
-           self.stop = not  self.stop 
+           self.renderer.fill = not self.renderer.fill
+       elif self.numbers_mode.bbox.contains_point(touch.location):
+           self.renderer.show_index = not self.renderer.show_index
+       elif self.zoom_in.bbox.contains_point(touch.location):
+           self.zoom -= 1
+           self.zoom_value.text = f'Distance {self.zoom *100}'
+       elif self.zoom_out.bbox.contains_point(touch.location):
+           self.zoom += 1
+           self.zoom_value.text = f'Distance {self.zoom *100}'
+       
+       self.joystick.touch_ended(touch)
+       self.is_joystick_active = False
            
     def update(self):
         # make all object spin and move forward and backward
         # periodically explode on object
+        
         try:
            self.text.text = f'{self.select} {self.objects[self.select].name}'
-        except AttributeError:            
+        except AttributeError:
            self.text.text = f'{self.select}'
         self.t += self.dt * .0001
-        if not self.stop:
+        self.joystick.update()
+        if self.joystick.x == 0.0 and self.joystick.y == 0.0:
             looping_sine = abs(math.sin((math.pi * self.t) / 10))
             for obj in self.objects[self.select: self.select+1]:
-                obj.rotation.y = self.t /10
-                obj.rotation.x = self.t /5
-                #obj.position.z = looping_sine
+                obj.rotation.y = self.t / 10
+                obj.rotation.x = self.t / 5
+                # obj.position.z = looping_sine
                 obj.position_in_world = obj.position.clone() + Vector3(0, 0, 1000 * looping_sine)
+                obj.rotation_angles_in_world = obj.rotation.clone()
+        else:
+            for obj in self.objects[self.select: self.select+1]:
+                obj.rotation.x = self.joystick.y * math.pi
+                obj.rotation.y = self.joystick.x * math.pi
+
+                obj.position_in_world = obj.position.clone() + Vector3(0, 0, self.zoom*100)
                 obj.rotation_angles_in_world = obj.rotation.clone()
         """
         if self._exploding_obj is None:
@@ -1542,7 +1627,7 @@ class Demo(scene.Scene):
             if self._explosion_t >= 1.0:
                 self.objects.remove(self._exploding_obj)
                 self._exploding_obj = None
-        """          
+        """
     def draw(self):
         scene.background(0, 0, 0)
         self.renderer.viewport = scene.Rect(0, 0, *get_screen_size())
@@ -1553,16 +1638,16 @@ class Demo(scene.Scene):
             else:
                 self.renderer.draw([obj], self.camera, self.size)
 
-
       
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    from time import time 
+    from time import time
     g = Demo()
     g.setup()
+    g.renderer.get_normals = False
     g.update()
     #
-    t=time()
+    t = time()
     g.draw()
     print(time()-t)
     scene.run(Demo(), show_fps=True, multi_touch=True)

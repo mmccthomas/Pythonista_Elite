@@ -86,7 +86,7 @@ def tube_quads_outward(top_start, bot_start, n):
     for i in range(n):
         a = top_start + i
         b = top_start + (i + 1) % n
-        fs.append([a, b, b - top_start + bot_start, a - top_start + bot_start])
+        fs.append([b, a, a - top_start + bot_start, b - top_start + bot_start])
     return fs
 
 
@@ -101,7 +101,7 @@ def build_station(
     rim_depth=40.0,     # radial thickness of each rim cuboid, extends INWARD from rim_diameter/2
     hub_diameter=100.0,
     hub_sides=8,
-    rim_spacing=75.0,
+    rim_spacing=125,
     spoke_width=16.0,
     spoke_length=16.0,
     entry_portal_width=20.0,
@@ -130,7 +130,15 @@ def build_station(
     def radial_edges(start_a, start_b, n):
         for i in range(n):
             edges.append([start_a + i, start_b + i])
-
+            
+    def get_max_at_index(data, indexes):
+       """Returns the maximum element at index i, or None if i is invalid."""
+       try:
+           max_val = max([max(sublist[i] for sublist in data if len(sublist) > i) for i in indexes])
+           return max_val
+       except ValueError:
+           return 0  # Handles empty generator if no sublists reach index i
+        
     # ------------------------------------------------------------
     # Build one wheel: outer rim cuboids + inner hub prism w/ end caps.
     # Returns dict of useful vertex-ring start indices for later use
@@ -200,11 +208,13 @@ def build_station(
 
     # Wheel 1 centered at z=0
     w1 = build_wheel(0.0)
+    encaps1 = (len(faces)-2, len(faces)-1)
+    
     # Wheel 2 sits above: its facing (bottom) hub ring is rim_spacing above wheel1's top hub ring
     w2_center = w1["z_top"] + rim_spacing + rim_hw
     w2 = build_wheel(w2_center)
 
-    
+    encaps2 = (len(faces)-2, len(faces)-1)
     # Connecting tube: wheel1's top hub ring <-> wheel2's bottom hub ring
     
     radial_edges(w1["v_ht"], w2["v_hb"], hub_sides)
@@ -295,7 +305,7 @@ def build_station(
     # the station's z-axis, above the top wheel. It gets its own real
     # face, oriented with the same normal convention as a hub end cap
     # (i.e. facing +z).
-    
+    entry_portal_z = get_max_at_index(verts, [2])
     pw = entry_portal_width / 2.0
     ph = entry_portal_height / 2.0
     portal_start = add_verts([
@@ -339,11 +349,10 @@ def build_station(
     # capped docking portal are all fully closed solids). If any edge
     # ends up with fewer than 2, fall back to a dummy "black" face so the
     # schema stays valid.
-    DUMMY = len(faces)
+    DUMMY = encaps2[0]
     need_dummy = any(len(v) < 2 for v in edge_faces.values())
-    if need_dummy:
-        faces.append(None)
-        face_normals.append([0.0, 0.0, 0.0])
+    
+        
 
     edges_with_faces = []
     for (a, b) in edges:
@@ -356,7 +365,9 @@ def build_station(
         edges_with_faces.append([a, b, fl[0], fl[1]])
 
     
-    face_colors =  ["cyan"] * len(faces)
+    face_colors =  {str(DUMMY):"yellow", str(len(faces)-1):"black"}
+    building = {str(i): "black" for i in range(10, 50)}
+    face_colors = face_colors | building
     edge_colors = {} #["cyan"] * len(edges)
 
     station = {
@@ -381,8 +392,8 @@ def build_station(
         "position": [0.0, 0.0, 0.0],
         "rotation": [0.0, 0.0, 0.0],
         "scale": 1.0,
-        "color": [0, 1, 1, 1],
-        "edge_color": "black",
+        "color": "cornflowerblue",
+        "edge_color": "cyan",
         "visible": True,
         "line_width": 2.0,
         "original_vertices": [[round(float(x), 2) for x in v] for v in all_verts],
@@ -436,6 +447,7 @@ def format_value(v, indent):
 
 def write_station_json(station, path):
     text = format_value(station, 0)
+    text = text.replace("'", '"')
     text = '[' + text + ']'
     with open(path, "w") as f:
         f.write(text + "\n")

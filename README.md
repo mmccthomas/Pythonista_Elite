@@ -188,18 +188,32 @@ significant changes:
     The route to the target is calculated and displayed as a list and route on the long range chart.
     
 33. Incoming Laser shots are coloured to the ship type.
+
 34. Universe objects have new colours. Canisters, plates and asteroids are yellow
+
 35. Added Instant Dock button which is enabled when autopilot has locked to IP, i.e safe
-36. Made clouds and sea level of planet keyed to planet galaxyseed 
-37. All mission code now in missions module to allow adding extra missions    
+
+36. Made clouds and sea level of planet keyed to planet galaxyseed
+
+37. All mission code now in missions module to allow adding extra missions
+
 38. When enabled by SCANNER_LABELS key, scanner objects have 3 letter identifiers
     of ship type, e.g. Pyt, Cob, Asp etc.
+  
 39. Added Cloaking Device mission. Success obtains Cloaking device. This hides player
     from pirates but uses lots of energy.
+    
 40. Added 'docking denied' function if the station is angry.
+
 41. Scooping a Thargon drone or debris from a Thargoid yields Alien Items in cargo.
+
 42. Added filled colours for ships !
-43. Added super new STATIONV in tech level 12 and above planets. Straight out of 2001
+    Edited Elite_ships.json to add new faces for windows, exhaust ports etc to allow
+    these to be different colours
+    Colour faces to match ArcElite datasheets
+    
+43. Added super new STATIONV in tech level 12 and above planets. Straight out of 2001,
+    including partly built ring
 
     
 Getting Started
