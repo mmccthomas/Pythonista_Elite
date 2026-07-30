@@ -237,7 +237,7 @@ class Space:
         gs = self.gs
         logger.debug('checking dock')
         
-        if self.deny_docking():           
+        if self.deny_docking():
            return False
            
         if gs.auto_pilot:
@@ -288,7 +288,7 @@ class Space:
             self.snd.play_sample(cs.SND_CRASH)
 
     def engage_docking_computer(self):
-        if self.deny_docking():        
+        if self.deny_docking():
             return False
         self.snd.play_sample(cs.SND_DOCK)
         self.dock_player()
@@ -547,16 +547,12 @@ class Space:
             if obj.distance > 57344 and i > SUN:  # not sun, planet or station
                 gs.swat.remove_ship(i)
                 # continue
-         
-            # obj.flags = flip.flags
-            # obj.exp_seed = flip.exp_seed
-            # obj.exp_delta = flip.exp_delta
+                     
             obj.flags &= ~cs.FLG_FIRING
 
             if not (obj.flags & cs.FLG_DEAD):
                 self.swat.check_target(i, obj)
-            
-            # gsupdate_model.swat.update_model(obj)
+                        
         gfx.finish_render()
         gs.detonate_bomb = False
     
@@ -577,7 +573,7 @@ class Space:
             y = int(obj.location.y) // 256
             z = int(obj.location.z) // 256
             dir = 1
-            x1 = x
+            x1 = -x
             y1 = dir * z // 4
             y2 = y1 - y // 2
 
@@ -730,7 +726,7 @@ class Space:
 
         nomiss = min(gs.cmdr.missiles, 4)
         # x is position of last missile
-        x = (nomiss - 1) * 22 + sx
+        x = (nomiss - 1) * 22 * cs.HUD_SCALE + sx
 
         if gs.swat.missile_target != cs.MISSILE_UNARMED:
             # sprite = (cs.IMG_MISSILE_YELLOW
@@ -739,25 +735,24 @@ class Space:
             colour = (cs.YELLOW
                       if gs.swat.missile_target < 0
                       else cs.RED)
-            gfx.draw_colour_line(x, sy, x+14, sy, colour, width=cs.METER_HEIGHT)
-            x -= 22
+            gfx.draw_colour_line(x, sy, x+14*cs.HUD_SCALE, sy, colour, width=cs.METER_HEIGHT)
+            x -= 22 * cs.HUD_SCALE
             nomiss -= 1
 
         for _ in range(nomiss):
             gfx.draw_colour_line(x, sy, x+14, sy, cs.GREEN, width=cs.METER_HEIGHT)  # draw_sprite(cs.IMG_MISSILE_GREEN, x, sy)
-            x -= 22
+            x -= 22 * cs.HUD_SCALE
 
     def update_console(self):
         gs = self.gs
         gfx = self.gfx
-        
-        # This is fixed
-        left_x = 189
-        # This moves with screen size
-        right_x = cs.FLIGHT_RECT.max_x - 217
+
+        # These move with screen size
+        left_x = cs.METER_BASE_LEFTX
+        right_x = cs.METER_BASE_RIGHTX
         # y goes down to increase
-        base_y = 113 + 3 * cs.BORDER
-        dy = -16
+        base_y = cs.METER_BASE_Y
+        dy = cs.METER_DELTA_Y
         
         gfx.set_clip_region(*cs.HUD_RECT)
         self.display_shields(left_x, base_y)

@@ -935,8 +935,8 @@ class MainLoop():
             if self.energy < 50:
                 self.info_message("ENERGY LOW")
                 self.sound.play_sample(cs.SND_BEEP)
- 
-        if self.encounter.check() and not self.witchspace:
+        # every 4.25 secs
+        if self.mcount == 0 and not self.witchspace:
             self.swat.random_encounter()
  
         self.swat.cool_laser()
@@ -974,10 +974,7 @@ class MainLoop():
                     self.draw_lasers = self.swat.fire_laser()
             case 'Docking':
                 self.break_mode = 'docking'
-                if self.instant_dock:
-                    self.space.engage_docking_computer()
-                else:
-                    self.pilot.engage_auto_pilot()
+                self.pilot.engage_auto_pilot()
             case 'Instant Dock':
                 self.break_mode = 'docking'
                 try:
@@ -1205,19 +1202,19 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  # 40: ['Select', '$Leesti'],
+                  40: ['Select', '$Edtira'],
                   
                   70: ['Launch'],
-                  150: ['To Sun'],
+                  
                   # 152: [*['Up']*811],
-                  155: ['Escape'],
+                  150: ['Instant Dock'],
                   # 150: ['Hyper Space'],
                   
                   # 140: ['Status'],
                   165: [],  # complete
-                  267: [],
+                  267: ['OK'],
                   
-                  963: ['Docking'],
+                  # 963: ['To Station'],
                   1002: [],
                   1079: [],
                   # 142: ['Launch'],
@@ -1228,7 +1225,7 @@ def loop():
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(2000):
+    for i in range(10000):
        logger.debug(i)
        if i in operations:
           if i == 155:

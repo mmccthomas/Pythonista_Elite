@@ -1,5 +1,5 @@
 # routine to generate good looking rotating planet
-from scene import Scene, SceneView, SpriteNode, Texture, Shader, run
+from scene import Scene, SpriteNode, Texture, Shader, run
 from change_screensize import get_screen_size
 import numpy as np
 from PIL import Image, ImageFilter
@@ -363,7 +363,7 @@ class PlanetScene(Scene):
         # image_path='images/sun_texture400.png')
         self.add_child(self.planet.planet)
         w, h = get_screen_size()
-        self.dashboard = PlanetDashboard(self, frame=(0, 0, w, h))        
+        self.dashboard = PlanetDashboard(self, frame=(0, 0, w, h))
         self.view.add_subview(self.dashboard)
         
     def update(self):
@@ -465,7 +465,7 @@ class ParamSlider(ui.View):
         self.slider.continuous = True
         self.slider.flex = 'W'
         self.slider.action = self._slider_changed
-        self.add_subview(self.slider)        
+        self.add_subview(self.slider)
         self.set_value(self.default, fire=False)
 
     def value(self):
@@ -485,7 +485,7 @@ class ParamSlider(ui.View):
 
     def _slider_changed(self, sender):
         self._update_label()
-        self.on_change(self.name, self.value())        
+        self.on_change(self.name, self.value())
 
 
 class PlanetDashboard(ui.View):
@@ -503,15 +503,13 @@ class PlanetDashboard(ui.View):
         # --- Scrollable slider stack (bottom) ---
         w, h = get_screen_size()
         self.frame = (w-300, 0, 250, h)
-        # Start with a couple of common sliders already present                            
+        # Start with a couple of common sliders already present
         for name in ('color', 'sea_level', 'blob_size',
                      'cloud_threshold', 'seed'):
             self.add_slider(name)
         self._layout_sliders()
         
         self.regenerate()
-
-    
 
     def _layout_sliders(self):
         y = 4
@@ -522,19 +520,18 @@ class PlanetDashboard(ui.View):
             s.frame = (4, y, self.width - 8, 50)
             y += 54
         
-
     # -- slider management --------------------------------------------
     def add_slider(self, name):
         if name in self.sliders or name not in PARAM_SPECS:
             return
         spec = PARAM_SPECS[name]
         slider = ParamSlider(name, spec,
-                              on_change=self.param_changed
-                              )
+                             on_change=self.param_changed
+                             )
         self.sliders[name] = slider
         self.add_subview(slider)
         self.params[name] = slider.default
-        self._layout_sliders()        
+        self._layout_sliders()
 
     # -- regeneration ----------------------------------------------------
     def param_changed(self, name, value):
@@ -555,22 +552,21 @@ class PlanetDashboard(ui.View):
         self._regen_done()
                        
     @on_main_thread
-    def _regen_done(self):        
+    def _regen_done(self):
         if getattr(self, '_regen_error', None):
             console.hud_alert(self._regen_error, 'error')
         else:
             try:
                 self.planet_scene.reload_texture()
             except Exception as e:
-                logger.exception(f'{e} texture reload failed')       
+                logger.exception(f'{e} texture reload failed')
     
-
 
 if __name__ == '__main__':
     w, h = get_screen_size()
-    g= PlanetScene()
+    g = PlanetScene()
     # g.setup()
-    #dashboard = PlanetDashboard(frame=(0, 0, w, h))
+    # dashboard = PlanetDashboard(frame=(0, 0, w, h))
     run(PlanetScene())
-    #dashboard.present('sheet')
-    #dashboard.scene_view.scene = dashboard.planet_scene
+    # dashboard.present('sheet')
+    # dashboard.scene_view.scene = dashboard.planet_scene

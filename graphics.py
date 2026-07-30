@@ -93,6 +93,7 @@ def _clip_circle_segments(cx, cy, r, rect, n=100):
                 
     return np.array(segments) if segments else np.empty((0, 4))
 
+
 def _clip_ellipse_segments(bound, rect, n=100):
     # bound, rect = (x, y, w, h)
     xmin, ymin, wclip, hclip = rect
@@ -114,7 +115,7 @@ def _clip_ellipse_segments(bound, rect, n=100):
     X = center_x + a * np.cos(t)
     Y = center_y + b * np.sin(t)
     
-    points =  np.column_stack((X, Y))    
+    points = np.column_stack((X, Y))
     
     # 2. Identify points inside the rectangle
     inside = (points[:, 0] >= xmin) & (points[:, 0] <= xmax) & \
@@ -139,6 +140,7 @@ def _clip_ellipse_segments(bound, rect, n=100):
                 segments.append(np.concatenate([p1_clipped, p2_clipped]))
                 
     return np.array(segments) if segments else np.empty((0, 4))
+
 
 class Graphics():
     
@@ -246,12 +248,19 @@ class Graphics():
         This is a Pythonic replacement for the C pointer-shuffling logic.
         only used in missions
         text is at ty, ignore tx for now
+        Full stops cause a line feed
         use wordwrap
         we get a list of strings. print them centred
         """
-        wrapped_text = textwrap.wrap(txt, width=(cs.TEXT_LENGTH))
-        
-        for line_no, textline in enumerate(wrapped_text):
+        # 1. Split into sentences
+        sentences = [s.strip() + "." for s in txt.split(".") if s.strip()]
+
+        # 2. Wrap each sentence separately and collect lines
+        wrapped_lines = []
+        for sentence in sentences:
+            wrapped_lines.extend(textwrap.wrap(sentence, width=cs.TEXT_LENGTH))
+                        
+        for line_no, textline in enumerate(wrapped_lines):
             self.display_centre_text(line_no + ty, textline)
             
     def draw_rectangle(self, col, row, width, height, color):
@@ -374,7 +383,7 @@ class Graphics():
            for segment in clipped:
                x1, y1, x2, y2 = segment
                scene.line(*segment)
-        return clipped 
+        return clipped
                  
     def draw_filled_polygon(self, points, color, width=2):
         # points is (c1, y1, x2, y2)

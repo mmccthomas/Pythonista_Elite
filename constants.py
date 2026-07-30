@@ -5,10 +5,15 @@ from scene import Rect
 from PIL import Image
 import logging
 
+# ipad (1112.00, 834.00)
+# ipad_mini (1133.00, 744.00)
+# ipad13 (1366.00, 1024.00)
+# iphone (852.00, 393.00)
+
 
 def setup_logging():
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='[%(asctime)s.%(msecs)03d] %(levelname)s in %(name)s/%(funcName)s (line %(lineno)d): %(message)s',
         datefmt='%H:%M:%S'
     )
@@ -24,6 +29,7 @@ def is_debug_level():
     
 
 # --------Global modes
+OLD_SCHOOL = False
 SOUND = 1
 WIREFRAME = 0
 WIREFRAME_REMOVAL = True
@@ -31,12 +37,26 @@ FILL = True
 YAW_COUPLING = 0.0
 TELEPORT = True
 UNIVERSE_STATUS = True
-INSTANT_DOCK = False
+INSTANT_DOCK = True
 MAX_FUEL = 70
 FLIGHT_DIRECTOR = True
 FIRE_ACCURACY = 8  # higher makes it easier to hit target default 8
 CLASSIC_DISTANCE = True
 SCANNER_LABELS = True
+
+if OLD_SCHOOL:
+   WIREFRAME = 1
+   WIREFRAME_REMOVAL = True
+   FILL = False
+   YAW_COUPLING = 0.0
+   TELEPORT = False
+   UNIVERSE_STATUS = False
+   INSTANT_DOCK = False
+   MAX_FUEL = 70
+   FLIGHT_DIRECTOR = False
+   FIRE_ACCURACY = 1  # higher makes it easier to hit target default 8
+   CLASSIC_DISTANCE = True
+   SCANNER_LABELS = False
 
 # --------Screen areas
 # flight area, scanner, with scale
@@ -50,7 +70,11 @@ hud_r = Image.open('images/hud_right.png')
 
 hud_l_w, hud_l_h = hud_l.size
 hud_r_w, hud_r_h = hud_r.size
+
 W, H = get_screen_size()
+
+HUD_SCALE = min(H / 834, 1.0)
+
 logger.debug(f'{W=} {H=}')
 FRAMERATE = 30
 
@@ -61,25 +85,26 @@ RADIUS = 10
 FLIGHT_W = GAME_W - 2 * BORDER
 
 HUD_W = FLIGHT_W
-HUD_H_L = hud_l_h
-HUD_H_R = hud_r_h
+HUD_H_L = hud_l_h * HUD_SCALE
+HUD_H_R = hud_r_h * HUD_SCALE
+HUD_W_L = hud_l_w * HUD_SCALE
+HUD_W_R = hud_r_w * HUD_SCALE
+
 HUD_H = GAME_H * 0.33
 HUD_RECT = Rect(BORDER, BORDER,
                 HUD_W, HUD_H + BORDER)
 HUD_LEFT = Rect(BORDER, 4*BORDER,
-                hud_l_w + 0 * BORDER,
+                HUD_W_L + 0 * BORDER,
                 HUD_H_L + BORDER)
 
-HUD_RIGHT = Rect(HUD_W - hud_r_w + BORDER, 4*BORDER,
-                 hud_r_w + 2 * BORDER, HUD_H_R + BORDER)
-HUD_CENTRE = Rect(hud_l_w + 2 * BORDER, 3*BORDER,
-                  HUD_W - hud_l_w - hud_r_w - 2 * BORDER, HUD_H + BORDER)
-METER_LENGTH = 80
-METER_HEIGHT = 10
-          
+HUD_RIGHT = Rect(HUD_W - HUD_W_R + BORDER, 4*BORDER,
+                 HUD_W_R + 2 * BORDER, HUD_H_R + BORDER)
+HUD_CENTRE = Rect(HUD_W_L + 2 * BORDER, 3*BORDER,
+                  HUD_W - HUD_W_L - HUD_W_R - 2 * BORDER, HUD_H + BORDER)
+                                      
 TOP_H = 0.08 * GAME_H
 FLIGHT_H = GAME_H - HUD_H - 5 * BORDER - TOP_H
-FLIGHT_RECT = Rect(BORDER, HUD_CENTRE.max_y + 2 * BORDER,
+FLIGHT_RECT = Rect(BORDER, HUD_CENTRE.max_y + 3 * BORDER,
                    FLIGHT_W, FLIGHT_H)
 TOP_RECT = Rect(BORDER, GAME_H - BORDER - TOP_H, FLIGHT_W, TOP_H)
 
@@ -94,11 +119,18 @@ COMPASS_RECT = Rect(COMPASS_X - COMPASS_W/2,
                     COMPASS_Y - COMPASS_W/2,
                     COMPASS_W, COMPASS_W)
 
+METER_LENGTH = 80 * HUD_SCALE
+METER_HEIGHT = 10 * HUD_SCALE
+METER_BASE_Y = 113 * HUD_SCALE + 3 * BORDER
+METER_BASE_LEFTX = 189 * HUD_SCALE
+METER_BASE_RIGHTX = FLIGHT_RECT.max_x - 217 * HUD_SCALE
+METER_DELTA_Y = -16 * HUD_SCALE
+
 # keyboard fills 1/3 screen
 KEYBOARD_X = GAME_W
 KEYBOARD_W = W - GAME_W
 KEYBOARD_H = KEYBOARD_W * 3/4  # 4:3 ratio
-KEYBOARD_Y = GAME_H - KEYBOARD_H - 175  # joystick size
+KEYBOARD_Y = H * 0.75 - KEYBOARD_H  # joystick size
 KEYBOARD_RECT = Rect(KEYBOARD_X, KEYBOARD_Y, KEYBOARD_W, KEYBOARD_H)
 
 # joysticks are centred on keyboard * 0.25 and 0.75
@@ -106,11 +138,16 @@ JOYSTICK_1_RADIUS = KEYBOARD_W * 0.2
 JOYSTICK_2_RADIUS = KEYBOARD_W * 0.15  # 3/4 joystick_1
 JOYSTICK_1_POSITION = (KEYBOARD_X + KEYBOARD_W * 0.75, JOYSTICK_1_RADIUS * 1.1)
 JOYSTICK_2_POSITION = (KEYBOARD_X + KEYBOARD_W * 0.25, JOYSTICK_1_RADIUS * 1.1)
+# midway between joysticks, midway between joystick y and lower edge of keyboard
+# size joystick2. 2
+centrex = KEYBOARD_RECT.center().x
+centrey = (JOYSTICK_1_RADIUS * 1.75)  # + KEYBOARD_Y-KEYBOARD_H) / 2
+radius = KEYBOARD_W * 0.067
+rect = (centrex-radius, centrey - radius, 2 * radius, 2 * radius)
+FIRE_BUTTON_RECT = Rect(*rect)
 
-FIRE_BUTTON_RECT = Rect(KEYBOARD_X + KEYBOARD_W / 2 - 25, 125, 50, 50)
 # text grid (always on flight_surface)
 # Text grid is a fixed row/cols.
-
 # scale font size and spacing to fit screen
 TEXT_START_X = 16  # no of pixels from left to start text
 TEXT_START_Y = 8  # no of pixels from top to start text
@@ -436,6 +473,10 @@ if __name__ == '__main__':
     hud_left = patches.Rectangle(HUD_LEFT.origin,  *HUD_LEFT.size, linewidth=BORDER, edgecolor='r', facecolor='none')
     hud_right = patches.Rectangle(HUD_RIGHT.origin, *HUD_RIGHT.size, linewidth=BORDER, edgecolor='r', facecolor='none')
     hud_centre = patches.Rectangle(HUD_CENTRE.origin, *HUD_CENTRE.size, linewidth=BORDER, edgecolor='black', facecolor='none')
+    joy1 = patches.Circle(JOYSTICK_1_POSITION, JOYSTICK_1_RADIUS)
+    joy2 = patches.Circle(JOYSTICK_2_POSITION, JOYSTICK_2_RADIUS)
+    fire = patches.Circle(FIRE_BUTTON_RECT.origin, FIRE_BUTTON_RECT.w/2, facecolor='red')
+    keyboard = patches.Rectangle(KEYBOARD_RECT.origin, *KEYBOARD_RECT.size, linewidth=BORDER, edgecolor='black', facecolor='none')
     # Add the patch to the Axes
     ax.add_patch(rect)
     ax.add_patch(rect2)
@@ -444,11 +485,15 @@ if __name__ == '__main__':
     ax.add_patch(hud_left)
     ax.add_patch(hud_right)
     ax.add_patch(hud_centre)
+    ax.add_patch(joy1)
+    ax.add_patch(joy2)
+    ax.add_patch(fire)
+    ax.add_patch(keyboard)
     cx, cy = FLIGHT_RECT.center()
     # Add Cross at FLIGHT_RECT.centre()
     ax.plot(cx, cy, 'x', color='black', markersize=10, markeredgewidth=2)
     # Set axis limits to ensure the rectangle is visible
-    ax.set_xlim(0, GAME_W)
+    ax.set_xlim(0, W)
     ax.set_ylim(0, GAME_H)
     for i in range(NUM_LINES):
         # ax.text(x, y, "String", fontsize, ha='horizontal_alignment')

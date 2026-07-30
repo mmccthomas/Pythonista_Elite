@@ -63,10 +63,9 @@ def normal_for_face(face, all_verts):
         n[2] += (cur[0] - nxt[0]) * (cur[1] + nxt[1])
     length = math.sqrt(n[0]**2 + n[1]**2 + n[2]**2)
     if length == 0:
-        return n    
+        return n
     return [n[0] / length, n[1] / length, n[2] / length]
     
-
 
 def hub_side_quads(top_start, bot_start, n):
     """Side wall quads for a hub ring (top ring at top_start.., bottom at
@@ -208,7 +207,7 @@ def build_station(
 
     # Wheel 1 centered at z=0
     w1 = build_wheel(0.0)
-    encaps1 = (len(faces)-2, len(faces)-1)
+    # encaps1 = (len(faces)-2, len(faces)-1)
     
     # Wheel 2 sits above: its facing (bottom) hub ring is rim_spacing above wheel1's top hub ring
     w2_center = w1["z_top"] + rim_spacing + rim_hw
@@ -219,14 +218,12 @@ def build_station(
     
     radial_edges(w1["v_ht"], w2["v_hb"], hub_sides)
     faces += tube_quads_outward(w1["v_ht"], w2["v_hb"], hub_sides)
-
     
     # Spokes: square-section box columns, straight edges only.
     # Outer end flush with the rim's INNER radial face; inner end flush
     # with the hub's OUTER wall. 4 spokes per wheel-side (top/bottom of
     # each wheel), at 0/90/180/270 degrees.
     
-
     def nearest_index_at_angle(n, angle_deg):
         best_i, best_d = 0, 1e9
         for i in range(n):
@@ -286,7 +283,7 @@ def build_station(
             spoke_faces.append([o[1], i_[1], i_[0], o[0]])   # +tangential face
             spoke_faces.append([i_[2], o[2], o[3], i_[3]])   # -tangential face
             spoke_faces.append([o[3], o[2], o[1], o[0]])     # outer end cap
-            spoke_faces.append([i_[0], i_[1], i_[2], i_[3]]) # inner end cap
+            spoke_faces.append([i_[0], i_[1], i_[2], i_[3]])  # inner end cap
 
             spoke_edges.extend([[o[0], i_[0]], [o[1], i_[1]], [o[2], i_[2]], [o[3], i_[3]]])
             spoke_edges.extend([[o[0], o[1]], [o[1], o[2]], [o[2], o[3]], [o[3], o[0]]])
@@ -295,11 +292,9 @@ def build_station(
     add_spoke(w1["v_ot"], w1["v_ht"], w1["z_top"]-25)
     add_spoke(w2["v_ot"], w2["v_ht"], w2["z_top"]-25)
 
-
     faces += spoke_faces
     edges += spoke_edges
     verts.extend(spoke_verts)
-
     
     # Docking / entry portal: a small solid rectangular cap, centered on
     # the station's z-axis, above the top wheel. It gets its own real
@@ -311,8 +306,8 @@ def build_station(
     portal_start = add_verts([
         [-pw,  ph, entry_portal_z],
         [-pw, -ph, entry_portal_z],
-        [ pw, -ph, entry_portal_z],
-        [ pw,  ph, entry_portal_z],
+        [pw, -ph, entry_portal_z],
+        [pw,  ph, entry_portal_z],
     ])
     edges += [
         [portal_start, portal_start + 1],
@@ -326,10 +321,8 @@ def build_station(
     faces.append([portal_start, portal_start + 1, portal_start + 2, portal_start + 3])
 
     all_verts = np.array(verts, dtype=float)
-
     
     # Face normals + edges_with_faces
-    
     face_normals = []
     for f in faces:
         n = normal_for_face(f, all_verts)
@@ -350,10 +343,6 @@ def build_station(
     # ends up with fewer than 2, fall back to a dummy "black" face so the
     # schema stays valid.
     DUMMY = encaps2[0]
-    need_dummy = any(len(v) < 2 for v in edge_faces.values())
-    
-        
-
     edges_with_faces = []
     for (a, b) in edges:
         key = tuple(sorted((a, b)))
@@ -363,12 +352,11 @@ def build_station(
         if len(fl) > 2:
             fl = fl[:2]
         edges_with_faces.append([a, b, fl[0], fl[1]])
-
     
-    face_colors =  {str(DUMMY):"yellow", str(len(faces)-1):"black"}
+    face_colors = {str(DUMMY): "yellow", str(len(faces)-1): "black"}
     building = {str(i): "black" for i in range(10, 50)}
     face_colors = face_colors | building
-    edge_colors = {} #["cyan"] * len(edges)
+    edge_colors = {}   # ["cyan"] * len(edges)
 
     station = {
         "name": station_name,
@@ -407,11 +395,8 @@ def build_station(
     return station
 
 
-
 # JSON pretty-printer: max 8 elements per line for coordinate-like rows
 # and flat scalar lists.
-
-
 def format_value(v, indent):
     pad = " " * indent
     pad_in = " " * (indent + 2)

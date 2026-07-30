@@ -1,10 +1,10 @@
- # This is the entry point for Pythonista Elite
+# This is the entry point for Pythonista Elite
 # it is based heavily on Elite The New Kind  by Christian Pinder
 # This C project has been converted to Python by Gemini and Claude AI
 # Elements of project Elite FlatLand are present by # Author: Darron Vanaria
 # especially in constants and game_engine
 # The gui code is mine
-
+# please see the readme.md file for mor detail
 # Chris Thomas April 2026
 import math
 import queue
@@ -35,33 +35,33 @@ EXPLOSION_SPEED = 0.4
 
 class EliteScene(Scene):
            
-    def _did_change_size(self):
-       """ recalculate all sizes when screen changes 
+    def did_change_size(self):
+       """ recalculate all sizes when screen changes
        not perfect yet"""
        
        W, H = get_screen_size()
-       print('triggered new layout', W, H)
+       logger.debug('triggered new layout', W, H)
        reload(cs)
        self.keypad.frame = cs.KEYBOARD_RECT
        
-       self.msg.position=(cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50)                         
+       self.msg.position = (cs.GAME_W, cs.GAME_H - cs.KEYBOARD_RECT.min_y + 50)
        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
-       self.msg_right.position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20)                                   
-       self.obj_status.position=(cs.GAME_W, cs.GAME_H)       
-       self.obj_status.font=('Copperplate', fontsize)                                    
-       self.msg_left.position=(cs.HUD_LEFT.x + 10, cs.HUD_H)
-       self.renderer.viewport = cs.FLIGHT_RECT  # x, y, w, h       
+       self.msg_right.position = (cs.HUD_RIGHT.x + 10, cs.HUD_H + 20)
+       self.obj_status.position = (cs.GAME_W, cs.GAME_H)
+       self.obj_status.font = ('Copperplate', fontsize)
+       self.msg_left.position = (cs.HUD_LEFT.x + 10, cs.HUD_H)
+       self.renderer.viewport = cs.FLIGHT_RECT  # x, y, w, h
        for obj in (self.background, self.hud, self.joystick,
-                   self.joystick_thrust, self.fire_button):        
+                   self.joystick_thrust, self.fire_button):
            obj.remove_from_parent()
        
-       self.background = self.create_background()              
-       self.hud = HudPanel()       
+       self.background = self.create_background()
+       self.hud = HudPanel()
        self.create_controls()
               
        for obj in (self.background, self.hud, self.joystick,
-                   self.joystick_thrust, self.fire_button):        
-           self.add_child(obj)       
+                   self.joystick_thrust, self.fire_button):
+           self.add_child(obj)
                                  
     def setup(self):
         W, H = get_screen_size()
@@ -79,14 +79,14 @@ class EliteScene(Scene):
                              parent=self)
         fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
         self.msg_right = LabelNode('', position=(cs.HUD_RIGHT.x + 10, cs.HUD_H + 20),
-                                   color=cs.WHITE, font=('Copperplate', 18),
+                                   color=cs.WHITE, font=('Copperplate', fontsize*0.8),
                                    anchor_point=(0, 1), parent=self)
         self.obj_status = LabelNode('', position=(cs.GAME_W, cs.GAME_H),
                                     anchor_point=(0, 1), font=('Copperplate', fontsize),
                                     color=cs.WHITE, parent=self)
         # self.cloud = IsometricCloud(loc=Point(cs.KEYBOARD_X+cs.KEYBOARD_W/2, cs.GAME_H-200))
         self.msg_left = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H),
-                                  color=cs.WHITE, font=('Copperplate', 18),
+                                  color=cs.WHITE, font=('Copperplate', fontsize*0.8),
                                   anchor_point=(0, 1), parent=self)
         self.kbd = Keyboard(self)
 

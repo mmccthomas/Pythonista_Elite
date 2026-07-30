@@ -79,28 +79,32 @@ def tidy_matrix(mat):
     Ensures the matrix remains orthogonal (axes at 90 degrees) and normalized.
     This prevents floating-point drift from 'warping' the ships over time.
     """
-    # 1. Normalize the Z-axis (Forward vector)
-    mat[NOSEV] = unit_vector(mat[NOSEV])
-    # 2. Re-calculate Y-axis to be orthogonal to Z
-    # (Gram-Schmidt process logic from the original C code)
-    if ((mat[NOSEV].x > -1) and (mat[NOSEV].x < 1)):
-        if ((mat[NOSEV].y > -1) and (mat[NOSEV].y < 1)):
-            mat[ROOFV].z = -(mat[NOSEV].x * mat[ROOFV].x + mat[NOSEV].y * mat[ROOFV].y) / mat[NOSEV].z
+    try:
+        # 1. Normalize the Z-axis (Forward vector)
+        mat[NOSEV] = unit_vector(mat[NOSEV])
+        # 2. Re-calculate Y-axis to be orthogonal to Z
+        # (Gram-Schmidt process logic from the original C code)
+        if ((mat[NOSEV].x > -1) and (mat[NOSEV].x < 1)):
+            if ((mat[NOSEV].y > -1) and (mat[NOSEV].y < 1)):
+                mat[ROOFV].z = -(mat[NOSEV].x * mat[ROOFV].x + mat[NOSEV].y * mat[ROOFV].y) / mat[NOSEV].z
+            else:
+                mat[ROOFV].y = -(mat[NOSEV].x * mat[ROOFV].x + mat[NOSEV].z * mat[ROOFV].z) / mat[NOSEV].y
         else:
-            mat[ROOFV].y = -(mat[NOSEV].x * mat[ROOFV].x + mat[NOSEV].z * mat[ROOFV].z) / mat[NOSEV].y
-    else:
-        mat[ROOFV].x = -(mat[NOSEV].y * mat[ROOFV].y + mat[NOSEV].z * mat[ROOFV].z) / mat[NOSEV].x
+            mat[ROOFV].x = -(mat[NOSEV].y * mat[ROOFV].y + mat[NOSEV].z * mat[ROOFV].z) / mat[NOSEV].x
+            
+        mat[ROOFV] = unit_vector(mat[ROOFV])
+            
+        # 3. Calculate X-axis using the Cross Product of Y and Z
+        # xyzzy... nothing happens. :-)
         
-    mat[ROOFV] = unit_vector(mat[ROOFV])
+        mat[SIDEV].x = mat[ROOFV].y * mat[NOSEV].z - mat[ROOFV].z * mat[NOSEV].y
+        mat[SIDEV].y = mat[ROOFV].z * mat[NOSEV].x - mat[ROOFV].x * mat[NOSEV].z
+        mat[SIDEV].z = mat[ROOFV].x * mat[NOSEV].y - mat[ROOFV].y * mat[NOSEV].x
         
-    # 3. Calculate X-axis using the Cross Product of Y and Z
-    # xyzzy... nothing happens. :-)
-    
-    mat[SIDEV].x = mat[ROOFV].y * mat[NOSEV].z - mat[ROOFV].z * mat[NOSEV].y
-    mat[SIDEV].y = mat[ROOFV].z * mat[NOSEV].x - mat[ROOFV].x * mat[NOSEV].z
-    mat[SIDEV].z = mat[ROOFV].x * mat[NOSEV].y - mat[ROOFV].y * mat[NOSEV].x
-        
-      
+    except ZeroDivisionError:
+       pass
+
+            
 @dataclass
 class Vector:
     x: float = 0.0

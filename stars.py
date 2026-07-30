@@ -17,7 +17,6 @@ class Star:
         self.z = 0.0
         
 
-
 class Starfield:
     def __init__(self, game_state, width=None, height=None, n_stars=12):
         self.gs = game_state

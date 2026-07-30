@@ -619,7 +619,8 @@ class Pilot:
                 # PHASE: fly to IP (ahead of station nose)
                 # dont deviate until within distance
                 self.target_loc = self.ip_waypoint()
-                self.gs.keypad.key_change('Instant Dock', enabled=True)
+                if self.gs.instant_dock:
+                    self.gs.keypad.key_change('Instant Dock', enabled=True)
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
                 

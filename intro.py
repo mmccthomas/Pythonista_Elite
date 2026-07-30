@@ -37,20 +37,21 @@ SHIP_TYPE = {
     "PLANET":  (-1, ''), "SUN":  (-2,  ''), "None":  (0, ''),
     "MISSILE":  (1, ''), "CORIOLIS":  (2, 'STATION'), "ESCAPE_POD":  (3, ''),
     "PLATE": (4, ''), "CANISTER":  (5, 'Debris'), "BOULDER":  (6, 'Debris'),
-    "ASTEROID":  (7, 'Debris'), "SPLINTER":  (8, 'Debris'), 
-    "SHUTTLE":  (9, 'Innocent Trader'), "TRANSPORTER": (10, 'Innocent Trader'), 
+    "ASTEROID":  (7, 'Debris'), "SPLINTER":  (8, 'Debris'),
+    "SHUTTLE":  (9, 'Innocent Trader'), "TRANSPORTER": (10, 'Innocent Trader'),
     "COBRA_MK_3":  (11, 'Innocent Trader'), "PYTHON":  (12, 'Innocent Trader'),
     "BOA": (13, 'Innocent Trader'), "ANACONDA":  (14, 'Innocent Trader'),
-    "ROCK_HERMIT": (15, 'Innocent Trader'), 
-    "VIPER":  (16, 'Police'), 
-    "SIDEWINDER":  (17, 'Pirate'), "MAMBA":  (18, 'Pirate'), "KRAIT":  (19, 'Pirate'), 
+    "ROCK_HERMIT": (15, 'Innocent Trader'),
+    "VIPER":  (16, 'Police'),
+    "SIDEWINDER":  (17, 'Pirate'), "MAMBA":  (18, 'Pirate'), "KRAIT":  (19, 'Pirate'),
     "ADDER":  (20, 'Pirate'), "GECKO":  (21, 'Pirate'), "COBRA_MK_1":  (22, 'Pirate'),
     "WORM":  (23, 'Hostile Trader'), "COBRA_MK_3_P":  (24, 'Pirate'), "ASP_MK_2":  (25, 'Pirate'),
-    "PYTHON_P":  (26, 'Pirate'), "FER_DE_LANCE":  (27, 'Bounty Hunter'), "MORAY":  (28, 'Pirate'), 
+    "PYTHON_P":  (26, 'Pirate'), "FER_DE_LANCE":  (27, 'Bounty Hunter'), "MORAY":  (28, 'Pirate'),
     "THARGOID":  (29, 'Hostile Alien'), "THARGON":  (30, 'Hostile Alien'),
-    "CONSTRICTOR":  (31, 'Hostile'), "COUGAR":  (32, 'Innocent Trader'), 
+    "CONSTRICTOR":  (31, 'Hostile'), "COUGAR":  (32, 'Innocent Trader'),
     "DODO":  (33, 'Station'),  "STATIONV":  (34, 'Station'),
 }
+
 
 class EliteIntro:
     def __init__(self, gs):
@@ -168,7 +169,7 @@ class EliteIntro:
         # Update every ship's model each frame so they rotate on the spot
         try:
             for obj in self.universe:
-                obj.rotx += 0.1
+                obj.rotx += 0.5
                 self.swat.update_model(obj)
         except AttributeError:
             # no models set up yet
@@ -178,6 +179,9 @@ class EliteIntro:
         if self.car_state == ST_FWD:
             self.car_hero_z -= FWD_SPEED
             hero = self._car_hero()
+            hero.rotx = -160
+            # hero.roty = -180
+            hero.roty = max(hero.roty - 1, -180)
             hero.location.z = self.car_hero_z
             self.swat.update_model(hero)
     
@@ -190,6 +194,7 @@ class EliteIntro:
             self.car_hero_z += BACK_SPEED
             hero = self._car_hero()
             hero.location.z = self.car_hero_z
+            hero.roty = min(hero.roty + 1, 0)
             self.swat.update_model(hero)
     
             if self.car_hero_z >= CAROUSEL_Z:
@@ -256,6 +261,6 @@ class EliteIntro:
         ship_name = {v: k for k, v in cs.SHIP_DICT.items()}.get(hero_no, str(hero_no))
         self.gfx.clear_display()
         self.gfx.draw_sprite(ELITE_TEXT, x=-1, y=10)
-        self.gfx.display_centre_text(28, f'{ship_name} ({SHIP_TYPE[ship_name][1]})' , color="WHITE")
+        self.gfx.display_centre_text(28, f'{ship_name} ({SHIP_TYPE[ship_name][1]})', color="WHITE")
         self.gfx.display_centre_text(29, "Press OK or Cancel, Commander.", color=cs.GOLD)
         self.gfx.text_render()

@@ -144,7 +144,7 @@ class TradeManager:
             return
 
         # If it's a specific item (like an escape pod or alloy)
-        elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON :
+        elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON:
             
             # allow capture of alien items
             if parent == cs.SHIP_THARGOID or obj.type == cs.SHIP_THARGON:

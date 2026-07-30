@@ -41,12 +41,12 @@ class MovingShip:
         obj.position = Vector3(uniform(0, bx), uniform(0, by), uniform(0, bz))
         obj.position_in_world = obj.position.clone()
         speed = uniform(MIN_SHIP_SPEED, MAX_SHIP_SPEED)
-        dx, dy, dz = uniform(-1,1), uniform(-1,1), uniform(-1, 1)
+        dx, dy, dz = uniform(-1, 1), uniform(-1, 1), uniform(-1, 1)
         length = math.sqrt(dx*dx+dy*dy+dz*dz) or 1.0
         self.velocity = Vector3(dx/length*speed, dy/length*speed, dz/length*speed)
-        self.spin_y   = 0
-        self.spin_z   = uniform(-0.02, 0.02)
-        self._bounds  = bounds
+        self.spin_y = 0
+        self.spin_z = uniform(-0.02, 0.02)
+        self._bounds = bounds
 
     def update(self):
         obj = self.obj
@@ -65,9 +65,9 @@ class MovingShip:
 
 class TouchButton:
     def __init__(self, label, x, y, w, h, color=(0.2, 0.8, 0.4, 0.85)):
-        self.label   = label
-        self.rect    = scene.Rect(x, y, w, h)
-        self.color   = color
+        self.label = label
+        self.rect = scene.Rect(x, y, w, h)
+        self.color = color
         self.pressed = False
 
     def contains(self, pt):
@@ -93,7 +93,7 @@ class SpaceFlight(scene.Scene):
 
     def setup(self):
         self.bounds = (SPACE_X, SPACE_Y, SPACE_Z)
-        start_pos   = Vector3(uniform(0,SPACE_X), uniform(0,SPACE_Y), uniform(0,SPACE_Z))
+        start_pos = Vector3(uniform(0, SPACE_X), uniform(0, SPACE_Y), uniform(0, SPACE_Z))
         self.camera = Camera(
             position=start_pos,
             yaw=uniform(0, math.tau),
@@ -104,23 +104,23 @@ class SpaceFlight(scene.Scene):
         )
         self.status = scene.LabelNode(
             '', font=('Avenir Next', 20), color='white',
-            position=(0, self.size.h-100), anchor_point=(0,0), parent=self
+            position=(0, self.size.h - 100), anchor_point=(0, 0), parent=self
         )
         self.spd_status = scene.LabelNode(
             '', font=('Avenir Next', 20), color='white',
-            position=(0, self.size.h-120), anchor_point=(0,0), parent=self
+            position=(0, self.size.h - 120), anchor_point=(0, 0), parent=self
         )
-        self.thrust    = 0.0
+        self.thrust = 0.0
         self.roll_angle = 0.0
 
         self.renderer = Renderer(depth_sort=True, backface_cull=False)
-        self.renderer.viewport = scene.Rect(0 , 0, W, H)
+        self.renderer.viewport = scene.Rect(0, 0, W, H)
 
         raw_objects = self._load_ships()[:5]
         self.moving_ships = []
         for obj in raw_objects:
-            obj.scale   = uniform(0.4, 1.8)
-            obj.color   = choice(SHIP_COLORS)
+            obj.scale = uniform(0.4, 1.8)
+            obj.color = choice(SHIP_COLORS)
             obj.visible = True
             self.moving_ships.append(MovingShip(obj, self.bounds))
 
@@ -138,31 +138,30 @@ class SpaceFlight(scene.Scene):
         r = 12
         path = ui.Path()
         path.move_to(-r, 0)
-        path.line_to( r, 0)
+        path.line_to(r, 0)
         path.oval(-6, -6, 12, 12)
-        scene.ShapeNode(path, stroke_color=(0.3,1.0,0.3,0.7),
-                        position=(cx,cy), z_position=5, parent=self)
+        scene.ShapeNode(path, stroke_color=(0.3, 1.0, 0.3, 0.7),
+                        position=(cx, cy), z_position=5, parent=self)
 
-        hr   = 40
+        hr = 40
         path = ui.Path()
         path.line_width = 2
         path.move_to(-hr, 0)
-        path.line_to( hr, 0)
+        path.line_to(hr, 0)
         path.move_to(0, 0)
         path.line_to(0, 10)
-        self.roll_indicator = scene.ShapeNode(
-            path, stroke_color=(1.0,1.0,0.1),
-            alpha=0.4, position=(cx,cy), z_position=5, parent=self
-        )
+        self.roll_indicator = scene.ShapeNode(path, stroke_color=(1.0, 1.0, 0.1),
+                                              alpha=0.4, position=(cx, cy),
+                                              z_position=5, parent=self)
         path = ui.Path()
         for ref in (-math.pi/4, math.pi/4):
-            a  = ref
+            a = ref
             tx = math.cos(a) * (hr + 6)
             ty = math.sin(a) * (hr + 6)
             path.move_to(tx - math.cos(a)*5, ty - math.sin(a)*5)
             path.line_to(tx, ty)
-        scene.ShapeNode(path, stroke_color=(0.6,0.6,0.6,0.5),
-                        position=(cx,cy), z_position=5, parent=self)
+        scene.ShapeNode(path, stroke_color=(0.6, 0.6, 0.6, 0.5),
+                        position=(cx, cy), z_position=5, parent=self)
 
     def _load_ships(self):
         objects = load_wireframes_from_json('files/Elite_ships.json')
@@ -179,7 +178,7 @@ class SpaceFlight(scene.Scene):
             ('THST\n+',   (1.0, 0.6, 0.1, 0.85)),
             ('THST\n-',   (1.0, 0.6, 0.1, 0.85)),
         ]
-        n       = len(labels)
+        n = len(labels)
         total_w = n * BTN_W + (n-1) * BTN_PAD
         start_x = (sw - total_w) / 2
         self.buttons = [
@@ -215,7 +214,7 @@ class SpaceFlight(scene.Scene):
             ms.update()
 
     def _apply_controls(self):
-        MAX_BANK   = math.radians(85)
+        MAX_BANK = math.radians(85)
         BANK_DECAY = 0.88
         pressed = [b.pressed for b in self.buttons]
         rolling = False
@@ -223,13 +222,13 @@ class SpaceFlight(scene.Scene):
             self.roll_angle = max(-MAX_BANK, self.roll_angle - ROLL_RATE)
             rolling = True
         if pressed[1]:
-            self.roll_angle = min( MAX_BANK, self.roll_angle + ROLL_RATE)
+            self.roll_angle = min(MAX_BANK, self.roll_angle + ROLL_RATE)
             rolling = True
         if not rolling:
             self.roll_angle *= BANK_DECAY
         self.camera.roll = -self.roll_angle
         if pressed[2]:
-            self.camera.pitch = min( math.radians(80), self.camera.pitch + PITCH_RATE)
+            self.camera.pitch = min(math.radians(80), self.camera.pitch + PITCH_RATE)
         if pressed[3]:
             self.camera.pitch = max(-math.radians(80), self.camera.pitch - PITCH_RATE)
         if pressed[4]:
@@ -258,7 +257,7 @@ class SpaceFlight(scene.Scene):
 
     def _draw_hud(self):
         self.roll_indicator.rotation = -self.roll_angle
-        self.roll_indicator.alpha    = 0.4 + 0.6 * abs(math.sin(self.roll_angle))
+        self.roll_indicator.alpha = 0.4 + 0.6 * abs(math.sin(self.roll_angle))
         scene.push_matrix()
         for btn in self.buttons:
             btn.draw()
@@ -266,7 +265,8 @@ class SpaceFlight(scene.Scene):
         self.spd_status.text = f'SPD {self.thrust:+.1f}'
         c = self.camera.position
         self.status.text = f'{c.x:.0f}, {c.y:.0f}, {c.z:.0f}'
-        
+
+                
 class Demo2(scene.Scene):
     def setup(self):
         from change_screensize import get_screen_size
@@ -289,13 +289,13 @@ class Demo2(scene.Scene):
             objects = load_wireframes_from_json('files/Elite_ships.json')
         except Exception:
             ship_locs = [
-                'missile','coriolis','escape_pod','plate','canister',
-                'Boulder','Asteroid','Splinter','Shuttle','Transporter',
-                'Cobra_Mk_3','Python','Boa','Anaconda','Rock_hermit',
-                'Viper','Sidewinder','Mamba','Krait','Adder','Gecko',
-                'Cobra_Mk_1','Worm','Cobra_Mk_3_p','Asp_Mk_2','Python_p',
-                'Fer_de_lance','Moray','Thargoid','Thargon','Constrictor',
-                'logo','Cougar','Dodo'
+                'missile', 'coriolis', 'escape_pod', 'plate', 'canister',
+                'Boulder', 'Asteroid', 'Splinter', 'Shuttle', 'Transporter',
+                'Cobra_Mk_3', 'Python', 'Boa',  'Anaconda', 'Rock_hermit',
+                'Viper', 'Sidewinder', 'Mamba', 'Krait', 'Adder', 'Gecko',
+                'Cobra_Mk_1', 'Worm', 'Cobra_Mk_3_p', 'Asp_Mk_2', 'Python_p',
+                'Fer_de_lance', 'Moray', 'Thargoid', 'Thargon', 'Constrictor',
+                'logo', 'Cougar', 'Dodo'
             ]
             ships = GetEliteShips('6502sp', ship_locs)
             objects = ships.ship_objects
@@ -307,29 +307,29 @@ class Demo2(scene.Scene):
                 -2*spacing + spacing * i / 10,
                 500
             )
-            ship.scale   = 0.5
+            ship.scale = 0.5
             ship.visible = i % 2
-            ship.color   = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
+            ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)
 
         self._exploding_obj = None
-        self._explosion_t   = random.random()
+        self._explosion_t = random.random()
 
     def _pick_new_explosion(self):
         candidates = [o for o in self.objects if hasattr(o, 'name')]
         if candidates:
             obj = random.choice(candidates)
-            obj.explosion_time  = 0.0
+            obj.explosion_time = 0.0
             self._exploding_obj = obj
-            self._explosion_t   = 0.0
+            self._explosion_t = 0.0
 
     def update(self):
         self.t += self.dt * .001
         for obj in self.objects[:]:
             obj.rotation.y = math.radians(-45)
             obj.rotation.z = self.t
-            obj.position_in_world        = obj.position.clone()
+            obj.position_in_world = obj.position.clone()
             obj.rotation_angles_in_world = obj.rotation.clone()
 
         EXPLOSION_SPEED = 0.4
@@ -353,7 +353,7 @@ class Demo2(scene.Scene):
 
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    #g = Demo()
-    #g.setup()
-    #g.draw()
+    # g = Demo()
+    # g.setup()
+    # g.draw()
     scene.run(Demo2(), show_fps=True, multi_touch=True)

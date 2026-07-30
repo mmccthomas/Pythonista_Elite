@@ -1070,7 +1070,7 @@ class Renderer:
         # TODO sort faces by z to draw furthest first
         # faces = self.sort_faces(faces)
         for face_id, verts in faces.items():
-            try: 
+            try:
                 if self.get_normals:
                     points = [obj.original_vertices[v].to_tuple for v in verts]
                     normal = normal_for_face(points[::-1])

@@ -146,7 +146,8 @@ class HudPanel(Node):
                           # size=r.size,
                           position=r.origin,
                           anchor_point=(0, 0),
-                          z_posiition=1,
+                          z_position=1,
+                          scale=cs.HUD_SCALE,
                           parent=self)
         hud_image = set_colorkey('hud_right_1.png')
         r = Rect(*cs.HUD_RIGHT)
@@ -155,6 +156,7 @@ class HudPanel(Node):
                            position=(r.origin),
                            anchor_point=(0, 0),
                            z_posiition=1,
+                           scale=cs.HUD_SCALE,
                            parent=self)
                                    
         self.name = 'hud_node'

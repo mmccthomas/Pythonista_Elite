@@ -214,7 +214,9 @@ significant changes:
     
 43. Added super new STATIONV in tech level 12 and above planets. Straight out of 2001,
     including partly built ring
-
+    
+44. Added new mission thargoid invasion in Galaxy 3. Kill 10 Thargoids gathered around station.
+    It seems they can destroy the station!
     
 Getting Started
 
@@ -256,7 +258,7 @@ not functional yet.
 
 Possible additional missions from PC version:
 Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible.
-• Masking Device (Cloaking Device): You are sent to intercept and destroy a specific group of ships (often identified as Asp Mk IIs). Once you destroy the target, you can scoop the cargo container containing the Cloaking Device, which allows you to become temporarily invisible to enemy radar.
+
 • Stolen Police Ship: A mission where you must track down and destroy a specific police vessel that has been compromised or stolen. It is essentially a high-bounty hunting task.
 • Asteroid Bombardment: You are assigned to defend a station from an incoming asteroid storm. You must destroy the asteroids before they impact the station's shielding.
 • Thargoid Invasion: This triggers an event in a star system where a station is actively being besieged by a large fleet of Thargoids. You must jump to the system and assist in the defense by destroying the attacking ships.

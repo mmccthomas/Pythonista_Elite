@@ -23,10 +23,12 @@ MIN_FIRING_DISTANCE = 8192
 
 def rand255():
    return random.randint(0, 255)
-   
+
+      
 def rand_no(max):
    return random.randint(0, max)
-      
+
+            
 def angle(theta):
    return math.degrees(math.acos(theta))
 
@@ -259,6 +261,51 @@ class Swat:
            ship.model.position_in_world = ship.model.position.clone()
            ship.model.rotation_angles_in_world = ship.model.rotation.clone()
            
+    def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None) -> list:
+        """
+        Build a rotmat [SIDEV, ROOFV, NOSEV] whose NOSEV axis points from
+        from_loc toward to_loc.
+        """
+        nose = unit_vector(Vector(to_loc.x - from_loc.x,
+                                  to_loc.y - from_loc.y,
+                                  to_loc.z - from_loc.z))
+    
+        if roof_hint is None:
+            roof_hint = Vector(0, 1, 0)  # world "up"
+    
+        # side = roof_hint x nose  (perpendicular to both)
+        side = Vector(
+            roof_hint.y * nose.z - roof_hint.z * nose.y,
+            roof_hint.z * nose.x - roof_hint.x * nose.z,
+            roof_hint.x * nose.y - roof_hint.y * nose.x,
+        )
+    
+        # guard against nose ~parallel to roof_hint (degenerate cross product)
+        side_len = math.sqrt(side.x**2 + side.y**2 + side.z**2)
+        if side_len < 1e-6:
+            roof_hint = Vector(1, 0, 0)  # fall back to a different up-vector
+            side = Vector(
+                roof_hint.y * nose.z - roof_hint.z * nose.y,
+                roof_hint.z * nose.x - roof_hint.x * nose.z,
+                roof_hint.x * nose.y - roof_hint.y * nose.x,
+            )
+            side_len = math.sqrt(side.x**2 + side.y**2 + side.z**2)
+    
+        side = Vector(side.x / side_len, side.y / side_len, side.z / side_len)
+    
+        # roof = nose x side  (re-orthogonalized "up")
+        roof = Vector(
+            nose.y * side.z - nose.z * side.y,
+            nose.z * side.x - nose.x * side.z,
+            nose.x * side.y - nose.y * side.x,
+        )
+    
+        rotmat = [Vector(), Vector(), Vector()]
+        rotmat[SIDEV] = side
+        rotmat[ROOFV] = roof
+        rotmat[NOSEV] = nose
+        return rotmat
+        
     def add_new_ship(self, ship_type, x, y, z, rotmat, rotx, rotz) -> int:
         if rotmat is None:
             rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
@@ -402,7 +449,7 @@ class Swat:
                 cs.SCR_REAR_VIEW:  gs.cmdr.rear_laser,
                 cs.SCR_RIGHT_VIEW: gs.cmdr.right_laser,
                 cs.SCR_LEFT_VIEW:  gs.cmdr.left_laser,
-            }.get(screen, 0)            
+            }.get(screen, 0)
             heating = {cs.PULSE_LASER: 8,
                        cs.BEAM_LASER: 12,
                        cs.MILITARY_LASER: 24,
@@ -411,7 +458,7 @@ class Swat:
                 self.laser_counter = 0 if laser > 127 else (laser & 0xFA)
                 laser &= 127
                 self.laser = laser
-                self.laser2 = laser                 
+                self.laser2 = laser
                 gs.sound.play_sample(cs.SND_PULSE)
                 gs.laser_temp += heating
                 if gs.energy > 1:
@@ -554,11 +601,11 @@ class Swat:
                 if univ.type == cs.SHIP_ASTEROID:
                     if self.laser == (cs. MINING_LASER & 127):
                         self.launch_loot(index, cs.SHIP_ROCK, univ)
-                else:                    
+                else:
                     if univ.max_loot:
-                        self.launch_loot(index, cs.SHIP_CARGO, parent=univ)        
-                    else:      
-                         self.launch_loot(index, cs.SHIP_ALLOY, parent=univ)
+                        self.launch_loot(index, cs.SHIP_CARGO, parent=univ)
+                    else:
+                        self.launch_loot(index, cs.SHIP_ALLOY, parent=univ)
                     
                 self.explode_object(index)
             self.make_angry(index)
@@ -598,12 +645,12 @@ class Swat:
             cnt = rand_no(3)
         elif loot == cs.SHIP_ALLOY:
            cnt = rand_no(3)
-        elif loot == cs.SHIP_CARGO:            
+        elif loot == cs.SHIP_CARGO:
             if rand_no(1):
                 return
-            cnt = max(parent.max_loot, 2)            
+            cnt = max(parent.max_loot, 2)
         else:
-            cnt = 0            
+            cnt = 0
 
         for _ in range(cnt):
             ns = self.launch_enemy(index, loot, 0, 0)
@@ -642,7 +689,8 @@ class Swat:
         best = None
         best_dist = None
         for i, other in enumerate(self.universe):
-            if i == index or other.type == 0:
+            # wont shoot at station
+            if i == index:   # or other.type == 0:
                 continue
             if not candidate_fn(other):
                 continue
@@ -922,11 +970,11 @@ class Swat:
             ship.flags |= cs.FLG_INACTIVE
             
     def _tactics_attack(self, index, ship, flags):
-        # Ship is angry — attack!        
+        # Ship is angry — attack!
         
         #  If the ship is hostile, and a pirate, and we are within the space station
         # safe zone, stop the pirate from attacking by removing all its aggression
-        
+        # TODO in the thargoid invasion mission, turn this off for thargoids
         if self.gs.space.safe_mode and not (flags & cs.FLG_BOLD):
             ship.bravery = 0
         # If this is an Anaconda, consider spawning (22% chance) a Worm (61% of the
@@ -1007,7 +1055,7 @@ class Swat:
         direction = vector_dot_product(nvec, ship.rotmat[NOSEV])
     
         if (distance < MIN_FIRING_DISTANCE and direction >= self._cos(33.6)
-                and self.ship_list[ship.type].laser_strength != 0):            
+                and self.ship_list[ship.type].laser_strength != 0):
             self._tactics_fire_at_target(index, ship, target_index, rel_loc, distance, direction, nvec)
             return
     
@@ -1044,6 +1092,7 @@ class Swat:
         # help us work out whether the attacking ship is pointing towards its
         # target, and therefore whether it can hit it with its lasers.
         gs = self.gs
+        CR = '\n'
         firing_at_player = (target_index == 0)
         target_obj = None if firing_at_player else self.universe[target_index]
         target_name = 'you' if firing_at_player else target_obj.name
@@ -1054,14 +1103,14 @@ class Swat:
                 target_str = 'player'
             else:
                 target_str = self.gs.universe[ship.target].name
-            self.gs.msg_left.text = f'{ship.name} firing at {target_str}'
-            #gs.msg_left.text = f'{ship.name} firing '
+            self.gs.msg_left.text = f'{ship.name} firing {CR}at {target_str}'
+            # gs.msg_left.text = f'{ship.name} firing '
             logger.debug(gs.msg_left.text)
             self.ship_fire(ship, target_obj)
         # If the target is in the ship's crosshairs, register damage, slow down
         # the attacking ship, and make the appropriate noise.
         if direction >= self._cos(13.6):
-            gs.msg_left.text = f'{ship.name} firing accurate at {target_name}'
+            gs.msg_left.text = f'{ship.name} firing {CR}accurate at {target_name}'
             logger.debug(gs.msg_left.text)
             self.ship_fire(ship, target_obj)
             laser_strength = self.ship_list[ship.type].laser_strength
@@ -1081,7 +1130,7 @@ class Swat:
                 else:
                     target.energy -= laser_strength
                 if target.energy <= 0 and not target.exploding:
-                    if target.max_loot:
+                    if hasattr(target, 'max_loot'):
                         self.launch_loot(target_index, cs.SHIP_CARGO, parent=target)
                     else:
                         self.launch_loot(target_index, cs.SHIP_ALLOY, parent=target)
@@ -1221,7 +1270,9 @@ class Swat:
                 self.in_battle += 1
 
     def random_encounter(self):
-        if self.gs.space.safe_mode:
+        
+        if (self.gs.space.safe_mode
+                and not self.gs.missions.in_mission()):
             return
 
         if rand255() == 136:
@@ -1234,7 +1285,7 @@ class Swat:
         if (rand255() & 7) == 0:
             self.create_trader()
             return
-            
+        
         ship_type = self.gs.missions.spawn_ship()
         if ship_type == cs.SHIP_THARGOID:
             self.create_thargoid()
