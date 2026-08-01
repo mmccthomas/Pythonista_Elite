@@ -24,6 +24,7 @@ import re
 import json
 from collections import defaultdict
 import random
+import colorsys
 import matplotlib.colors as mcolors
 from change_screensize import get_screen_size
 import constants as cs
@@ -724,6 +725,7 @@ class Renderer:
         self.fill = fill
         self.show_index = False
         self.get_normals = False
+        self.hue_shift = 0.0
     
     # Hidden-line removal
     
@@ -845,6 +847,7 @@ class Renderer:
                    color = mcolors.to_rgb(obj.edge_colors.get(str(ei), default))
            else:
                color = mcolors.to_rgb(default)
+           color = self.shift_hue(color, self.hue_shift)    
            scene.stroke(*color)
        except ValueError:
            raise ValueError("Color name not found")
@@ -857,13 +860,26 @@ class Renderer:
                 color = mcolors.to_rgb(obj.face_colors.get(str(face_id), obj.color))
         else:
             color = mcolors.to_rgb(obj.color)
+        color = self.shift_hue(color, self.hue_shift)    
         # shade the fill
         # directly normal is brightest
         shade = -self.face_angles[face_id]
         color = Vector3(*color) * shade
         color = color.to_tuple
         scene.fill(color)
-                 
+        
+    def shift_hue(self, rgb, hue_shift):
+        """rgb: (r,g,b) in 0-1 floats. hue_shift: 0-1 boosts red"""
+        r, g, b = rgb[:3]
+        r = min(1.0, r + hue_shift)
+        g = g * (1.0 - hue_shift)
+        b = b * (1.0 - hue_shift)
+        return (r, g, b)
+        # if we want hue shift
+        h, l, s = colorsys.rgb_to_hls(*rgb[:3])
+        h = (h + hue_shift) % 1.0
+        return colorsys.hls_to_rgb(h, l, s)
+                
     # Main draw
     def draw(self, objects, camera, screen_size):
         sw, sh = screen_size.w, screen_size.h
@@ -900,14 +916,23 @@ class Renderer:
                     w *= scale
                     h *= scale
                 cx, cy = screen_pt
+                tint_color = self.shift_hue((1, 1, 1), self.hue_shift)  + (1,)  
+                
                 if isinstance(obj._image, scene.SpriteNode):
                     obj._image.position = (cx, cy)
                     obj._image.alpha = 1
+                    if obj._image.shader is not None:
+                        r, g, b = self.shift_hue((1, 1, 1), self.hue_shift) 
+                        obj._image.shader.set_uniform('u_tint_color', (r, g, b, 1.0))
+                    else:
+                         obj._image.color = self.shift_hue((1, 1, 1), self.hue_shift)                     
                     obj._image.scale = scale
                 else:
                     if obj._image is None:
                         obj._image = scene.load_image_file(obj.image_path)
+                    scene.tint(*tint_color)
                     scene.image(obj._image, cx - w/2, cy - h/2, w, h)
+                    scene.tint(1, 1, 1, 1) # reset,tint
                 continue
 
             # Filled circle ---

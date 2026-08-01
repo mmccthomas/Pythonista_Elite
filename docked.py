@@ -21,7 +21,7 @@ GOVERNMENT_TYPES = [
 LASER_NAMES = ["Pulse", "Beam", "Military", "Mining", "Custom"]
 
 
-UNIT_NAMES = ["t", "kg", "g"]
+UNIT_NAMES = ["t", "kg", "g", "people"]
 
 TONNES, KILOGRAMS, GRAMS = 0, 1, 2
 
@@ -603,9 +603,9 @@ class Docked:
         gfx.display_colour_text(0, 3, "Cash:",  cs.GREEN)
         gfx.display_text(7, 3, f"{(cmdr.credits / 10):.1f} Cr")
 
-        for i in range(17):
+        for i, sm in enumerate(gs.stock_market):
             if cmdr.current_cargo[i] > 0:
-                sm = gs.stock_market[i]
+                
                 gfx.display_text(0,  i+4, sm.name)
                 gfx.display_text(10, i+4, f"{cmdr.current_cargo[i]}{UNIT_NAMES[sm.units]}")
         self.gfx.text_render()

@@ -1,6 +1,7 @@
 from elite import GalaxySeed
 from types import SimpleNamespace
 import math
+from vector import Vector
 import constants as cs
 import numpy as np
 
@@ -357,7 +358,58 @@ class PlanetGenerator:
         else:
             print("No path found.")
         
-
+def get_solar_system_vectors(seed):
+        """
+        Simplifies the BBC Elite .SOLAR routine to find initial
+        spawn vectors for the Planet and the Sun.
+        
+        'seeds' is a list of 16-bit values [s0, s1, s2]
+        planet is at (xsign 0 0), (ysign 0 0), (zsign 0 0)
+        i.e (0 or 65536). ...
+        """
+        seeds = seed.raw_seed()
+        # Extract the high bytes (equivalent to QQ15+1, +3, +5 in ASM)
+        s0_hi = (seeds[0] >> 8) & 0xFF
+        s1_hi = (seeds[1] >> 8) & 0xFF
+        s2_hi = (seeds[2] >> 8) & 0xFF
+    
+        # Planet Vector ---
+        # The game uses bits 0-2 of s0_hi (the economy type) to offset the planet
+        eco_bits = s0_hi & 0x07
+        
+        # The ASM does: (bits + 6 + Carry) >> 1.
+        z_sign = (eco_bits + 6) >> 1
+        
+        # x and y are derived by a further rotation (ROR)
+        # making them roughly half of z_sign.
+        x_sign = y_sign = z_sign >> 1
+        if z_sign & 0x01:
+          x_sign = y_sign = -x_sign
+        
+        planet_vector = (x_sign << 16, y_sign << 16, z_sign << 16)
+    
+        # Sun Vector ---
+        # Sun Z is determined by bits 0-2 of s1_hi, forced to be negative (behind you)
+        # ORA #%10000001 sets the sign bit (7) and the value bit (0)
+        sun_z = (s1_hi & 0x07) | 0x81
+        
+        # Sun X and Y are determined by bits 0-1 of s2_hi
+        sun_xy = s2_hi & 0x03
+        
+        # In Elite's coordinate system, bit 7 is the sign bit.
+        # We convert that to standard signed integers here:
+        def elite_to_signed(val):
+            magnitude = val & 0x7F
+            return -magnitude if (val & 0x80) else magnitude
+    
+        sun_vector = (
+            elite_to_signed(sun_xy) << 16,
+            elite_to_signed(sun_xy) << 16,
+            elite_to_signed(sun_z) << 16
+        )
+    
+        return planet_vector, sun_vector
+        
 if __name__ == '__main__':
     # --- Example Usage ---
     # Lave (starting planet) seed in Galaxy 1
@@ -488,4 +540,21 @@ if __name__ == '__main__':
     path, pathnames, _ = gen.get_planet_route('Birera', 'Dicemari', new_seed)
     print(pathnames)
     gen.plot_path(path, GalaxySeed())
+    new_seed = GalaxySeed(210, 82, 16, 66, 189, 154)
+    
+    glx = new_seed.copy()     
+    min_dist = 1e6
+    for i in range(255):
+                    
+         for _ in range(4):
+             glx.waggle()
+         
+         planet_loc, sun_loc =get_solar_system_vectors(glx)
+         dist =  Vector(*planet_loc) - Vector(*sun_loc)
+         dist = dist.magnitude
+         if dist < min_dist:
+            min_dist = dist
+            name = glx.name
+         print(f'{glx.name}, {dist/1000:.1f}k')
+    print('min', name, min_dist/1000)
 

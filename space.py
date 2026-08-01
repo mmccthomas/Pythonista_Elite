@@ -478,6 +478,7 @@ class Space:
         gs.swat.clear_universe()
         if not cs.WIREFRAME:
             gs.swat.generate_landscape()
+            gs.swat.generate_sun()
         planet_vector, sun_vector = self.get_solar_system_vectors(gs.present_planet)
         gs.swat.add_new_ship(cs.SHIP_PLANET, *planet_vector, None, 0, 0)
         self.make_station_appear()
@@ -1015,6 +1016,7 @@ class Space:
         self.flight_roll = 0
         self.flight_climb = 0
         self.populate_universe()
+        gs.missions.system_arrival()
         rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
         gs.ship.rotmat = rotmat
         

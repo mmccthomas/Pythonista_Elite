@@ -43,6 +43,7 @@ FLIGHT_DIRECTOR = True
 FIRE_ACCURACY = 8  # higher makes it easier to hit target default 8
 CLASSIC_DISTANCE = True
 SCANNER_LABELS = True
+PITCH_RATE = 32
 
 if OLD_SCHOOL:
    WIREFRAME = 1

@@ -91,7 +91,7 @@ class Sound():
 class MyShip:
     max_speed = 50
     max_roll = 31
-    max_climb = 8
+    max_climb = cs.PITCH_RATE
     max_fuel = cs.MAX_FUEL
     
 
@@ -321,7 +321,7 @@ class MainLoop():
     
         self.myship.max_speed = 40
         self.myship.max_roll = 31
-        self.myship.max_climb = 8
+        self.myship.max_climb = cs.PITCH_RATE
         self.myship.max_fuel = cs.MAX_FUEL
         
     def finish_game(self):
@@ -877,6 +877,8 @@ class MainLoop():
         if self.space.hyper_ready:
             self.space.display_hyper_status()
             # if (self.mcount & 3) == 0:
+            if self.space.hyper_countdown == 0:
+               pass
             self.space.countdown_hyperspace()
         
         if self.univ_status.check() and cs.UNIVERSE_STATUS:
@@ -1202,20 +1204,21 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Edtira'],
+                  40: ['Select', '$Edbedi'],
                   
                   70: ['Launch'],
                   
                   # 152: [*['Up']*811],
-                  150: ['Instant Dock'],
-                  # 150: ['Hyper Space'],
+                  #
+                  150: ['Hyper Space'],
                   
                   # 140: ['Status'],
                   165: [],  # complete
+                  200: [],
                   267: ['OK'],
-                  
+                  300: ['Instant Dock'],
                   # 963: ['To Station'],
-                  1002: [],
+                  362: [],
                   1079: [],
                   # 142: ['Launch'],
                   # 340: [],  # finished align
@@ -1228,11 +1231,11 @@ def loop():
     for i in range(10000):
        logger.debug(i)
        if i in operations:
-          if i == 155:
+          if i == 362:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
-          print(i, g.present_planet, command)
+       print(i, g.present_planet)
        # logger.debug(f'{g.trade.stock_market=}')
        univ = [obj.type for obj in g.universe]
        if univ[3] != 0 and ((3 ^ g.mcount) & 7) == 0:

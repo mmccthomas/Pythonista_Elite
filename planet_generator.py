@@ -35,6 +35,7 @@ uniform float u_softness;
 uniform vec4 u_clip_rect; // x, y, width, height (0.0 to 1.0)
 uniform vec2 u_screen;    // width, height of screen in pixels
 uniform vec3 u_light; // lighting direction
+uniform vec4 u_tint_color; // tint
 
 void main() {
     // --- 1. COORDINATE SETUP ---
@@ -67,7 +68,7 @@ void main() {
     
     // --- 5. FINAL OUTPUT ---
     vec3 final_rgb = tex_color * diff;
-    gl_FragColor = vec4(final_rgb, 1.0) * alpha * clip_mask;
+    gl_FragColor = vec4(final_rgb, 1.0) * alpha * clip_mask * u_tint_color;
 }
 '''
 
@@ -404,6 +405,7 @@ class Planet():
         self.planet.shader.set_uniform('u_clip_rect', clip_rect)
         self.planet.shader.set_uniform('u_softness', soft)
         self.planet.shader.set_uniform('u_light', light_dir)
+        self.planet.shader.set_uniform('u_tint_color', (1,1,1,1))
         self.planet.alpha = 1
         
     def update(self, t):

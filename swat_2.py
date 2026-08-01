@@ -153,6 +153,7 @@ class Swat:
         self.missile_target = cs.MISSILE_UNARMED
         self.ecm_ours = 0
         self.in_battle = 0
+        self.step = 0
     
     # ----- Universe management
     def generate_landscape(self):
@@ -192,7 +193,7 @@ class Swat:
         self.ship_dict['PLANET'].name = ('PLANET',)
         # logger.debug('generated new planet')
     
-    def generate_sun(self):
+    def generate_sun(self, imagepath='images/sun_texture400.png'):
         # create a realistic sun
         # then change Sprite3D image
         clip_rect = ((cs.FLIGHT_RECT.x + cs.BORDER) / cs.W,  # left
@@ -207,10 +208,10 @@ class Swat:
             logger.debug(f'{e}')
         self.sun_image = Planet(size=800, position=cs.FLIGHT_RECT.center(),
                                 clip_rect=clip_rect,
-                                image_path='images/sun_texture400.png',
+                                image_path=imagepath,
                                 light_dir=(0, 0, 1), soft=0.08)
         img = self.sun_image.planet
-        self.sun_image.color = cs.RED
+        # self.sun_image.planet.color = cs.RED
         self.sun_image.planet.z_position = -1
         self.sun_image.planet.alpha = 0
         self.gs.parent_scene.add_child(self.sun_image.planet)
@@ -260,6 +261,47 @@ class Swat:
            ship.model.position.z = ship.location.z
            ship.model.position_in_world = ship.model.position.clone()
            ship.model.rotation_angles_in_world = ship.model.rotation.clone()
+           
+    def move_towards(self, loc1, loc2, initial_distance=None, percent=0.01):
+        """
+        Move loc2 towards loc1 by a percentage of the initial distance between them.
+    
+        Args:
+            loc1: (x1, y1, z1) - target location (stays fixed)
+            loc2: (x2, y2, z2) - location to move
+            initial_distance: distance to base the step size on (computed if None)
+            percent: percentage of initial_distance to move per call (default 1%)
+    
+        Returns:
+            new_loc2: (x, y, z) tuple, loc2 moved towards loc1
+        """
+        x1, y1, z1 = loc1.to_tuple
+        x2, y2, z2 = loc2.to_tuple
+    
+        dx = x1 - x2
+        dy = y1 - y2
+        dz = z1 - z2
+    
+        current_distance = math.sqrt(dx**2 + dy**2 + dz**2)
+    
+        if current_distance == 0:
+            return loc2  # already at target
+    
+        # Use the initial distance for a fixed step size, or current distance if not provided
+        if initial_distance is None and self.step == 0:
+            base_distance = initial_distance if initial_distance is not None else current_distance
+            self.step = base_distance * percent / 100
+    
+        # Don't overshoot the target
+        step = min(self.step, current_distance)
+    
+        # Normalize direction and scale by step
+        ux, uy, uz = dx / current_distance, dy / current_distance, dz / current_distance
+        new_x = x2 + ux * step
+        new_y = y2 + uy * step
+        new_z = z2 + uz * step
+    
+        return (new_x, new_y, new_z)
            
     def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None) -> list:
         """
