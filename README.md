@@ -218,6 +218,12 @@ significant changes:
 44. Added new mission thargoid invasion in Galaxy 3. Kill 10 Thargoids gathered around station.
     It seems they can destroy the station!
     
+45. Added new mission in Galaxy 3. Get to station as quickly as possible to rescue refugees.
+    The sun is going supernova and will soon swallow the station. 
+    
+46. Improved layout for different device sizes, including iPhone and allowed dynamic resizing
+    for iPad.
+    
 Getting Started
 
    If you have never seen this game before, here are the first few steps.

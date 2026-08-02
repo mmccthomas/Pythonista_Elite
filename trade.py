@@ -31,6 +31,7 @@ class TradeManager:
             {"name": "Platinum",     "base_price": 171, "eco_adjust": -2, "base_qty": 55,  "mask": 0x1F, "units": cs.KILOGRAMS},
             {"name": "Gem-Stones",   "base_price": 45,  "eco_adjust": -1, "base_qty": 250, "mask": 0x0F, "units": cs.GRAMS},
             {"name": "Alien Items",  "base_price": 53,  "eco_adjust": 15, "base_qty": 192, "mask": 0x07, "units": cs.TONNES},
+            {"name": "Refugees",     "base_price": 0,   "eco_adjust": -1, "base_qty": 0,   "mask": 0x0F, "units": 3}
         ]
         
         # Initialize current price and quantity fields
@@ -39,7 +40,7 @@ class TradeManager:
             item["current_quantity"] = 0
             
     def set_stock_quantities(self, quant):
-        for i, item in enumerate(self.stock_market):
+        for i, item in enumerate(self.stock_market[:17]):
             item["base_qty"] = quant[i]
              
         for item in self.stock_market:

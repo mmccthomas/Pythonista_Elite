@@ -21,7 +21,7 @@ GOVERNMENT_TYPES = [
 LASER_NAMES = ["Pulse", "Beam", "Military", "Mining", "Custom"]
 
 
-UNIT_NAMES = ["t", "kg", "g", "people"]
+UNIT_NAMES = ["t", "kg", "g", " persons"]
 
 TONNES, KILOGRAMS, GRAMS = 0, 1, 2
 
@@ -482,12 +482,13 @@ class Docked:
         # Add inventory here as it makes sense
         gfx.display_text(0, line_no, "INVENTORY", 140, cs.WHITE)
         line_no += 1
-        for i in range(17):
-            if cmdr.current_cargo[i] > 0:
-                sm = gs.trade.stock_market[i]
-                gfx.display_text(x, line_no, f"{sm['name']} {cmdr.current_cargo[i]}{UNIT_NAMES[sm['units']]}")
-                line_no += 1
-                
+        for i, sm in enumerate(gs.trade.stock_market):
+            try:
+                if cmdr.current_cargo[i] > 0:                
+                    gfx.display_text(x, line_no, f"{sm['name']} {cmdr.current_cargo[i]}{UNIT_NAMES[sm['units']]}")
+                    line_no += 1
+            except IndexError:
+                pass
         self.gfx.text_render()
         
     # -------Markets

@@ -1117,10 +1117,9 @@ class Space:
         gs.cmdr.legal_status |= self.trade.carrying_contraband()
         # universe already populated
         # move player onto station.
-        
+        logger.error('')
         self.stars.create_new_stars()
-        gs.swat.clear_universe(all_others=True)
-
+        gs.swat.clear_universe(all_others=True)        
         self.teleport(station, -1000, axis=NOSEV)
         self.update_universe()
         gs.flight_speed = 0

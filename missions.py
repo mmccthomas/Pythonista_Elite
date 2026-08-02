@@ -157,7 +157,7 @@ class MissionManager:
             "---MESSAGE ENDS.")
             
         self.m5_brief_a = (
-            "Attention Commander"
+            "Attention Commander."
             "We have need of your services again."
             f"The sun at {planet_5_1} is going supernova."
             "The last group of human refugees are gathered in the Coriolis station."
@@ -166,7 +166,8 @@ class MissionManager:
             "---MESSAGE ENDS.")
             
         self.m5_debrief = (
-            "Well done Commander.All tye refugees are extremely grateful."
+            "Well done Commander."
+            "All the refugees are extremely grateful."
             "Please accept our rescued gem stones."
             "---MESSAGE ENDS.")
             
@@ -267,8 +268,9 @@ class MissionManager:
             self.display_brief(self.m4_debrief)
             
     def supernova_debrief(self):
-        if self.state == ST_SETUP:            
-            self.gs.cmdr.current_cargo[15] += 250            
+        if self.state == ST_SETUP:      
+            self.gs.cmdr.current_cargo = [0] * 17  
+            self.gs.cmdr.current_cargo[15] = 250            
             self.display_brief(self.m5_debrief)
                             
     def check_destroy(self, ship):
@@ -351,14 +353,9 @@ class MissionManager:
             
         elif (gs.cmdr.mission == MISSION_5_BRIEFED
               and gs.present_planet.name == planet_5_1
-              and rand255() >= 0):
+              and rand255() >= 0):            
             
-            # sun moves closer to planet by 0.5% every 4 secs          
-            x, y, z = gs.swat.move_towards(gs.universe[STATION].location,
-                                           gs.universe[SUN].location,
-                                           percent=0.5)
-            gs.universe[SUN].location = Vector(x, y, z)                        
-            return None
+            return cs.SHIP_BOA
         else:
             return None    
             
@@ -373,12 +370,20 @@ class MissionManager:
         # mission specific arrngements when we arrive in system
         if (self.gs.cmdr.mission == MISSION_5_BRIEFED
               and self.gs.present_planet.name == planet_5_1):
-            # make everthing Red
-            self.gs.renderer.hue_shift = 0.9
+             # sun moves closer to planet by 1km / secs             
+             # make everthing Red
+             sun = self.gs.universe[SUN]
+             self.gs.renderer.hue_shift = 0.9            
+             rotmat = self.gs.swat.rotmat_facing(sun.location, self.gs.universe[STATION].location)
+             sun.rotmat = rotmat
+             sun.velocity = 10
+        else:
+             self.gs.renderer.hue_shift = 0   
+                      
                         
-    def mission_message(self):
+    def mission1_message(self):
         # clues to mission 1
-        if self.gs.cmdr.mission == 1:
+        if self.gs.cmdr.mission == MISSION_1_HUNT:
             mission_text = self.get_mission_planet_desc()
             if mission_text is not None:
                 self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
@@ -471,15 +476,14 @@ class MissionManager:
             
         if  self.cmdr.mission == MISSION_5_BRIEFED and gs.present_planet.name == planet_5_1:
               # clear the cargo hold(!) and fill with refugees                        
-              gs.trade.stock_market.append({"name": "Refugees", "base_price": 0,
-                                            "eco_adjust": -1, "base_qty": 250,
-                                            "mask": 0x0F, "units": 3})
+              
               gs.cmdr.current_cargo = [0] * 17 + [250]               
               gs.input_queue.put('OK')
               gs.input_queue.put('Status')
+              gs.info_message('Go! Go')
               return MISSION_5_COMPLETE
               
-        if self.cmdr.mission == MISSION_5_COMPLETE:
+        if self.cmdr.mission == MISSION_5_COMPLETE and gs.present_planet.name != planet_5_1:
             self.supernova_debrief()
             return MISSION_5_COMPLETE
             

@@ -760,8 +760,7 @@ class MainLoop():
             case 'OK':
                 self.cmdr.mission = mission_phase
                 self.current_screen = cs.SCR_COMMANDER
-                self.missions.state = 0
-                self.space.populate_universe()
+                self.missions.state = 0    
                 self.space.dock_player()
                 self.sound.stop_midi()
                 
@@ -1220,7 +1219,8 @@ def loop():
                   # 963: ['To Station'],
                   362: [],
                   1079: [],
-                  # 142: ['Launch'],
+                  365: ['Launch'],
+                  426:[],
                   # 340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
