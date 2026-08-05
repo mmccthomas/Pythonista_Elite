@@ -328,9 +328,10 @@ class EliteScene(Scene):
             # Draw all objects
             for obj in objects:
                 if obj.exploding:
+                    
                     # Draw the explosion instead of the ship
                     self._explosion_t += self.dt * EXPLOSION_SPEED
-                    obj.model.explosion_time = self._explosion_t
+                    obj.model.explosion_time = self._explosion_t                                            
                     if self._explosion_t >= 1.0:
                         obj.flags |= cs.FLG_REMOVE
                         obj.exploding = False

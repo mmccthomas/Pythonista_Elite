@@ -192,6 +192,7 @@ class PlanetGenerator:
 
     def describe_planet(self, seed: GalaxySeed) -> str:
         """Entry point for full planet description."""
+        description = None
         self.rnd_a, self.rnd_b = seed.c, seed.d
         self.rnd_c, self.rnd_d = seed.e, seed.f
         try:  # to allow testing
@@ -555,6 +556,8 @@ if __name__ == '__main__':
          if dist < min_dist:
             min_dist = dist
             name = glx.name
+            glxmin = glx.copy()
          print(f'{glx.name}, {dist/1000:.1f}k')
-    print('min', name, min_dist/1000)
-
+    print('min', name, min_dist/1000, glxmin)
+    new_seed = gen.next_galaxy(new_seed)
+    print(new_seed.name, new_seed)

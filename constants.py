@@ -66,8 +66,8 @@ if OLD_SCHOOL:
 # scanner fills the gap
 
 
-hud_l = Image.open('images/hud_left.png')
-hud_r = Image.open('images/hud_right.png')
+hud_l = Image.open('images/hud_left_1.png')
+hud_r = Image.open('images/hud_right_1.png')
 
 hud_l_w, hud_l_h = hud_l.size
 hud_r_w, hud_r_h = hud_r.size
@@ -330,6 +330,7 @@ FLG_MISSILE = 0x2000
 FLG_ALIEN = 0x4000
 FLG_STATION = 0x8000  # for scanner
 FLG_PLANET = 0x10000  # for scanner
+FLG_SEEKER = 0x20000
 
 MISSILE_UNARMED = -2
 MISSILE_ARMED = -1

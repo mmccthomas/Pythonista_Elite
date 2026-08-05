@@ -1,26 +1,40 @@
+# missions code
+# mission briefing and debriefs are triggered on docking
+# ship activity is triggered on random_encounter, every 4.25 seconds
+
 from vector import Vector
 import constants as cs
 import random
+from enum import Enum
 import logging
 logger = logging.getLogger(__name__)
-# Mission State Constants
-MISSION_NONE = 0
-MISSION_1_HUNT = 1
-MISSION_1_COMPLETE = 2
-MISSION_1_DEBRIEFED = 3
-MISSION_2_START = 4
-MISSION_2_BRIEFED = 5
-MISSION_2_COMPLETE = 6
-MISSION_3_START = 7
-MISSION_3_BRIEFED = 8
-MISSION_3_COMPLETE = 9
-MISSION_4_START = 10
-MISSION_4_BRIEFED = 11
-MISSION_4_COMPLETE = 12
-MISSION_4_FINISHED = 13
-MISSION_5_START = 14
-MISSION_5_BRIEFED = 15
-MISSION_5_COMPLETE = 16
+
+
+class Mission(Enum):
+    NONE = 0
+    HUNT_1 = 1
+    COMPLETE_1 = 2
+    DEBRIEFED_1 = 3
+    START_2 = 4
+    BRIEFED_2 = 5
+    COMPLETE_2 = 6
+    START_3 = 7
+    BRIEFED_3 = 8
+    COMPLETE_3 = 9
+    START_4 = 10
+    BRIEFED_4 = 11
+    COMPLETE_4 = 12
+    FINISHED_4 = 13
+    START_5 = 14
+    BRIEFED_5 = 15
+    COMPLETE_5 = 16
+    FINISHED_5 = 17
+    START_6 = 18
+    BRIEFED_6 = 19
+    COMPLETE_6 = 20
+    FINISHED_6 = 21
+    
+    
 ST_SETUP = 0   # Initialise and setup
 ST_UPDATE = 1  # run rotating ship for intro1
 planet_2_2 = 'Soiserla'
@@ -29,10 +43,12 @@ planet_3_2 = 'Beisria'
 planet_3_3 = 'Onenqu'
 planet_4_1 = "Edtira"
 planet_5_1 = "Edbedi"
-MAX_THARGOIDS = 10
-SPAWN_DISTANCE = 30000
+planet_6_1 = "Ceenge"
+planet_6_2 = "Ceorge"
+
 STATION = 1
 SUN = 2
+
 
 def rand255():
    return random.randint(0, 255)
@@ -44,8 +60,11 @@ class MissionManager:
         self.cmdr = gs.cmdr
         self.universe = gs.universe
         self.gfx = gs.gfx
-        self.no_thargoids = 10
-        self.destroyed_thargoids = 0
+        self.no_opposition = 10
+        self.destroyed_opposition = 0
+        self.generated = 0
+        self.MAX_OPPOSITION = 10
+        self.SPAWN_DISTANCE = 30000
         self.state = 0
         
         # Mission 1 Text (The Constrictor)
@@ -141,13 +160,13 @@ class MissionManager:
             "We have generated a new cloaking device and fitted it to your ship."
             "---MESSAGE ENDS.")
             
-        self.m4_brief_a = (
+        self.m4_brief = (
             "Attention Commander, Captain Fortesque of Her Majesty's Space Navy."
             "We have need of your services again."
             f"We have a situation in {planet_4_1}, in which a large number of Thargoids"
             " are attacking our station. You have proved yourself very capable."
             "Destroy all the Thargoid motherships"
-            "We believe there are 10 near to the station."
+            f"We believe there are {self.MAX_OPPOSITION} near to the station."
             "Please help. If successful and you survive, you will be well rewarded."
             "---MESSAGE ENDS.")
             
@@ -156,13 +175,13 @@ class MissionManager:
             "Your legal status has been reset and you have been awarded 10,000 credits."
             "---MESSAGE ENDS.")
             
-        self.m5_brief_a = (
+        self.m5_brief = (
             "Attention Commander."
             "We have need of your services again."
             f"The sun at {planet_5_1} is going supernova."
             "The last group of human refugees are gathered in the Coriolis station."
             "Please rescue them."
-            "Time is of the essence, any delay will be disastrous for all." 
+            "Time is of the essence, any delay will be disastrous for all."
             "---MESSAGE ENDS.")
             
         self.m5_debrief = (
@@ -171,20 +190,34 @@ class MissionManager:
             "Please accept our rescued gem stones."
             "---MESSAGE ENDS.")
             
+        self.m6_brief = (
+            "Attention Commander, Captain Fortesque of Her Majesty's Space Navy."
+            "We have need of your services again."
+            f"We have a situation in {planet_6_2}, in which our station is under bombardment from an asteroid storm."
+            "Use your skills to protect the station."
+            f"We believe there are {self.MAX_OPPOSITION} near to the station."
+            "Please help."
+            "---MESSAGE ENDS.")
+            
+        self.m6_debrief = (
+            "Well done Commander.You have saved the station and we shall remember."
+            "You have been awarded 10,000 credits."
+            "---MESSAGE ENDS.")
+            
     def in_mission(self):
-        if self.gs.cmdr.mission == MISSION_4_BRIEFED:
-            return True
-        elif self.gs.cmdr.mission == MISSION_5_BRIEFED:
-             return True
-        return None
-       
+        # allow spawning near station
+        
+        return Mission(self.gs.cmdr.mission) in (Mission.BRIEFED_4,
+                                               Mission.BRIEFED_5,
+                                               Mission.BRIEFED_6)
+                    
     def get_mission_planet_desc(self):
         """
         Returns special mission-related text when visiting specific planets.
         Matches the pnum logic from missions.c
         called from planets.py in description
         """
-        if self.gs.cmdr.mission == 1:
+        if Mission(self.gs.cmdr.mission) == Mission.HUNT_1:
             name = self.gs.present_planet.name
             match self.gs.cmdr.galaxy_number:
                 case 0:
@@ -242,7 +275,7 @@ class MissionManager:
     def constrictor_debrief(self):
         if self.state == ST_SETUP:
             logger.debug('')
-            self.gs.cmdr.mission = MISSION_1_DEBRIEFED
+            self.gs.cmdr.mission = Mission.DEBRIEFED_1
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000  # 10000.0 Credits
             self.display_brief(self.m1_debrief)
@@ -268,122 +301,150 @@ class MissionManager:
             self.display_brief(self.m4_debrief)
             
     def supernova_debrief(self):
-        if self.state == ST_SETUP:      
-            self.gs.cmdr.current_cargo = [0] * 17  
-            self.gs.cmdr.current_cargo[15] = 250            
+        if self.state == ST_SETUP:
+            self.gs.cmdr.current_cargo = [0] * 17
+            self.gs.cmdr.current_cargo[15] = 250
             self.display_brief(self.m5_debrief)
+            
+    def asteroid_debrief(self):
+        if self.state == ST_SETUP:
+            self.gs.cmdr.score += 256
+            self.gs.cmdr.credits += 100000
+            gs.space.scanner_scale = 256
+            self.display_brief(self.m6_debrief)
                             
     def check_destroy(self, ship):
+       # special case of destroyed ship in missions
+       
        if ship.type == cs.SHIP_CONSTRICTOR:
-           self.gs.cmdr.mission = 2  # MISSION_1_COMPLETE
-       if (ship.type == cs.SHIP_THARGOID
-               and self.gs.cmdr.mission == MISSION_4_BRIEFED):
-           self.destroyed_thargoids += 1
-           self.gs.info_message_left(f'Destroyed {self.destroyed_thargoids}/{MAX_THARGOIDS} Thargoids')
-           if self.destroyed_thargoids >= MAX_THARGOIDS:
-               self.gs.cmdr.mission = MISSION_4_COMPLETE
-               self.gs.msg_left.text = 'Thargons destroyed'
+           self.gs.cmdr.mission = Mission.COMPLETE_1
+       if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_4 
+               and ship.type == cs.SHIP_THARGOID):
+           self.destroyed_opposition += 1
+           self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Thargoids'
+           if self.destroyed_opposition >= self.MAX_OPPOSITION:
+               self.gs.cmdr.mission = Mission.COMPLETE_4
+               self.gs.msg.text = 'All Thargoids destroyed'
+       elif Mission(self.gs.cmdr.mission) == Mission.BRIEFED_6: 
+           if ship.type == cs.SHIP_ASTEROID:
+               self.destroyed_opposition += 1
+               self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Asteroids'
+               if self.destroyed_opposition >= self.MAX_OPPOSITION:
+                   self.gs.cmdr.mission = Mission.COMPLETE_6
+                   self.gs.msg.text = 'All asteroids destroyed'
+           elif ship.type == cs.SHIP.CORIOLIS:
+               self.gs.msg.text = 'Station Destroyed. Mission Failed'
+       logger.debug(f'destroyed {ship.name} {self.destroyed_opposition}')      
+               
+    def swarm_attack(self, ship_type, target_index, velocity=1, offset=Vector(0, 0, 0), flyby=False):
+        # create a swarm of enemies to attack the station
+        # they can either target the station or an offset to fly by.
+        gs = self.gs
+        target = gs.universe[target_index]
+        while gs.swat.ship_count[ship_type] < (self.MAX_OPPOSITION - self.destroyed_opposition):
+         
+            opp_offset = Vector(random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE),
+                            random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE),
+                            random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE))
             
+            opposition_position = target.location + opp_offset            
+ 
+            newship = gs.swat.spawn_homing_object(ship_type, opposition_position,
+                                                  target_index, velocity,
+                                                  offset=offset,
+                                                  flyby=flyby)
+            if newship == -1:  # universe is full
+                break
+            gs.swat.ship_list[ship_type].max_loot = 0
+            self.generated += 1
+            gs.universe[newship].name = f'asteroid {self.generated}'
+             
     def spawn_ship(self):
         # triggered every 4.25 seconds
         # lone hunter on missions
         gs = self.gs
         
-        if (gs.cmdr.mission == MISSION_1_HUNT
-                and gs.cmdr.galaxy_number == 1
-                and gs.present_planet.name == 'Orarra'
-                and gs.swat.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
-            return cs.SHIP_CONSTRICTOR
+        match Mission(gs.cmdr.mission):
+            case Mission.HUNT_1:
+                if (gs.cmdr.galaxy_number == 1
+                        and gs.present_planet.name == 'Orarra'
+                        and gs.swat.ship_count.get(cs.SHIP_CONSTRICTOR, 0) == 0):
+                    return cs.SHIP_CONSTRICTOR
             
-        elif gs.cmdr.mission == MISSION_2_BRIEFED and rand255() >= 220:
-            return cs.SHIP_THARGOID
+            case Mission.BRIEFED_2:
+                if rand255() >= 220:
+                    return cs.SHIP_THARGOID
             
-        elif gs.cmdr.mission == MISSION_3_BRIEFED and rand255() >= 220:
-            # 3 Asps
-            no_asps = gs.swat.ship_count.get(cs.SHIP_ASP2, 0)
-            if no_asps < 1:
-                for _ in range(1 - no_asps):
-                   z = 12000
-                   x = random.randint(-1024, 1024)
-                   y = random.randint(-1024, 1024)
-                   if rand255() > 127:
-                       x = -x
-                   if rand255() > 127:
-                       y = -y
-                   ship_type = cs.SHIP_ASP2
-                   newship = gs.swat.add_new_ship(ship_type, x, y, z, None, 0, 0)
-                   if newship != -1:
-                       # give these asps a cargo
-                       gs.swat.ship_list[cs.SHIP_ASP2].max_loot = 1
-                       gs.universe[newship].flags = cs.FLG_ANGRY
-                       if rand255() > 245:
-                           self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
-                       gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
-                       gs.swat.in_battle += 1
-            return None
-            
-        elif (gs.cmdr.mission == MISSION_4_BRIEFED
-              and gs.present_planet.name == planet_4_1
-              and rand255() >= 0):
-            # produce 10 thargoids, less any already destroyed.
-            # this produces a cluster of aliens in the local area, slowly
-            # reducing as you kill.
-            # since ships further than 56km disappear, you would otherwise
-            # get attrition by distance
-            # stops at 10 thargoids they do not get replaced
-            # logger.error(f'existing thargoids {self.gs.swat.ship_count[cs.SHIP_THARGOID]}')
-         
-            generated = 0
-            while self.gs.swat.ship_count[cs.SHIP_THARGOID] < (MAX_THARGOIDS - self.destroyed_thargoids):
-                ship_type = cs.SHIP_THARGOID
-                z = random.randint(-SPAWN_DISTANCE, SPAWN_DISTANCE)
-                x = random.randint(-SPAWN_DISTANCE, SPAWN_DISTANCE)
-                y = random.randint(-SPAWN_DISTANCE, SPAWN_DISTANCE)
-                station_position = self.universe[1].location
-                thargoid_position = station_position + Vector(x, y, z)
-                # logger.error(f'spawning thargoid at {thargoid_position}')
-                rotmat = self.gs.swat.rotmat_facing(thargoid_position, station_position)
-                newship = gs.swat.add_new_ship(ship_type, *thargoid_position.to_tuple,  rotmat, 0, 0)
-                if newship == cs.MAX_UNIV_OBJECTS - 2:
-                    break
-                gs.swat.ship_list[cs.SHIP_THARGOID].max_loot = 0
-                generated += 1
-            # logger.error(f'generated {generated}ships')
-            return None
-            
-        elif (gs.cmdr.mission == MISSION_5_BRIEFED
-              and gs.present_planet.name == planet_5_1
-              and rand255() >= 0):            
-            
-            return cs.SHIP_BOA
-        else:
-            return None    
-            
+            case Mission.BRIEFED_3:
+                if rand255() >= 220:
+                    # 3 Asps
+                    no_asps = gs.swat.ship_count.get(cs.SHIP_ASP2, 0)
+                    if no_asps < 1:
+                        for _ in range(1 - no_asps):
+                           z = 12000
+                           x = random.randint(-1024, 1024)
+                           y = random.randint(-1024, 1024)
+                           if rand255() > 127:
+                               x = -x
+                           if rand255() > 127:
+                               y = -y
+                           ship_type = cs.SHIP_ASP2
+                           newship = gs.swat.add_new_ship(ship_type, x, y, z, None, 0, 0)
+                           if newship != -1:
+                               # give these asps a cargo
+                               gs.swat.ship_list[cs.SHIP_ASP2].max_loot = 1
+                               gs.universe[newship].flags = cs.FLG_ANGRY
+                               if rand255() > 245:
+                                   self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
+                               gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
+                               gs.swat.in_battle += 1
+                    
+            case Mission.BRIEFED_4:
+                if gs.present_planet.name == planet_4_1:
+                    # produce a swarm of thargoids, , targetted near the station.
+                    # slowly reducing as you kill.
+                    # get attrition by distance
+                    self.swarm_attack(cs.SHIP_THARGOID, STATION, velocity=5, offset=Vector(0, 0, -500), flyby=True)
+                                        
+            case Mission.BRIEFED_5:
+                # place escaping boas
+                if gs.present_planet.name == planet_5_1:
+                    return cs.SHIP_BOA
+                    
+            case Mission.BRIEFED_6:
+                if gs.present_planet.name == planet_6_2:
+                    # produce a number of  asteroids, targetted at the station
+                    # slowly reducing as you kill.
+                    # get attrition by distance
+                    self.SPAWN_DISTANCE = 30000
+                    gs.swat.HOMING_DAMAGE = 10
+                    gs.space.scanner_scale = 128                    
+                    self.swarm_attack(cs.SHIP_ASTEROID, STATION, velocity=5)
+                    
     def scoop_cargo(self, obj):
         if (obj.type == cs.SHIP_CARGO
                 and obj.parent == cs.SHIP_ASP2
-                and self.gs.cmdr.mission == MISSION_3_BRIEFED):
+                and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_3):
            self.gs.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] += 1
            self.gs.info_message("Scooped: Cloaking Device")
            
     def system_arrival(self):
         # mission specific arrngements when we arrive in system
-        if (self.gs.cmdr.mission == MISSION_5_BRIEFED
-              and self.gs.present_planet.name == planet_5_1):
-             # sun moves closer to planet by 1km / secs             
-             # make everthing Red
-             sun = self.gs.universe[SUN]
-             self.gs.renderer.hue_shift = 0.9            
-             rotmat = self.gs.swat.rotmat_facing(sun.location, self.gs.universe[STATION].location)
-             sun.rotmat = rotmat
-             sun.velocity = 10
+        if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_5
+                and self.gs.present_planet.name == planet_5_1):
+            # sun moves closer to planet by 1km / secs
+            # make everthing Red
+            sun = self.gs.universe[SUN]
+            self.gs.renderer.hue_shift = 0.9
+            rotmat = self.gs.swat.rotmat_facing(sun.location, self.gs.universe[STATION].location)
+            sun.rotmat = rotmat
+            sun.velocity = 10
         else:
-             self.gs.renderer.hue_shift = 0   
-                      
+            self.gs.renderer.hue_shift = 0
                         
     def mission1_message(self):
         # clues to mission 1
-        if self.gs.cmdr.mission == MISSION_1_HUNT:
+        if Mission(self.gs.cmdr.mission) == Mission.HUNT_1:
             mission_text = self.get_mission_planet_desc()
             if mission_text is not None:
                 self.gs.gfx.display_centre_text(1, 'Incoming Message', color=cs.RED)
@@ -409,82 +470,105 @@ class MissionManager:
         self.cmdr = self.gs.cmdr
         score = self.cmdr.score
         gal_num = self.cmdr.galaxy_number
-        # Trigger Mission 1: score > 256 and in Galaxy 1 or 2
-        if self.cmdr.mission == MISSION_NONE and score >= 256 and gal_num < 2:
-            self.constrictor_briefing()
-            return MISSION_1_HUNT
-
-        # Trigger Mission 1 Debrief
-        if self.cmdr.mission == MISSION_1_COMPLETE:
-            self.constrictor_debrief()
-            return MISSION_1_DEBRIEFED
-
-        # Trigger Mission 2: score > 1280 and in Galaxy 3
-        if self.cmdr.mission == MISSION_1_DEBRIEFED and score >= 1280 and gal_num == 2:
-            self.display_brief(self.m2_brief_a)
-            return MISSION_2_START
-
-        # Trigger Mission 2 Part 2: Reach Ceerdi
-        if self.cmdr.mission == MISSION_2_START and present_planet.name == 'Ceerdi':
-            self.display_brief(self.m2_brief_b)
-            return MISSION_2_BRIEFED
-
-        # Trigger Mission 2 End: Reach end planet
-        if self.cmdr.mission == MISSION_2_BRIEFED and present_planet.name == 'Soiserla':
-            self.thargoid_debrief()
-            return MISSION_2_COMPLETE
-            
-        # Trigger Mission 3
-        if self.cmdr.mission == MISSION_2_COMPLETE and gal_num == 2:
-            logger.error('first brief')
-            # self.state = ST_SETUP
-            self.display_brief(self.m3_brief_a)
-            return MISSION_3_START
-
-        # Trigger Mission 3 Part 2: Reach 1st waypoint
-        if self.cmdr.mission == MISSION_3_START and present_planet.name == planet_3_1:
-            # self.state = ST_SETUP
-            self.display_brief(self.m3_brief_b)
-            return MISSION_3_BRIEFED
-
-        # Trigger Mission 3 End: Reach end planet
-        if (self.cmdr.mission == MISSION_3_BRIEFED
-                and present_planet.name == planet_3_2
-                and self.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] >= 3):
-            # self.state = ST_SETUP
-            self.cloaking_debrief()
-            return MISSION_3_COMPLETE
-            
-        # Trigger Mission 4 : score > 1500 and in Galaxy 4
-        if self.cmdr.mission == MISSION_3_COMPLETE and score >= 1500 and gal_num == 3:
-            # logger.error('first brief')
-            # self.state = ST_SETUP
-            self.display_brief(self.m4_brief_a)
-            self.state = ST_SETUP
-            return MISSION_4_BRIEFED
+        
+        match Mission(self.cmdr.mission):
          
-        if self.cmdr.mission == MISSION_4_COMPLETE:
-           self.thargoid_invasion_debrief()
-           return MISSION_4_FINISHED
-           
-        # Trigger Mission 5 :  in Galaxy 4
-        if self.cmdr.mission == MISSION_4_FINISHED and  gal_num == 3:
-            # self.state = ST_SETUP
-            self.display_brief(self.m5_brief_a)
-            self.state = ST_SETUP
-            return MISSION_5_BRIEFED
-            
-        if  self.cmdr.mission == MISSION_5_BRIEFED and gs.present_planet.name == planet_5_1:
-              # clear the cargo hold(!) and fill with refugees                        
+            case Mission.NONE:
+                # Trigger Mission 1:
+                if score >= 256 and gal_num < 2:
+                    self.constrictor_briefing()
+                    return Mission.HUNT_1
+                    
+            case Mission.COMPLETE_1:
+                self.constrictor_debrief()
+                return Mission.DEBRIEFED_1
+                
+            case Mission.DEBRIEFED_1:
+                # Trigger Mission 2
+                if score >= 1280 and gal_num == 2:
+                    self.display_brief(self.m2_brief_a)
+                    return Mission.START_2
+                    
+            case Mission.START_2:
+                # Trigger Mission 2 Part 2:
+                if present_planet.name == 'Ceerdi':
+                    self.display_brief(self.m2_brief_b)
+                    return Mission.BRIEFED_2
+                    
+            case Mission.BRIEFED_2:
+                # Trigger Mission 2 End: Reach end planet
+                if present_planet.name == 'Soiserla':
+                    self.thargoid_debrief()
+                    return Mission.COMPLETE_2
+                    
+            case Mission.COMPLETE_2:
+                # Trigger Mission 3
+                if gal_num == 2:
+                    # self.state = ST_SETUP
+                    self.display_brief(self.m3_brief_a)
+                    return Mission.START_3
               
-              gs.cmdr.current_cargo = [0] * 17 + [250]               
-              gs.input_queue.put('OK')
-              gs.input_queue.put('Status')
-              gs.info_message('Go! Go')
-              return MISSION_5_COMPLETE
-              
-        if self.cmdr.mission == MISSION_5_COMPLETE and gs.present_planet.name != planet_5_1:
-            self.supernova_debrief()
-            return MISSION_5_COMPLETE
-            
+            case Mission.START_3:
+                # Trigger Mission 3 Part 2: Reach 1st waypoint
+                if present_planet.name == planet_3_1:
+                    self.display_brief(self.m3_brief_b)
+                    return Mission.BRIEFED_3
+                    
+            case Mission.BRIEFED_3:
+                # Trigger Mission 3 End: Reach end planet
+                if (present_planet.name == planet_3_2
+                        and self.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] >= 3):
+                    self.cloaking_debrief()
+                    return Mission.COMPLETE_3
+                       
+            case Mission.COMPLETE_3:
+                # Trigger Mission 4 :
+                if score >= 1500 and gal_num == 3:
+                    self.MAX_OPPOSITION = 10
+                    self.destroyed_opposition = 0
+                    self.display_brief(self.m4_brief)
+                    self.state = ST_SETUP
+                    return Mission.BRIEFED_4
+                    
+            case Mission.COMPLETE_4:
+                self.thargoid_invasion_debrief()
+                return Mission.FINISHED_4
+                
+            case Mission.FINISHED_4:
+                # Trigger Mission 5 :
+                if gal_num == 3:
+                    self.display_brief(self.m5_brief)
+                    self.state = ST_SETUP
+                    return Mission.BRIEFED_5
+                    
+            case Mission.BRIEFED_5:
+                if gs.present_planet.name == planet_5_1:
+                    # clear the cargo hold(!) and fill with refugees
+                    # oops, no fuel available
+                    gs.cmdr.current_cargo = [0] * 17 + [250]
+                    gs.in_dock.fuel_available = False
+                    gs.input_queue.put('OK')
+                    gs.input_queue.put('Status')
+                    return Mission.COMPLETE_5
+                    
+            case Mission.COMPLETE_5:
+                if gs.present_planet.name != planet_5_1:
+                    self.supernova_debrief()
+                    self.gs.in_dock.fuel_available = True
+                    return Mission.FINISHED_5
+                    
+            case Mission.FINISHED_5:
+                # Trigger Mission 6 :
+                if (gal_num == 5 and gs.present_planet.name != planet_6_1):
+                    self.MAX_OPPOSITION = 10
+                    self.destroyed_opposition = 0
+                    self.generated = 0
+                    self.display_brief(self.m6_brief_a)
+                    self.state = ST_SETUP
+                    return Mission.BRIEFED_6
+                    
+            case Mission.COMPLETE_6:
+                self.asteroid_debrief()
+                return Mission.FINISHED_6
+                                                    
         self.gs.current_screen = cs.SCR_PLANET_DATA

@@ -62,6 +62,7 @@ class Space:
         ship.is_player = True
         self.ship = ship
         self.compass_target = PLANET
+        self.scanner_scale = 256
         self.jump_start = 0
         self.end_reason = ''
         
@@ -501,6 +502,7 @@ class Space:
             intro_screens = (cs.SCR_INTRO_ONE, cs.SCR_INTRO_TWO,
                              cs.SCR_GAME_OVER, cs.SCR_ESCAPE_POD)
             if gs.current_screen not in intro_screens:
+                
                 self.swat.tactics(i)
                 
             self.move_univ_object(obj)
@@ -570,9 +572,9 @@ class Space:
                     or (obj.flags & cs.FLG_CLOAKED)):
                 continue
 
-            x = int(obj.location.x) // 256
-            y = int(obj.location.y) // 256
-            z = int(obj.location.z) // 256
+            x = int(obj.location.x) // self.scanner_scale
+            y = int(obj.location.y) // self.scanner_scale
+            z = int(obj.location.z) // self.scanner_scale
             dir = 1
             x1 = -x
             y1 = dir * z // 4
@@ -618,7 +620,10 @@ class Space:
             for i in range(4):
                 gfx.draw_colour_line(x1, y1 + i * dy, x1, y1 + (i + 1) * dy, colour[i % 2], width=3)
             if cs.SCANNER_LABELS and cs.SCANNER_RECT.contains_point(Point(x1+6, y2)):
-                text(obj.name[:3].capitalize(),
+                name = obj.name[:3] 
+                if obj.name[-1].isnumeric():
+                    name += obj.name[-2:]
+                text(name.capitalize(),
                      font_name='Copperplate',
                      font_size=12.0,
                      x=x1+6, y=y2,
@@ -1117,7 +1122,6 @@ class Space:
         gs.cmdr.legal_status |= self.trade.carrying_contraband()
         # universe already populated
         # move player onto station.
-        logger.error('')
         self.stars.create_new_stars()
         gs.swat.clear_universe(all_others=True)        
         self.teleport(station, -1000, axis=NOSEV)

@@ -74,6 +74,7 @@ def set_init_matrix():
             Vector(0.0, 0.0, -1.0)]
 
 
+                 
 def tidy_matrix(mat):
     """
     Ensures the matrix remains orthogonal (axes at 90 degrees) and normalized.
@@ -96,10 +97,7 @@ def tidy_matrix(mat):
             
         # 3. Calculate X-axis using the Cross Product of Y and Z
         # xyzzy... nothing happens. :-)
-        
-        mat[SIDEV].x = mat[ROOFV].y * mat[NOSEV].z - mat[ROOFV].z * mat[NOSEV].y
-        mat[SIDEV].y = mat[ROOFV].z * mat[NOSEV].x - mat[ROOFV].x * mat[NOSEV].z
-        mat[SIDEV].z = mat[ROOFV].x * mat[NOSEV].y - mat[ROOFV].y * mat[NOSEV].x
+        mat[SIDEV] = cross_product(mat[ROOFV], mat[NOSEV])
         
     except ZeroDivisionError:
        pass
@@ -192,7 +190,11 @@ class Matrix:
     def __getitem__(self, index):
         return self.rotmat[index]
 
-            
+def cross_product(A : Vector, B : Vector):
+    return Vector(A.y * B.z - A.z * B.y,
+                  A.z * B.x - A.x * B.z,
+                  A.x * B.y - A.y * B.x)
+                              
 if __name__ == '__main__':
    mat = [Vector(-1, -.05,  .002), Vector(-.051, 1, -.05), Vector(0, -.05, -1)]
    mat1 = tidy_matrix(mat)

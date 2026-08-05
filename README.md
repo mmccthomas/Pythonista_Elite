@@ -260,14 +260,14 @@ Chris `Thomas. June 2026
 
 Added ability for ships to target each other.
 not functional yet.
- 
+At the end of Supernova mission station graphics show through text. not cleared properly 
 
 Possible additional missions from PC version:
-Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible.
+Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible. DONE
 
 • Stolen Police Ship: A mission where you must track down and destroy a specific police vessel that has been compromised or stolen. It is essentially a high-bounty hunting task.
 • Asteroid Bombardment: You are assigned to defend a station from an incoming asteroid storm. You must destroy the asteroids before they impact the station's shielding.
-• Thargoid Invasion: This triggers an event in a star system where a station is actively being besieged by a large fleet of Thargoids. You must jump to the system and assist in the defense by destroying the attacking ships.
+• Thargoid Invasion: This triggers an event in a star system where a station is actively being besieged by a large fleet of Thargoids. You must jump to the system and assist in the defense by destroying the attacking ships. DONE
 
 Finally:
 

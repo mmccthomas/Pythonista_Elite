@@ -918,6 +918,8 @@ class MainLoop():
         # clear left message every second
         if self.mcount & 63 == 0:
            self.msg_left.text = ''
+           cr ="\n"
+           # logger.error(f'{cr.join([ship.distance_to_target for ship in self.universe if ship.type==cs.SHIP_ASTEROID ])}')
            
         if self.message_count > 0:
             self.gfx.display_centre_text(3, self.message_string, 120, cs.WHITE)
@@ -1203,7 +1205,7 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Edbedi'],
+                  40: ['Select', '$Ceorge'],
                   
                   70: ['Launch'],
                   
@@ -1214,13 +1216,14 @@ def loop():
                   # 140: ['Status'],
                   165: [],  # complete
                   200: [],
-                  267: ['OK'],
-                  300: ['Instant Dock'],
-                  # 963: ['To Station'],
+                  #267: ['OK'],
+                  #300: ['Instant Dock'],
+                  300: ['To Station'],
                   362: [],
+                  
                   1079: [],
-                  365: ['Launch'],
-                  426:[],
+                  # 365: ['Launch'],
+                  448:[],
                   # 340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
@@ -1231,7 +1234,7 @@ def loop():
     for i in range(10000):
        logger.debug(i)
        if i in operations:
-          if i == 362:
+          if i == 448:
               pass
           for command in operations[i]:
               g.input_queue.put(command)

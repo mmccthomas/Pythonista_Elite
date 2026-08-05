@@ -187,6 +187,8 @@ class HudPanel(Node):
         self.compass.position = cs.COMPASS_RECT.center()
         self.add_child(self.compass)
 
+
+
                 
 if __name__ == '__main__':
    # Start the scene

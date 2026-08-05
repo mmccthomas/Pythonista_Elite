@@ -123,6 +123,7 @@ class Docked:
         self.equip_stock = _make_equip_stock()
         self.item_count = 1
         self.incoming_message = ''
+        self.fuel_available = True
         # self.galactic_frame = Rect()
     
     # Fuel circle / cross
@@ -681,7 +682,8 @@ class Docked:
         tech_level = gs.current_planet_data.tech_level + 1
 
         self.equip_stock[0].price = (cs.MAX_FUEL - self.gs.cmdr.fuel) * 2
-
+        if not self.fuel_available:
+            self.equip_stock[0].show = 0
         y = self.EQUIP_START_ROW
         item_list = []
         for item in self.equip_stock:

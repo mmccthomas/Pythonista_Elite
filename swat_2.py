@@ -6,11 +6,12 @@ from copy import deepcopy
 from types import SimpleNamespace
 import colorsys
 import constants as cs
-from vector import Vector, unit_vector, vector_dot_product
+from vector import Vector, unit_vector, vector_dot_product, cross_product
 from wireframe_3d import load_wireframes_from_json, WireframeObject, WireSphere
 from wireframe_3d import Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
+from missions import Mission
 import logging
 logger = logging.getLogger(__name__)
 NOSEV = 2
@@ -19,6 +20,7 @@ SIDEV = 0
 PLANET = 0
 STATION = 1
 MIN_FIRING_DISTANCE = 8192
+HOMING_HIT_DISTANCE = 256   # matches missile_tactics' player-hit threshold
 
 
 def rand255():
@@ -154,6 +156,7 @@ class Swat:
         self.ecm_ours = 0
         self.in_battle = 0
         self.step = 0
+        self.HOMING_DAMAGE = 1         # damage applied to target on impact
     
     # ----- Universe management
     def generate_landscape(self):
@@ -262,15 +265,15 @@ class Swat:
            ship.model.position_in_world = ship.model.position.clone()
            ship.model.rotation_angles_in_world = ship.model.rotation.clone()
            
-    def move_towards(self, loc1, loc2, initial_distance=None, percent=0.01):
+    def move_towards(self, loc1, loc2, initial_distance=None, velocity=None):
         """
-        Move loc2 towards loc1 by a percentage of the initial distance between them.
+        Move loc2 towards loc1 
     
         Args:
             loc1: (x1, y1, z1) - target location (stays fixed)
             loc2: (x2, y2, z2) - location to move
             initial_distance: distance to base the step size on (computed if None)
-            percent: percentage of initial_distance to move per call (default 1%)
+            
     
         Returns:
             new_loc2: (x, y, z) tuple, loc2 moved towards loc1
@@ -278,81 +281,46 @@ class Swat:
         x1, y1, z1 = loc1.to_tuple
         x2, y2, z2 = loc2.to_tuple
     
-        dx = x1 - x2
-        dy = y1 - y2
-        dz = z1 - z2
-    
-        current_distance = math.sqrt(dx**2 + dy**2 + dz**2)
-    
-        if current_distance == 0:
-            return loc2  # already at target
-    
-        # Use the initial distance for a fixed step size, or current distance if not provided
-        if initial_distance is None and self.step == 0:
-            base_distance = initial_distance if initial_distance is not None else current_distance
-            self.step = base_distance * percent / 100
-    
-        # Don't overshoot the target
-        step = min(self.step, current_distance)
-    
+        delta = loc1 - loc2
+        
+        delta = unit_vector(loc1 - loc2)
+                
+        step = velocity * 1.5    
+        
         # Normalize direction and scale by step
-        ux, uy, uz = dx / current_distance, dy / current_distance, dz / current_distance
-        new_x = x2 + ux * step
-        new_y = y2 + uy * step
-        new_z = z2 + uz * step
-    
-        return (new_x, new_y, new_z)
+        
+        return  loc2 + delta * step            
+        
            
     def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None) -> list:
         """
         Build a rotmat [SIDEV, ROOFV, NOSEV] whose NOSEV axis points from
         from_loc toward to_loc.
         """
-        nose = unit_vector(Vector(to_loc.x - from_loc.x,
-                                  to_loc.y - from_loc.y,
-                                  to_loc.z - from_loc.z))
+        nose = unit_vector(to_loc - from_loc)                                  
     
         if roof_hint is None:
             roof_hint = Vector(0, 1, 0)  # world "up"
-    
-        # side = roof_hint x nose  (perpendicular to both)
-        side = Vector(
-            roof_hint.y * nose.z - roof_hint.z * nose.y,
-            roof_hint.z * nose.x - roof_hint.x * nose.z,
-            roof_hint.x * nose.y - roof_hint.y * nose.x,
-        )
-    
+            
+        side = cross_product(roof_hint, nose)
+            
         # guard against nose ~parallel to roof_hint (degenerate cross product)
-        side_len = math.sqrt(side.x**2 + side.y**2 + side.z**2)
+        side_len = side.magnitude
         if side_len < 1e-6:
             roof_hint = Vector(1, 0, 0)  # fall back to a different up-vector
-            side = Vector(
-                roof_hint.y * nose.z - roof_hint.z * nose.y,
-                roof_hint.z * nose.x - roof_hint.x * nose.z,
-                roof_hint.x * nose.y - roof_hint.y * nose.x,
-            )
-            side_len = math.sqrt(side.x**2 + side.y**2 + side.z**2)
+            side = cross_product(roof_hint, nose)            
     
-        side = Vector(side.x / side_len, side.y / side_len, side.z / side_len)
-    
-        # roof = nose x side  (re-orthogonalized "up")
-        roof = Vector(
-            nose.y * side.z - nose.z * side.y,
-            nose.z * side.x - nose.x * side.z,
-            nose.x * side.y - nose.y * side.x,
-        )
-    
-        rotmat = [Vector(), Vector(), Vector()]
-        rotmat[SIDEV] = side
-        rotmat[ROOFV] = roof
-        rotmat[NOSEV] = nose
-        return rotmat
+        side = unit_vector(side)            
+        roof = cross_product(nose, side)
+            
+        return [side, roof, nose]
         
     def add_new_ship(self, ship_type, x, y, z, rotmat, rotx, rotz) -> int:
         if rotmat is None:
             rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
             
         ship_name = self.ship_names[ship_type]
+        # find an empty slot
         for i, obj in enumerate(self.universe):
             if obj.type == 0:
                 obj.name = ship_name
@@ -653,7 +621,117 @@ class Swat:
             self.make_angry(index)
     
     # ------ Ship spawning
+    def spawn_homing_object(self, ship_type: int, location, target_index: int,
+                            velocity: float = 10, offset: Vector = None,
+                            flyby: bool = False, max_range: float = 40000) -> int:
+        """
+        Spawn a new UnivObject at `location`, oriented to face the target
+        (optionally offset from the target's actual position), that homes in
+        every tick.
     
+        offset: Vector added to the target's location each tick to compute the
+                actual aim point (e.g. Vector(0, 0, 0) for a direct hit,
+                or some lateral/vertical offset for a flyby past the object).
+        flyby:  if True, once the seeker gets within HOMING_HIT_DISTANCE of the
+                aim point it does NOT explode/impact — it keeps flying in a
+                straight line along its current heading until it exceeds
+                max_range, at which point it's removed.
+        max_range: distance from origin at which a flyby seeker is auto-removed.
+        """
+        target = self.universe[target_index]
+        offset = offset or Vector(0, 0, 0)
+        aim_point = target.location + offset
+    
+        rotmat = self.rotmat_facing(location, aim_point)
+    
+        newship = self.add_new_ship(
+            ship_type,
+            location.x, location.y, location.z,
+            rotmat, -127, 0
+        )
+        if newship == -1:
+            return -1
+    
+        ns = self.universe[newship]
+        ns.velocity = velocity
+        ns.acceleration = 0
+        ns.flags = cs.FLG_SEEKER
+        ns.target = target_index
+        ns.bravery = 126
+        # New per-seeker state — offset targeting / flyby behaviour
+        ns.homing_offset = offset
+        ns.flyby = flyby
+        ns.max_range = max_range
+        ns.flyby_locked = False       # becomes True once past closest approach
+        ns.flyby_heading = None       # frozen unit vector once locked
+        ns.distance_to_target = 0
+        return newship
+
+    def home_on_target(self, index: int):
+        """
+        Per-tick homing behaviour for an autonomous seeker created by
+        spawn_homing_object(). Call this from tactics()/update loop instead
+        of missile_tactics() for ship_types that should track any object
+        (not just the player).
+    
+        Mirrors missile_tactics()'s steering logic, but generalized to use
+        move_towards() for translation and _target_vector_and_distance()-style
+        relative vectors for any target index (not just the player).
+        """
+        seeker = self.universe[index]
+    
+        if seeker.flags & (cs.FLG_DEAD | cs.FLG_INACTIVE):
+            return
+        if seeker.target is None or self.universe[seeker.target].type == 0:
+            # target gone — self-destruct harmlessly
+            seeker.flags |= cs.FLG_DEAD
+            return
+    
+        target = self.universe[seeker.target]
+        # Once a flyby seeker has locked its heading (passed closest approach),
+        # it ignores the target entirely and just travels in a straight line.
+        if getattr(seeker, 'flyby_locked', False):
+            heading = seeker.flyby_heading
+            seeker.location += heading * seeker.velocity
+                
+            if seeker.location.magnitude > getattr(seeker, 'max_range', 40000):
+                self.remove_ship(index)
+                return
+    
+        offset = getattr(seeker, 'homing_offset', Vector(0, 0, 0))
+        vec = target.location + offset - seeker.location
+        
+    
+        # Impact check — delete self, damage target
+        if vec.magnitude < HOMING_HIT_DISTANCE and seeker.flyby_heading is None:
+            if getattr(seeker, 'flyby', False):
+                # Passed the aim point without colliding — lock current
+                # heading and continue straight until out of range.
+                seeker.flyby_locked = True
+                seeker.flyby_heading = unit_vector(seeker.rotmat[NOSEV])
+                return
+            else:
+                # real impact
+                seeker.exploding = True
+                seeker.flags |= cs.FLG_DEAD
+                self.gs.msg.text = f'{seeker.name} {seeker.distance_to_target:.0f}'
+                self.gs.sound.play_sample(cs.SND_EXPLODE)
+        
+                if seeker.target == 0:
+                    # hit the player
+                    self.gs.space.damage_ship(self.HOMING_DAMAGE, seeker.location.z >= 0.0)
+                else:
+                    target.energy -= self.HOMING_DAMAGE
+                    self.gs.msg_left.text = f'station enegy = {target.energy}'
+                    if target.energy <= 0 and not target.exploding:
+                        self.explode_object(seeker.target)
+            return
+    
+        # Steer nose towards target using existing track_object() logic        
+        direction = seeker.direction        
+        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset)        
+            
+        
     def launch_enemy(self, index: int, ship_type: int, flags: int, bravery: int):
         src = self.universe[index]
         newship = self.add_new_ship(ship_type,
@@ -793,6 +871,10 @@ class Swat:
             if flags & cs.FLG_ANGRY:
                 self.missile_tactics(index)
             return
+        
+        if flags & cs.FLG_SEEKER:
+            
+            self.home_on_target(index)
         # every 8 /60ths
         if ((index ^ gs.mcount) & 15) != 0:
             return
@@ -803,6 +885,7 @@ class Swat:
         if ship.type == cs.SHIP_HERMIT:
             self._tactics_hermit(index, ship)
             return
+        
         # Recharge the ship's energy banks by 1
         if ship.energy < self.ship_list[ship.type].energy:
             ship.energy += 1
@@ -856,7 +939,7 @@ class Swat:
                 ship.rotz = rat if dir_ < 0 else -rat
                 if ship.rotx < 0:
                     ship.rotz = -ship.rotz
-
+            
     def missile_tactics(self, index):
         missile = self.universe[index]
         gs = self.gs
@@ -1312,11 +1395,12 @@ class Swat:
                 self.in_battle += 1
 
     def random_encounter(self):
+        # logger.error(f'{self.gs.space.safe_mode=} {self.gs.missions.in_mission()}')
         
         if (self.gs.space.safe_mode
                 and not self.gs.missions.in_mission()):
             return
-
+        
         if rand255() == 136:
             if (int(self.universe[PLANET].location.z) & 0x3e) != 0:
                 self.create_thargoid()
@@ -1326,8 +1410,7 @@ class Swat:
 
         if (rand255() & 7) == 0:
             self.create_trader()
-            return
-        
+            return        
         ship_type = self.gs.missions.spawn_ship()
         if ship_type == cs.SHIP_THARGOID:
             self.create_thargoid()
