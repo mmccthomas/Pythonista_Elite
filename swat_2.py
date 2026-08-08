@@ -2,7 +2,7 @@ import math
 import random
 # from scene import Rect
 # from ui import Path
-from copy import deepcopy
+from copy import deepcopy, copy
 from types import SimpleNamespace
 import colorsys
 import constants as cs
@@ -12,6 +12,8 @@ from wireframe_3d import Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
 from missions import Mission
+# import vdb
+# import pdb ; pdb.set_trace()
 import logging
 logger = logging.getLogger(__name__)
 NOSEV = 2
@@ -59,6 +61,33 @@ class UnivObject:
     has_fired: bool = False
     explosion_time: float = 0.0
     
+    def is_visible(self):
+        # within 20 degrees in from and 0 < distance < 20000
+        distance = int(self.location.magnitude)
+        vec = unit_vector(self.location)
+        # Horizontal angle (Azimuth)
+        azimuth = math.degrees(math.atan2(vec.x, vec.z))
+        elevation = math.degrees(math.atan2(vec.y, math.sqrt(vec.x**2 + vec.z**2)))
+        dist_ok = False
+        angle_ok = False
+        if distance < 0:
+          pos = f'behind {distance}'
+        elif distance > 30000:
+           pos = f'too far {distance}'
+        else:
+          pos = f'distance ok {distance}'
+          dist_ok = True
+        
+        
+        if (-10 < azimuth < 10) and (-10 < elevation < 10):
+           direction = f'angle ok {azimuth:.1f} {elevation:.1f}'
+           angle_ok = True
+        else:
+            direction = f'angle {azimuth:.1f} {elevation:.1f}'
+        
+        return  dist_ok and angle_ok, f'{pos} {direction} {self.direction}'
+          
+        
     @property
     def direction(self):
         nvec = unit_vector(self.location)
@@ -81,7 +110,7 @@ class UnivObject:
         
         # Rotation: store rotmat on the model so the renderer can use it
         m.rotmat_world = [Vector3(*row.to_tuple) for row in self.rotmat]
-    
+        
     def get_render_vertices(self):
         """Vertices ready for the renderer, using current UnivObject state."""
         return self.model.get_world_vertices_from_transform(
@@ -217,7 +246,10 @@ class Swat:
         # self.sun_image.planet.color = cs.RED
         self.sun_image.planet.z_position = -1
         self.sun_image.planet.alpha = 0
-        self.gs.parent_scene.add_child(self.sun_image.planet)
+        try:
+           self.gs.parent_scene.add_child(self.sun_image.planet)
+        except AttributeError:
+           pass
         self.ship_dict['SUN'] = Sprite3D(img, width=200, height=200,
                                          distance_scale=True, scale=25000,
                                          name='sun')
@@ -243,7 +275,7 @@ class Swat:
         
     def clear_universe(self, all_others=False):
         # if all_others,clear all but sun, planet, station
-        for i, obj in enumerate(self.universe):
+        for i, obj in enumerate(self.gs.universe):
             if all_others and i < 3:
                 continue
             obj.type = 0
@@ -267,7 +299,7 @@ class Swat:
            
     def move_towards(self, loc1, loc2, initial_distance=None, velocity=None):
         """
-        Move loc2 towards loc1 
+        Move loc2 towards loc1
     
         Args:
             loc1: (x1, y1, z1) - target location (stays fixed)
@@ -282,22 +314,17 @@ class Swat:
         x2, y2, z2 = loc2.to_tuple
     
         delta = loc1 - loc2
-        
         delta = unit_vector(loc1 - loc2)
-                
-        step = velocity * 1.5    
-        
+        step = velocity * 1.5
         # Normalize direction and scale by step
-        
-        return  loc2 + delta * step            
-        
-           
+        return loc2 + delta * step
+                   
     def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None) -> list:
         """
         Build a rotmat [SIDEV, ROOFV, NOSEV] whose NOSEV axis points from
         from_loc toward to_loc.
         """
-        nose = unit_vector(to_loc - from_loc)                                  
+        nose = unit_vector(to_loc - from_loc)
     
         if roof_hint is None:
             roof_hint = Vector(0, 1, 0)  # world "up"
@@ -308,29 +335,29 @@ class Swat:
         side_len = side.magnitude
         if side_len < 1e-6:
             roof_hint = Vector(1, 0, 0)  # fall back to a different up-vector
-            side = cross_product(roof_hint, nose)            
+            side = cross_product(roof_hint, nose)
     
-        side = unit_vector(side)            
+        side = unit_vector(side)
         roof = cross_product(nose, side)
             
         return [side, roof, nose]
         
-    def add_new_ship(self, ship_type, x, y, z, rotmat, rotx, rotz) -> int:
+    def add_new_ship(self, ship_type, x, y, z, rotmat, rotx, rotz, roty=0) -> int:
         if rotmat is None:
             rotmat = [Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)]
             
         ship_name = self.ship_names[ship_type]
         # find an empty slot
-        for i, obj in enumerate(self.universe):
+        for i, obj in enumerate(self.gs.universe):
             if obj.type == 0:
                 obj.name = ship_name
                 obj.type = ship_type
-                obj.model = self.ship_dict[ship_name]
+                obj.model = copy(self.ship_dict[ship_name])
                 obj.location = Vector(x, y, z)
                 obj.distance = math.sqrt(x*x + y*y + z*z)
                 obj.rotmat = list(rotmat)
                 obj.rotx = rotx
-                obj.roty = 0
+                obj.roty = roty
                 obj.rotz = rotz
                 obj.velocity = 0
                 obj.acceleration = 0
@@ -358,7 +385,7 @@ class Swat:
         return -1
 
     def remove_ship(self, index: int):
-        obj = self.universe[index]
+        obj = self.gs.universe[index]
         ship_type = obj.type
         if ship_type == 0:
             return
@@ -367,14 +394,11 @@ class Swat:
             self.ship_count[ship_type] = max(0, self.ship_count.get(ship_type, 1) - 1)
 
         obj.type = 0
+        obj.name = ''
         self.check_missiles(index)
-
-        if ship_type in (cs.SHIP_CORIOLIS, cs.SHIP_DODEC, cs.SHIP_STATIONV):
-            px = obj.location.x
-            py = obj.location.y
-            pz = obj.location.z
-            py = (int(py) & 0xFFFF) | 0x60000
-            self.add_new_ship(cs.SHIP_SUN, px, py, pz, None, 0, 0)
+        
+        if index == STATION and not self.gs.missions.in_mission():               
+            self.add_new_ship(ship_type, *obj.location, None, 0, 0)
 
     def add_new_station(self, sx, sy, sz, rotmat):
         match self.gs.present_planet.tech:
@@ -385,14 +409,14 @@ class Swat:
             case _:
                 station = cs.SHIP_CORIOLIS
         self.add_new_ship(station, sx, sy, sz, rotmat, 0, -127)
-        # self.add_axis_display(self.universe[1])
+        # self.add_axis_display(self.gs.universe[1])
             
     # ------ Missiles & ECM
     def check_missiles(self, index: int):
         if self.missile_target == index:
             self.missile_target = cs.MISSILE_UNARMED
             self.gs.info_message("Target Lost")
-        for obj in self.universe:
+        for obj in self.gs.universe:
             if obj.type == cs.SHIP_MISSILE and obj.target == index:
                 obj.flags |= cs.FLG_DEAD
 
@@ -424,13 +448,13 @@ class Swat:
             self.gs.info_message("Missile Jammed")
             return
 
-        ns = self.universe[newship]
+        ns = self.gs.universe[newship]
         ns.velocity = self.gs.flight_speed * 2
         ns.flags = cs.FLG_ANGRY
         ns.target = self.missile_target
 
-        if self.universe[self.missile_target].type > cs.SHIP_ROCK:
-            self.universe[self.missile_target].flags |= cs.FLG_ANGRY
+        if self.gs.universe[self.missile_target].type > cs.SHIP_ROCK:
+            self.gs.universe[self.missile_target].flags |= cs.FLG_ANGRY
 
         self.gs.cmdr.missiles -= 1
         self.missile_target = cs.MISSILE_UNARMED
@@ -542,7 +566,7 @@ class Swat:
         return (x*x + y*y) / cs.FIRE_ACCURACY <= target_area
 
     def make_angry(self, index: int):
-        obj = self.universe[index]
+        obj = self.gs.universe[index]
         if obj.flags & cs.FLG_INACTIVE:
             return
         if index == STATION:
@@ -556,7 +580,7 @@ class Swat:
             
     def explode_object(self, index: int):
         gs = self.gs
-        ship = self.universe[index]
+        ship = self.gs.universe[index]
         # logger.debug('exploding')
         gs.cmdr.score += 1
         if (gs.cmdr.score & 255) == 0:
@@ -583,7 +607,7 @@ class Swat:
         return x, y, z
          
     def check_target(self, index: int, flip: UnivObject):
-        univ = self.universe[index]
+        univ = self.gs.universe[index]
         
         if not self.in_target(univ.type, *self._flip_location(flip.location)):
             return
@@ -623,7 +647,8 @@ class Swat:
     # ------ Ship spawning
     def spawn_homing_object(self, ship_type: int, location, target_index: int,
                             velocity: float = 10, offset: Vector = None,
-                            flyby: bool = False, max_range: float = 40000) -> int:
+                            flyby: bool = False, max_range: float = 40000,
+                            sequential: bool = False) -> int:
         """
         Spawn a new UnivObject at `location`, oriented to face the target
         (optionally offset from the target's actual position), that homes in
@@ -636,111 +661,139 @@ class Swat:
                 aim point it does NOT explode/impact — it keeps flying in a
                 straight line along its current heading until it exceeds
                 max_range, at which point it's removed.
+                
+        sequential: If True, ships attack one at a time rather than all at once.
+                    This means that they can be targetted and engaged before
+                    attacking. If ship is flying by, next ship can start
+                    attacking.
+                    
+                    
         max_range: distance from origin at which a flyby seeker is auto-removed.
         """
-        target = self.universe[target_index]
+        target = self.gs.universe[target_index]
         offset = offset or Vector(0, 0, 0)
         aim_point = target.location + offset
     
         rotmat = self.rotmat_facing(location, aim_point)
-    
-        newship = self.add_new_ship(
-            ship_type,
+        
+        newship = self.add_new_ship(ship_type,
             location.x, location.y, location.z,
-            rotmat, -127, 0
-        )
+            rotmat,
+            
+            16, 127, roty=0)
+            
         if newship == -1:
             return -1
     
-        ns = self.universe[newship]
-        ns.velocity = velocity
+        ns = self.gs.universe[newship]
+        ns.sync_model()
+        ns.velocity = 0 if sequential != 0 else velocity
         ns.acceleration = 0
         ns.flags = cs.FLG_SEEKER
-        ns.target = target_index
-        ns.bravery = 126
+        ns.target = target_index        
+        ns.bravery = 113
         # New per-seeker state — offset targeting / flyby behaviour
         ns.homing_offset = offset
         ns.flyby = flyby
         ns.max_range = max_range
+        
         ns.flyby_locked = False       # becomes True once past closest approach
-        ns.flyby_heading = None       # frozen unit vector once locked
-        ns.distance_to_target = 0
+        # ns.flyby_heading = None       # frozen unit vector once locked
         return newship
-
+                    
     def home_on_target(self, index: int):
         """
         Per-tick homing behaviour for an autonomous seeker created by
         spawn_homing_object(). Call this from tactics()/update loop instead
         of missile_tactics() for ship_types that should track any object
         (not just the player).
-    
-        Mirrors missile_tactics()'s steering logic, but generalized to use
-        move_towards() for translation and _target_vector_and_distance()-style
-        relative vectors for any target index (not just the player).
         """
-        seeker = self.universe[index]
-    
+        
+        seeker = self.gs.universe[index]
+        #seeker.sync_model()
+        if seeker.target == cs.SHIP_PLAYER:
+            return
+        target = self.gs.universe[seeker.target]
+        if target.type == 0:
+            self.remove_ship(index)
+            return
         if seeker.flags & (cs.FLG_DEAD | cs.FLG_INACTIVE):
             return
-        if seeker.target is None or self.universe[seeker.target].type == 0:
-            # target gone — self-destruct harmlessly
-            seeker.flags |= cs.FLG_DEAD
+        if seeker.location.magnitude > getattr(seeker, 'max_range', 40000):
+            self.remove_ship(index)
             return
-    
-        target = self.universe[seeker.target]
-        # Once a flyby seeker has locked its heading (passed closest approach),
-        # it ignores the target entirely and just travels in a straight line.
+        # Once a flyby seeker has locked its heading (passed closest approach)
+        # it is ignored here, continues on its merry way
         if getattr(seeker, 'flyby_locked', False):
-            heading = seeker.flyby_heading
-            seeker.location += heading * seeker.velocity
-                
-            if seeker.location.magnitude > getattr(seeker, 'max_range', 40000):
-                self.remove_ship(index)
-                return
-    
+            return
+        if seeker.velocity == 0:
+            return  # waiting its turn — literally inert
+        # TODO decide what to do if target disappears
+        # maybe set nominal velocity
+        # if seeker.target is None or self.gs.universe[seeker.target].type == 0:
+        #    # target gone — self-destruct harmlessly
+        #    seeker.flags |= cs.FLG_DEAD
+        #    return            
+       
         offset = getattr(seeker, 'homing_offset', Vector(0, 0, 0))
         vec = target.location + offset - seeker.location
-        
-    
+        target_vec = target.location  - seeker.location
         # Impact check — delete self, damage target
-        if vec.magnitude < HOMING_HIT_DISTANCE and seeker.flyby_heading is None:
+        if vec.magnitude < HOMING_HIT_DISTANCE and not seeker.flyby_locked:
             if getattr(seeker, 'flyby', False):
-                # Passed the aim point without colliding — lock current
-                # heading and continue straight until out of range.
+                # Passed the aim point without colliding
+                # continue straight until out of range.
                 seeker.flyby_locked = True
-                seeker.flyby_heading = unit_vector(seeker.rotmat[NOSEV])
                 return
             else:
                 # real impact
                 seeker.exploding = True
                 seeker.flags |= cs.FLG_DEAD
-                self.gs.msg.text = f'{seeker.name} {seeker.distance_to_target:.0f}'
+                self.gs.msg.text = f'{seeker.name} impacted'
                 self.gs.sound.play_sample(cs.SND_EXPLODE)
-        
-                if seeker.target == 0:
-                    # hit the player
-                    self.gs.space.damage_ship(self.HOMING_DAMAGE, seeker.location.z >= 0.0)
-                else:
-                    target.energy -= self.HOMING_DAMAGE
-                    self.gs.msg_left.text = f'station enegy = {target.energy}'
-                    if target.energy <= 0 and not target.exploding:
-                        self.explode_object(seeker.target)
+                
+                target.energy -= self.HOMING_DAMAGE
+                self.gs.msg_left.text = f'station enegy = {target.energy}'
+                if target.energy <= 0 and not target.exploding:
+                    self.explode_object(seeker.target)
             return
-    
-        # Steer nose towards target using existing track_object() logic        
-        direction = seeker.direction        
-        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset)        
             
+        if abs(target_vec.magnitude) < MIN_FIRING_DISTANCE / 2 and seeker.flyby:
+            self.strafe(seeker, target)
+            
+        # Steer nose towards target
+        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset)
+        # seeker.roty += self.gs.parent_scene.dt * 5
+        #seeker.model.rotation.y = seeker.model.rotation.y % math.pi
+        # seeker.rotx += self.gs.parent_scene.dt * 10
+        # seeker.rotx = seeker.rotx % math.pi
+        seeker.sync_model()
         
+    def strafe(self, seeker, target):
+        """ allow an NPC to fire at target even if not pointed directly. Dont change flight direction """
+        if self.gs.mcount % 30 == 0:
+            #vdb.set_trace()
+            target_vec = target.location - seeker.location
+            target_dir = vector_dot_product(unit_vector(target_vec), seeker.rotmat[NOSEV])
+            # breakpoint()
+            self.ship_fire(seeker, target)
+            self.gs.sound.play_sample(cs.SND_HIT_ENEMY)        
+            self.gs.msg_left.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy}'
+            laser_strength = self.ship_list[seeker.type].laser_strength / 2
+            target.energy -= laser_strength
+            if target.energy <= 0 and not target.exploding:
+                self.explode_object(seeker.target)
+        
+                                         
     def launch_enemy(self, index: int, ship_type: int, flags: int, bravery: int):
-        src = self.universe[index]
+        src = self.gs.universe[index]
         newship = self.add_new_ship(ship_type,
                                     src.location.x, src.location.y, src.location.z,
                                     src.rotmat, src.rotx, src.rotz)
         if newship == -1:
             return
 
-        ns = self.universe[newship]
+        ns = self.gs.universe[newship]
         if index != STATION:
             ns.velocity = 32
             ns.location.x += ns.rotmat[NOSEV].x * 2
@@ -756,6 +809,8 @@ class Swat:
             ns.rotz = ((rand255() * 2) & 255) - 128
             ns.rotx = ((rand255() * 2) & 255) - 128
             ns.velocity = rand255() & 15
+        if ship_type == cs.SHIP_THARGON:
+            ns.target = self._select_target(index, ns)
         return ns
         
     def launch_loot(self, index: int, loot: int, parent: UnivObject):
@@ -808,7 +863,7 @@ class Swat:
     def _nearest(self, index: int, ship: UnivObject, candidate_fn) -> int | None:
         best = None
         best_dist = None
-        for i, other in enumerate(self.universe):
+        for i, other in enumerate(self.gs.universe):
             # wont shoot at station
             if i == index:   # or other.type == 0:
                 continue
@@ -835,14 +890,14 @@ class Swat:
             # Police prefer to hunt down a nearby hostile NPC; if none is
             # in range they fall back to the player as before.
             best = self._nearest(index, ship, self._is_hostile_npc)
-            ship.target = best if best is not None else 0
+            ship.target = best if best is not None else cs.SHIP_PLAYER
             return ship.target
 
         if self._is_thargoid(ship):
             # Thargoids are hostile to everything; prefer the nearest
             # non-Thargoid ship, otherwise the player.
             best = self._nearest(index, ship, lambda o: not self._is_thargoid(o))
-            ship.target = best if best is not None else 0
+            ship.target = best if best is not None else cs.SHIP_PLAYER
             return ship.target
 
         # Ordinary hostiles (pirates, bounty hunters): go after the player,
@@ -855,12 +910,12 @@ class Swat:
                 ship.target = best
                 return ship.target
 
-        ship.target = 0
-        return 0
+        ship.target = cs.SHIP_PLAYER
+        return cs.SHIP_PLAYER
 
     def tactics(self, index: int):
         gs = self.gs
-        ship = self.universe[index]
+        ship = self.gs.universe[index]
         flags = ship.flags
     
         if ship.type in (cs.SHIP_PLANET, cs.SHIP_SUN):
@@ -871,24 +926,25 @@ class Swat:
             if flags & cs.FLG_ANGRY:
                 self.missile_tactics(index)
             return
-        
-        if flags & cs.FLG_SEEKER:
-            
-            self.home_on_target(index)
-        # every 8 /60ths
-        if ((index ^ gs.mcount) & 15) != 0:
-            return
-    
         if index == STATION:
             self._tactics_station(index, flags)
             return
         if ship.type == cs.SHIP_HERMIT:
             self._tactics_hermit(index, ship)
             return
+        if flags & cs.FLG_SEEKER:
+            self.home_on_target(index)
+        # every 8 /60ths
+        if ((index ^ gs.mcount) & 15) != 0:
+            return            
         
         # Recharge the ship's energy banks by 1
-        if ship.energy < self.ship_list[ship.type].energy:
-            ship.energy += 1
+        try:
+            if ship.energy < self.ship_list[ship.type].energy:
+                ship.energy += 1
+        except KeyError:
+            pass                    
+                
         # If this is a lone Thargon without a mothership, set it adrift aimlessly
         if ship.type == cs.SHIP_THARGON and self.ship_count.get(cs.SHIP_THARGOID, 0) == 0:
             ship.flags = 0
@@ -941,7 +997,7 @@ class Swat:
                     ship.rotz = -ship.rotz
             
     def missile_tactics(self, index):
-        missile = self.universe[index]
+        missile = self.gs.universe[index]
         gs = self.gs
         # If E.C.M. is active, destroy the missile
         if self.ecm_active:
@@ -963,7 +1019,7 @@ class Swat:
             # reached its target, give the target a chance to activate its E.C.M. if it
             # has one, otherwise jump to TA19 with K3 set to the vector from the target
             # to the missile
-            target = self.universe[missile.target]
+            target = self.gs.universe[missile.target]
             vec = Vector(
                 missile.location.x - target.location.x,
                 missile.location.y - target.location.y,
@@ -1022,26 +1078,49 @@ class Swat:
         # Project ship position to screen
         
         cam_pos = gs.renderer._to_camera(ship.model.position_in_world, cam)
-        screen_pt = gs.renderer._project(cam_pos, fl, cam)
-        if ship.location.z > 0:
+        screen_pt = gs.renderer._project(cam_pos, fl, cam, clip_to_screen=False)
+        if True: #ship.location.z > 0:
             scale = fl / ship.location.z
             if screen_pt:
                sx, sy = screen_pt
             else:
                 sx = gfx.X_CENTRE + ship.location.x * scale
                 sy = gfx.Y_CENTRE - ship.location.y * scale
-
+            
             if target is not None:
                 # Aim the laser line at the target ship's projected screen
                 # position rather than always the origin.
-                tx, ty, tz = target.location.to_tuple
-                if tz > 0:
-                    tscale = fl / tz
-                    ex_screen = gfx.X_CENTRE + tx * tscale
-                    ey_screen = gfx.Y_LOW - ty * tscale
-                else:
-                    ex_screen = gfx.X_CENTRE
-                    ey_screen = gfx.Y_LOW
+                # Convert both world points to camera space
+                cam_pos1 = gs.renderer._to_camera(target.model.position_in_world, cam)
+                cam_pos2 = gs.renderer._to_camera(ship.model.position_in_world, cam)
+                
+                # Project the line segment with built-in near-plane intersection clipping
+                line_screen_pts = gs.renderer._project_line(cam_pos1, cam_pos2, fl, cam)
+                
+                if line_screen_pts is not None:
+                    pt1, pt2 = line_screen_pts
+                    # Draw line from pt1 to pt2 on your canvas/display
+                    gfx.draw_line(*pt1, *pt2,
+                              colour=colour, width=3)
+                    return
+                """
+                if True: #target.location.z > 0:
+                     scale = fl / target.location.z
+                     if screen_pt1:
+                        ex, ey = screen_pt1
+                     else:
+                         ex = gfx.X_CENTRE + target.location.x * scale
+                         ey = gfx.Y_CENTRE - target.location.y * scale"""
+            else:
+                # tx, ty, tz = target.location.to_tuple
+                #if tz > 0:
+                #    tscale = fl / tz
+                #    ex_screen = gfx.X_CENTRE + tx * tscale
+                #    ey_screen = gfx.Y_LOW - ty * tscale
+                # else:
+                ex_screen = gfx.X_CENTRE
+                ey_screen = gfx.Y_LOW
+                
                 gfx.draw_line(sx, sy, ex_screen, ey_screen,
                               colour=colour, width=3)
                 return
@@ -1157,20 +1236,15 @@ class Swat:
     def _target_vector_and_distance(self, ship, target_index):
         """
         Vector from `ship` toward its current target, and the distance
-        between them. For the player (target_index == 0), `ship.location`
-        is already player-relative, so this is identical to the original
-        logic. For any other target, this mirrors the relative-vector
-        approach missile_tactics uses against ship targets.
+        between them. For the player (target_index == -96), `ship.location`
+        is already player-relative. 
         """
-        if target_index == 0:
+        if target_index == cs.SHIP_PLAYER:
             return ship.location, ship.distance
 
-        target = self.universe[target_index]
-        vec = Vector(target.location.x - ship.location.x,
-                     target.location.y - ship.location.y,
-                     target.location.z - ship.location.z)
-        dist = math.sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z)
-        return vec, dist
+        target = self.gs.universe[target_index]
+        vec = target.location - ship.location                    
+        return vec, vec.magnitude
 
     def _tactics_combat(self, index, ship, flags):
         cnt2 = self._cos(77.1)
@@ -1190,7 +1264,7 @@ class Swat:
         else:
             attacking_flag = False
     
-        self.track_object(self.universe[index], direction, nvec)
+        self.track_object(self.gs.universe[index], direction, nvec)
     
         if attacking_flag and distance < 2048:
             if direction >= cnt2:
@@ -1218,13 +1292,13 @@ class Swat:
         # target, and therefore whether it can hit it with its lasers.
         gs = self.gs
         CR = '\n'
-        firing_at_player = (target_index == 0)
-        target_obj = None if firing_at_player else self.universe[target_index]
+        firing_at_player = (target_index == cs.SHIP_PLAYER)
+        target_obj = None if firing_at_player else self.gs.universe[target_index]
         target_name = 'you' if firing_at_player else target_obj.name
         # If the ship is not pointing at its target, skip to the next part
         if direction >= self._cos(23.5):
             ship.flags |= cs.FLG_FIRING | cs.FLG_HOSTILE
-            if ship.target == 0:
+            if ship.target == cs.SHIP_PLAYER:
                 target_str = 'player'
             else:
                 target_str = self.gs.universe[ship.target].name
@@ -1247,7 +1321,7 @@ class Swat:
                 else:
                     gs.sound.play_sample(cs.SND_INCOMMING_FIRE_1)
             else:
-                target = self.universe[target_index]
+                target = self.gs.universe[target_index]
                 gs.sound.play_sample(cs.SND_HIT_ENEMY)
                 if target.type in (cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR):
                     if laser_strength == (cs.MILITARY_LASER & 127):
@@ -1265,7 +1339,7 @@ class Swat:
         else:
             nvec.x, nvec.y, nvec.z = -nvec.x, -nvec.y, -nvec.z
             direction = -direction
-            self.track_object(self.universe[index], direction, nvec)
+            self.track_object(self.gs.universe[index], direction, nvec)
     
         if abs(rel_loc.z) < 768:
             ship.rotx = rand255() & 0x87
@@ -1298,8 +1372,8 @@ class Swat:
     def create_thargoid(self):
         newship = self.create_other_ship(cs.SHIP_THARGOID)
         if newship != -1:
-            self.universe[newship].flags = cs.FLG_ANGRY | cs.FLG_HAS_ECM
-            self.universe[newship].bravery = 113
+            self.gs.universe[newship].flags = cs.FLG_ANGRY | cs.FLG_HAS_ECM
+            self.gs.universe[newship].bravery = 113
             if rand255() > 64:
                 self.launch_enemy(newship, cs.SHIP_THARGON, cs.FLG_ANGRY | cs.FLG_HAS_ECM, 96)
 
@@ -1308,15 +1382,15 @@ class Swat:
             return
         newship = self.create_other_ship(cs.SHIP_COUGAR)
         if newship != -1:
-            self.universe[newship].flags = cs.FLG_HAS_ECM
-            self.universe[newship].bravery = 121
-            self.universe[newship].velocity = 18
+            self.gs.universe[newship].flags = cs.FLG_HAS_ECM
+            self.gs.universe[newship].bravery = 121
+            self.gs.universe[newship].velocity = 18
 
     def create_trader(self):
         ship_type = cs.SHIP_COBRA3 + (rand255() & 3)
         newship = self.create_other_ship(ship_type)
         if newship != -1:
-            obj = self.universe[newship]
+            obj = self.gs.universe[newship]
             obj.rotmat[NOSEV].z = -1.0
             obj.rotz = rand255() & 7
             rnd = rand255()
@@ -1334,10 +1408,10 @@ class Swat:
 
         newship = self.create_other_ship(ship_type)
         if newship != -1:
-            self.universe[newship].flags = cs.FLG_ANGRY
+            self.gs.universe[newship].flags = cs.FLG_ANGRY
             if rand255() > 200 or ship_type == cs.SHIP_CONSTRICTOR:
-                self.universe[newship].flags |= cs.FLG_HAS_ECM
-            self.universe[newship].bravery = ((rand255() * 2) | 64) & 127
+                self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
+            self.gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
             self.in_battle = 1
 
     def check_for_asteroids(self):
@@ -1346,9 +1420,9 @@ class Swat:
         ship_type = cs.SHIP_HERMIT if rand255() > 253 else cs.SHIP_ASTEROID
         newship = self.create_other_ship(ship_type)
         if newship != -1:
-            self.universe[newship].velocity = 8
-            self.universe[newship].rotz = -127 if rand255() > 127 else 127
-            self.universe[newship].rotx = 16
+            self.gs.universe[newship].velocity = 8
+            self.gs.universe[newship].rotz = -127 if rand255() > 127 else 127
+            self.gs.universe[newship].rotx = 16
 
     def check_for_cops(self):
         gs = self.gs
@@ -1359,10 +1433,10 @@ class Swat:
             return
         newship = self.create_other_ship(cs.SHIP_VIPER)
         if newship != -1:
-            self.universe[newship].flags = cs.FLG_ANGRY
+            self.gs.universe[newship].flags = cs.FLG_ANGRY
             if rand255() > 245:
-                self.universe[newship].flags |= cs.FLG_HAS_ECM
-            self.universe[newship].bravery = ((rand255() * 2) | 64) & 127
+                self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
+            self.gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
 
     def check_for_others(self):
         """spawn other ship """
@@ -1388,21 +1462,21 @@ class Swat:
             ship_type = cs.SHIP_SIDEWINDER + (rand255() & rand255() & 7)
             newship = self.add_new_ship(ship_type, x, y, z, None, 0, 0)
             if newship != -1:
-                self.universe[newship].flags = cs.FLG_ANGRY
+                self.gs.universe[newship].flags = cs.FLG_ANGRY
                 if rand255() > 245:
-                    self.universe[newship].flags |= cs.FLG_HAS_ECM
-                self.universe[newship].bravery = ((rand255() * 2) | 64) & 127
+                    self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
+                self.gs.universe[newship].bravery = ((rand255() * 2) | 64) & 127
                 self.in_battle += 1
 
     def random_encounter(self):
         # logger.error(f'{self.gs.space.safe_mode=} {self.gs.missions.in_mission()}')
-        
+        # logger.error(f'{Mission(self.gs.cmdr.mission)} {self.gs.cmdr.galaxy_number} {self.gs.present_planet.name}')
         if (self.gs.space.safe_mode
                 and not self.gs.missions.in_mission()):
             return
         
         if rand255() == 136:
-            if (int(self.universe[PLANET].location.z) & 0x3e) != 0:
+            if (int(self.gs.universe[PLANET].location.z) & 0x3e) != 0:
                 self.create_thargoid()
             else:
                 self.create_cougar()
@@ -1410,7 +1484,7 @@ class Swat:
 
         if (rand255() & 7) == 0:
             self.create_trader()
-            return        
+            return
         ship_type = self.gs.missions.spawn_ship()
         if ship_type == cs.SHIP_THARGOID:
             self.create_thargoid()

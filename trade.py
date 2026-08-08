@@ -88,7 +88,7 @@ class TradeManager:
     def total_cargo(self):
         """Calculates total tonnes currently in the hold."""
         cargo_held = 0
-        for i in range(len(self.stock_market)):
+        for i in range(len(self.stock_market[:17])):
             if (self.gs.cmdr.current_cargo[i] > 0
                     and self.stock_market[i]["units"] == cs.TONNES):
                 cargo_held += self.gs.cmdr.current_cargo[i]

@@ -485,6 +485,7 @@ class MainLoop():
             
             arrows = f'{v}{f}' if n < 2 else f'{f}{v}'
             textline.append(f'{obj.name:<12} {arrows:<2} {obj.distance/1000:.1f}k')
+            # textline.append(f'{obj.name:<12} {azimuth:.2f} {elevation:.2f} {obj.distance/1000:.1f}k')
         self.obj_status.text = '\n'.join(textline)
                                             
     def set_commander_name(self, path):
@@ -758,7 +759,7 @@ class MainLoop():
         key = self.kbd.poll()
         match key:
             case 'OK':
-                self.cmdr.mission = mission_phase
+                self.cmdr.mission = mission_phase.value
                 self.current_screen = cs.SCR_COMMANDER
                 self.missions.state = 0    
                 self.space.dock_player()
@@ -1205,7 +1206,7 @@ def loop():
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Ceorge'],
+                  40: ['Select', '$Edtira'],
                   
                   70: ['Launch'],
                   
@@ -1219,9 +1220,10 @@ def loop():
                   #267: ['OK'],
                   #300: ['Instant Dock'],
                   300: ['To Station'],
-                  362: [],
-                  
-                  1079: [],
+                  #400: ['->1047,922'],
+                  #500: ['Cancel Docking'],
+                  #510: ['<1.0'],
+                  #2000: ['<-1.0'],
                   # 365: ['Launch'],
                   448:[],
                   # 340: [],  # finished align
@@ -1241,8 +1243,11 @@ def loop():
        print(i, g.present_planet)
        # logger.debug(f'{g.trade.stock_market=}')
        univ = [obj.type for obj in g.universe]
-       if univ[3] != 0 and ((3 ^ g.mcount) & 7) == 0:
-           logger.debug(f'{g.swat.ship_names[univ[3]]}')
+       if univ[3] != 0 and g.mcount % 30 == 0:
+           logger.error(f'{g.universe[1].location.magnitude}')
+           if g.universe[1].energy < 240:
+              pass                            
+           logger.error(f'{g.universe[1].energy}')
            logger.debug(f'dist:{g.universe[3].distance:.0f} dir:{angle(g.universe[3].direction):.0f}')
            logger.debug(f'fshield:{g.front_shield:.0f} ashield:{g.aft_shield} energy:{g.energy}')
        

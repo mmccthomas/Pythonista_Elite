@@ -325,7 +325,7 @@ class EliteScene(Scene):
                        for obj in self.mainloop.universe
                        if obj.type != 0]
             
-            # Draw all objects
+            # Draw all objects            
             for obj in objects:
                 if obj.exploding:
                     
@@ -339,7 +339,7 @@ class EliteScene(Scene):
                     self.renderer.explode(obj.model, self.camera, cs.FLIGHT_RECT)
                     
                 else:
-                    # Draw normal ship (Renderer.draw checks .visible)
+                    # Draw normal ship (Renderer.draw checks .visible)                    
                     self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
         self.elapsed_top = time() - self.t1
                 
@@ -424,7 +424,7 @@ class EliteScene(Scene):
         elif control == 'screen' and cs.FLIGHT_RECT.contains_point(touch.location):
             self.input_queue.put(f'#{touch.location.x:.0f},{touch.location.y:.0f}')
         elif control == 'target' and self.obj_status.bbox.contains_point(touch.location):
-            self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')
+            self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')            
         # If the screen was tapped quickly without moving
         elif not self.moved and not self.mainloop.space.safe_mode:
           self.input_queue.put('Fire Laser')

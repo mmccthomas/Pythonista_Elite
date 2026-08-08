@@ -1,6 +1,15 @@
 # missions code
 # mission briefing and debriefs are triggered on docking
 # ship activity is triggered on random_encounter, every 4.25 seconds
+# Missions
+#
+# No Name.       Planet Galaxy Score
+# 1 Constrictor.  -     0,1.   256
+# 2 Plans.        -     2.     1280
+# 3 Cloaking.     -     2
+# 4 Thargoid.     -     3.     1500
+# 5 Supernova.    -     3
+# 6 Asteroids  not Ceenge  5
 
 from vector import Vector
 import constants as cs
@@ -94,32 +103,18 @@ class MissionManager:
             "will get through the new shields and that the Constrictor is "
             "fitted with an E.C.M. System. Good Luck, Commander. ---MESSAGE ENDS."
         )
-
-        self.m1_pdesc = [
-            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.",  # 0
-            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.",  # 1
-            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.",  # 2
-            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.",  # 3
-            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.",  # 4
-            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.",  # 5
-            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD. POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.",  # 6
-            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.",  # 7
-            "THERE'S A REAL DEADLY PIRATE OUT THERE.",  # 8
-            "BOY ARE YOU IN THE WRONG GALAXY!"  # 9
-        ]
+        self.m1_debrief = (
+                "You succeeded in your mission to destroy the Constrictor."
+                "Please accept a reward of 10000 credits."
+                "There will always be a place for you in Her Majesty's Space Navy."
+                "---MESSAGE ENDS.")
+                
         self.m2_brief_a = (
             "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
             "We have need of your services again. If you would be so good as to go to "
             "Ceerdi you will be briefed.If successful, you will be rewarded."
             "---MESSAGE ENDS.")
             
-        self.m1_debrief = (
-                "Congratulations Commander!"
-                "You succeeded in your mission to destroy the Constrictor."
-                "Please accept a reward of 10000 credits."
-                "There will always be a place for you in Her Majesty's Space Navy."
-                "---MESSAGE ENDS.")
-                
         self.m2_brief_b = (
             "Good Day Commander. I am Agent Blake of Naval Intelligence. As you know, "
             "the Navy have been keeping the Thargoids off your ass out in deep space "
@@ -208,8 +203,8 @@ class MissionManager:
         # allow spawning near station
         
         return Mission(self.gs.cmdr.mission) in (Mission.BRIEFED_4,
-                                               Mission.BRIEFED_5,
-                                               Mission.BRIEFED_6)
+                                                 Mission.BRIEFED_5,
+                                                 Mission.BRIEFED_6)
                     
     def get_mission_planet_desc(self):
         """
@@ -270,12 +265,12 @@ class MissionManager:
             # current_obj.rotx += 0.5  # flight_yaw = 0.5 unit per cycle
             # current_obj.rotz += 0.5  # flight_roll = 0.5
             self.gs.space.update_universe()
-            self.gs.swat.update_model(current_obj)
+            #self.gs.swat.update_model(current_obj)
             
     def constrictor_debrief(self):
         if self.state == ST_SETUP:
             logger.debug('')
-            self.gs.cmdr.mission = Mission.DEBRIEFED_1
+            self.gs.cmdr.mission = Mission.DEBRIEFED_1.value
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000  # 10000.0 Credits
             self.display_brief(self.m1_debrief)
@@ -298,6 +293,7 @@ class MissionManager:
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000
             self.gs.cmdr.legal_status = 0
+            self.gs.space.scanner_scale = 256
             self.display_brief(self.m4_debrief)
             
     def supernova_debrief(self):
@@ -310,60 +306,80 @@ class MissionManager:
         if self.state == ST_SETUP:
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000
-            gs.space.scanner_scale = 256
+            self.gs.space.scanner_scale = 256
             self.display_brief(self.m6_debrief)
                             
     def check_destroy(self, ship):
        # special case of destroyed ship in missions
        
        if ship.type == cs.SHIP_CONSTRICTOR:
-           self.gs.cmdr.mission = Mission.COMPLETE_1
-       if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_4 
+           self.gs.cmdr.mission = Mission.COMPLETE_1.value
+       if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_4
                and ship.type == cs.SHIP_THARGOID):
            self.destroyed_opposition += 1
            self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Thargoids'
            if self.destroyed_opposition >= self.MAX_OPPOSITION:
-               self.gs.cmdr.mission = Mission.COMPLETE_4
+               self.gs.cmdr.mission = Mission.COMPLETE_4.value
                self.gs.msg.text = 'All Thargoids destroyed'
-       elif Mission(self.gs.cmdr.mission) == Mission.BRIEFED_6: 
+       elif Mission(self.gs.cmdr.mission) == Mission.BRIEFED_6:
            if ship.type == cs.SHIP_ASTEROID:
                self.destroyed_opposition += 1
                self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Asteroids'
                if self.destroyed_opposition >= self.MAX_OPPOSITION:
-                   self.gs.cmdr.mission = Mission.COMPLETE_6
+                   self.gs.cmdr.mission = Mission.COMPLETE_6.value
                    self.gs.msg.text = 'All asteroids destroyed'
            elif ship.type == cs.SHIP.CORIOLIS:
                self.gs.msg.text = 'Station Destroyed. Mission Failed'
-       logger.debug(f'destroyed {ship.name} {self.destroyed_opposition}')      
+       logger.debug(f'destroyed {ship.name} {self.destroyed_opposition}')
                
-    def swarm_attack(self, ship_type, target_index, velocity=1, offset=Vector(0, 0, 0), flyby=False):
+    def swarm_attack(self, ship_type, target_index, velocity=1,
+                     offset=Vector(0, 0, 0), flyby=False, sequential=0):
         # create a swarm of enemies to attack the station
         # they can either target the station or an offset to fly by.
         gs = self.gs
         target = gs.universe[target_index]
+        
         while gs.swat.ship_count[ship_type] < (self.MAX_OPPOSITION - self.destroyed_opposition):
          
             opp_offset = Vector(random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE),
-                            random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE),
-                            random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE))
+                                random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE),
+                                random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE))
             
-            opposition_position = target.location + opp_offset            
+            opposition_position = target.location + opp_offset
  
             newship = gs.swat.spawn_homing_object(ship_type, opposition_position,
                                                   target_index, velocity,
                                                   offset=offset,
-                                                  flyby=flyby)
+                                                  flyby=flyby,
+                                                  sequential=sequential)
             if newship == -1:  # universe is full
                 break
             gs.swat.ship_list[ship_type].max_loot = 0
             self.generated += 1
-            gs.universe[newship].name = f'asteroid {self.generated}'
-             
+            gs.universe[newship].name += f' {self.generated}'
+       
+        all_swarm = [ship for ship in gs.universe
+                     if ship.flags & cs.FLG_SEEKER]
+        # ensure at least one of the swarm is moving
+        # waiting ships are  not flying by
+        waiting_swarm = [ship for ship in all_swarm
+                         if not ship.flyby_locked]
+        # start a random swarm ship
+        if waiting_swarm:
+            if all([ship.velocity == 0 for ship in waiting_swarm]):
+               for i in range(sequential):
+                  try:
+                      waiting_swarm[i].velocity = velocity
+                  except IndexError:
+                      pass
+        if not all_swarm:
+            return True
+            
     def spawn_ship(self):
         # triggered every 4.25 seconds
         # lone hunter on missions
         gs = self.gs
-        
+        # logger.error(f'{Mission(gs.cmdr.mission)} {gs.cmdr.galaxy_number} {gs.present_planet.name}')
         match Mission(gs.cmdr.mission):
             case Mission.HUNT_1:
                 if (gs.cmdr.galaxy_number == 1
@@ -404,7 +420,14 @@ class MissionManager:
                     # produce a swarm of thargoids, , targetted near the station.
                     # slowly reducing as you kill.
                     # get attrition by distance
-                    self.swarm_attack(cs.SHIP_THARGOID, STATION, velocity=5, offset=Vector(0, 0, -500), flyby=True)
+                    # logger.error('')
+                    gs.space.scanner_scale = 128
+                    finished = self.swarm_attack(cs.SHIP_THARGOID, STATION, velocity=5,
+                                                 offset=Vector(0, 0, -1000),
+                                                 flyby=True, sequential=5)
+                    if finished:
+                        self.gs.cmdr.mission = Mission.COMPLETE_4.value
+                        self.gs.msg.text = 'All Thargoids destroyed'
                                         
             case Mission.BRIEFED_5:
                 # place escaping boas
@@ -418,8 +441,12 @@ class MissionManager:
                     # get attrition by distance
                     self.SPAWN_DISTANCE = 30000
                     gs.swat.HOMING_DAMAGE = 10
-                    gs.space.scanner_scale = 128                    
-                    self.swarm_attack(cs.SHIP_ASTEROID, STATION, velocity=5)
+                    gs.space.scanner_scale = 128
+                    finished = self.swarm_attack(cs.SHIP_ASTEROID, STATION,
+                                                 velocity=5, sequential=1)
+                    if finished:
+                        self.gs.cmdr.mission = Mission.COMPLETE_6
+                        self.gs.msg.text = 'All Asteroids destroyed'
                     
     def scoop_cargo(self, obj):
         if (obj.type == cs.SHIP_CARGO

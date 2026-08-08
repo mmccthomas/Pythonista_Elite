@@ -795,7 +795,7 @@ class Renderer:
         num_faces = len(world_normals)
         face_front = []
         self.face_angles = []
-        single = False
+        single = True
         for fi in range(num_faces):
             rep_vi = frv[fi]
             if rep_vi is None or rep_vi >= len(world_verts):
@@ -961,19 +961,19 @@ class Renderer:
             if hasattr(obj, 'rotmat_world'):
                 world_verts = obj.get_world_vertices_from_transform(
                     obj.position_in_world, obj.rotmat_world
-                )
+                )                
             else:
-                world_verts = obj.get_world_vertices()
-
+                world_verts = obj.get_world_vertices()               
+            
             self.cam_verts = [self._to_camera(v, camera) for v in world_verts]
             screen_pts = [self._project(v, fl, camera) for v in self.cam_verts]
 
             # Hidden-line removal — only when enabled and face data present
-            if self.backface_cull:
-                visible_edges = self._visible_edge_set(
+            
+            visible_edges = self._visible_edge_set(
                     obj, world_verts, camera.position
                 )
-            else:
+            if not self.backface_cull:
                 visible_edges = None      # draw all edges
                                                
             if obj.edges_with_faces is not None:
@@ -990,13 +990,16 @@ class Renderer:
 
             vx, vy, vw, vh = getattr(self, 'viewport',
                                      scene.Rect(0, 0, sw, sh))
-
+            lines = 0
+            points= []
             for ei, (i1, i2) in enumerate(edges):
-                if visible_edges is not None and ei not in visible_edges:
+                if visible_edges is not None and ei not in visible_edges:                    
                     continue          # hidden-line removal culled this edge
-
+                    
                 p1, p2 = screen_pts[i1], screen_pts[i2]
+                points.append((p1, p2))
                 if p1 is None or p2 is None:
+                    
                     continue
 
                 clipped = self._clip_line(
@@ -1016,7 +1019,9 @@ class Renderer:
                    
                 scene.rect(0, 0, 0, 0)
                 scene.line(*clipped)
-                                        
+                lines += 1                
+                           
+                                       
     def explode(self, obj, camera, screen_size):
         """ Explosion helper """
         scene.no_fill()
@@ -1226,20 +1231,71 @@ class Renderer:
         """World vertex → camera space using full roll/pitch/yaw basis."""
         v = world_v - camera.position
         r, u, f = camera.basis()
-        return Vector3(v.dot(r), v.dot(u), v.dot(f))
+        return Vector3(v.dot(r), v.dot(u), v.dot(f))        
 
-    def _project(self, cam_v, fl, camera):
-        """Camera-space vertex → (screen_x, screen_y) or None if clipped."""
-        if cam_v.z < camera.z_near or cam_v.z > camera.z_far:
-            return None
+    def _project(self, cam_v, fl, camera, clip_to_screen=True):
+        """Camera-space vertex → (screen_x, screen_y) or None if clipped.
+        
+        Args:
+            cam_v: Vector3 in camera space.
+            fl: Focal length.
+            camera: Camera object containing z_near and z_far.
+            clip_to_screen (bool): If True, returns None when (sx, sy) 
+                                   fall outside the viewport bounds.
+        """
+        # 1. Near/Far plane clipping (depth check)
+        if clip_to_screen:
+            if cam_v.z < camera.z_near or cam_v.z > camera.z_far:
+                return None
+            
         vp = getattr(self, 'viewport', None)
         if vp is None:
             return None
+        
+        # Guard against points behind or directly on the near plane
+        if cam_v.z > camera.z_near:
+            # Safety clamp for unclipped fallback to avoid division by zero/sign flips
+            z = 0.0001 if cam_v.z <= 0 else cam_v.z
+        else:
+            z = cam_v.z
+        # 2. Project to screen space   
         sx = (cam_v.x * fl / cam_v.z) * vp.w + vp.center().x
         sy = (cam_v.y * fl / cam_v.z) * vp.h + vp.center().y
-        return (sx, sy)
-
-
+        return (int(sx), int(sy))
+        
+    def _project_line(self, p1_cam, p2_cam, fl, camera):
+        """Projects a 3D line segment in camera space to 2D screen coordinates,
+        automatically clipping against the near plane if it crosses behind the camera.
+        """
+        z_near = camera.z_near
+        
+        # Case 1: Both points are entirely behind the near plane
+        if p1_cam.z < z_near and p2_cam.z < z_near:
+            return None
+            
+        # Case 2: Point 1 is behind the near plane, clip it to z_near
+        if p1_cam.z < z_near:
+            t = (z_near - p1_cam.z) / (p2_cam.z - p1_cam.z)
+            p1_cam = Vector3(
+                p1_cam.x + t * (p2_cam.x - p1_cam.x),
+                p1_cam.y + t * (p2_cam.y - p1_cam.y),
+                z_near
+            )
+        # Case 3: Point 2 is behind the near plane, clip it to z_near
+        elif p2_cam.z < z_near:
+            t = (z_near - p2_cam.z) / (p1_cam.z - p2_cam.z)
+            p2_cam = Vector3(
+                p2_cam.x + t * (p1_cam.x - p2_cam.x),
+                p2_cam.y + t * (p1_cam.y - p2_cam.y),
+                z_near
+            )
+            
+        # Both points are now safely in front of / on the near plane
+        screen_pt1 = self._project(p1_cam, fl, camera, clip_to_screen=False)
+        screen_pt2 = self._project(p2_cam, fl, camera, clip_to_screen=False)
+        
+        return screen_pt1, screen_pt2
+        
 class EliteShip(WireframeObject):
     """
     Generic Elite ship wireframe built directly from BBC Micro assembly source.

@@ -194,6 +194,7 @@ class Space:
             obj.rotmat[SIDEV], obj.rotmat[NOSEV] = self.rotate_pair(obj.rotmat[SIDEV], obj.rotmat[NOSEV], angle)
             # Single sync call — renderer sees updated state immediately
             # obj.sync_model()
+        return obj
     
     # -------Docking
 
@@ -498,17 +499,19 @@ class Space:
             type = obj.type
             if type == 0:
                 continue
-                
+            if i == SUN:
+                continue    
             intro_screens = (cs.SCR_INTRO_ONE, cs.SCR_INTRO_TWO,
                              cs.SCR_GAME_OVER, cs.SCR_ESCAPE_POD)
             if gs.current_screen not in intro_screens:
                 
                 self.swat.tactics(i)
                 
-            self.move_univ_object(obj)
+            obj = self.move_univ_object(obj)
             tidy_matrix(obj.rotmat)
             
             obj.sync_model()
+            
             # give time for explosion
             # remove after exploded
             if obj.flags & cs.FLG_REMOVE:
@@ -528,11 +531,7 @@ class Space:
                     and type not in [cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR]):
                 self.snd.play_sample(cs.SND_EXPLODE)
                 obj.exploding = True
-                obj.flags |= cs.FLG_DEAD
-
-            if i == SUN:
-                # obj.sync_model()
-                continue
+                obj.flags |= cs.FLG_DEAD            
             
             if obj.distance < 170:
                 if i == STATION:
@@ -575,10 +574,11 @@ class Space:
             x = int(obj.location.x) // self.scanner_scale
             y = int(obj.location.y) // self.scanner_scale
             z = int(obj.location.z) // self.scanner_scale
+            # Note signs to match scanner and image position
             dir = 1
             x1 = -x
             y1 = dir * z // 4
-            y2 = y1 - y // 2
+            y2 = y1 + y // 2
 
             x1 += cs.SCANNER_RECT.center().x
             y1 += cs.SCANNER_RECT.center().y

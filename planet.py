@@ -410,7 +410,13 @@ def get_solar_system_vectors(seed):
         )
     
         return planet_vector, sun_vector
-        
+def whereis(all_planets, planet_name):
+    for galaxy, galaxy_data in all_planets.items():
+        for planet in galaxy_data:
+           if planet.name == planet_name:
+              return f'{galaxy}, {planet_name}, {galaxy_data[0].glx} {galaxy_data[0].glx.raw_seed()}'
+    return None
+    
 if __name__ == '__main__':
     # --- Example Usage ---
     # Lave (starting planet) seed in Galaxy 1
@@ -524,6 +530,7 @@ if __name__ == '__main__':
     new_seed = gen.next_galaxy(GalaxySeed())
     # print(new_seed)
     planets = gen.get_planet_list(new_seed)
+    print(planets)
     # for i, planet in enumerate(planets):
     #     print(i, planet.name, planet.glx.tech)
     new_seed = gen.next_galaxy(new_seed)
@@ -561,3 +568,16 @@ if __name__ == '__main__':
     print('min', name, min_dist/1000, glxmin)
     new_seed = gen.next_galaxy(new_seed)
     print(new_seed.name, new_seed)
+
+        
+    # galaxy listings
+    all_planets = {}
+    new_seed = GalaxySeed()
+    for i in range(8):
+        print('Galaxy', i+1)
+        planets = gen.get_planet_list(new_seed)
+        all_planets[i] = planets.copy()
+        new_seed = gen.next_galaxy(new_seed)
+        print(planets)
+    print(all_planets)
+    print(whereis(all_planets, 'Edtira'))
