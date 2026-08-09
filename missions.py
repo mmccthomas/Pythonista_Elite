@@ -424,7 +424,7 @@ class MissionManager:
                     gs.space.scanner_scale = 128
                     finished = self.swarm_attack(cs.SHIP_THARGOID, STATION, velocity=5,
                                                  offset=Vector(0, 0, -1000),
-                                                 flyby=True, sequential=5)
+                                                 flyby=True, sequential=2)
                     if finished:
                         self.gs.cmdr.mission = Mission.COMPLETE_4.value
                         self.gs.msg.text = 'All Thargoids destroyed'

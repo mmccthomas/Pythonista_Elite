@@ -217,7 +217,7 @@ significant changes:
     
 44. Added new mission thargoid invasion in Galaxy 3. Kill 10 Thargoids gathered around station.
     It seems they can destroy the station! Added ability for swarm to attack one at a time.
-    If dormant thargoid is attacked it will wake up.
+    If dormant thargoid is attacked it will wake up. This looks awesome!
     
 45. Added new mission in Galaxy 3. Get to station as quickly as possible to rescue refugees.
     The sun is going supernova and will soon swallow the station. 
@@ -227,7 +227,13 @@ significant changes:
     
 47. Added new mission in Galaxy 4. You are assigned to defend a station from an incoming asteroid storm. 
     You must destroy the asteroids before they impact the station's shielding. Similar to Thargon mission except asteroids are targetted to hit station. Added ability for swarm to attack one at a time
+
+48. Fixed disappearing ships bug.
+    In add_new_ship, similar ships shared model, hence their wireframe location did not match object location.
+    Added copy() to add_new_ship() obj.model assignment.
     
+49. Added ability for ships to target each other.
+      
 Getting Started
 
    If you have never seen this game before, here are the first few steps.
@@ -262,11 +268,13 @@ Chris `Thomas. June 2026
 
 # TODO list 
 
-Added ability for ships to target each other.
-not functional yet.
+In the thargon mission, sometimes thargoid is destroyed in one hit, indicating a bug.
+these destroyed ships do not count toward destroyed.
+
 At the end of Supernova mission station graphics show through text. not cleared properly 
-Fixed bug where models of similar ships were shared, hence drawn positions did not match 
-locations. Added copy() to add_new_ship.
+This might be result of maintaining universe objects.
+maybe switch off rendering draw while docked.
+
 
 Possible additional missions from PC version:
 Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible. DONE

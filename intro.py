@@ -92,16 +92,16 @@ class EliteIntro:
             self.gs.sound.play_midi(cs.SND_ELITE_THEME, True)
             
             # Add Cobra MkIII far away (z=4500)
-            self.swat.add_new_ship(cs.SHIP_COBRA3,  0, 300, 4500, None, -127, -127)
+            self.swat.add_new_ship(cs.SHIP_COBRA3,  0, 0, 2000, None, -127, -127)
             
             # only need to set these once for Pythonista
             # Draw the logo and text
             self.gfx.draw_sprite(ELITE_TEXT, x=-1, y=10)  # -1 centers
             self.gfx.clear_display()
-            self.gfx.display_centre_text(20, "Original Game (C) I.Bell & D.Braben.", color=cs.WHITE)
-            self.gfx.display_centre_text(21, "Re-engineered by C.J.Pinder.", color=cs.WHITE)
-            self.gfx.display_centre_text(22, "Converted to Pythonista by C.M.Thomas", color=cs.WHITE)
-            self.gfx.display_centre_text(23, "Load Saved Commander (Ok)?", color=cs.GOLD)
+            self.gfx.display_centre_text(29, "Original Game (C) I.Bell & D.Braben.", color=cs.WHITE)
+            self.gfx.display_centre_text(30, "Re-engineered by C.J.Pinder.", color=cs.WHITE)
+            self.gfx.display_centre_text(31, "Converted to Pythonista by C.M.Thomas", color=cs.WHITE)
+            self.gfx.display_centre_text(32, "Load Saved Commander (Ok)?", color=cs.GOLD)
             self.gfx.text_render()
             self.car_state = ST_FWD
             
@@ -109,10 +109,10 @@ class EliteIntro:
             """Moves the Cobra closer and displays credits."""
             # Move ship toward camera
             current_obj = self.universe[0]
-            current_obj.location.z -= 50
+            current_obj.location.z -= 5
             self.swat.update_model(current_obj)
-            if current_obj.location.z <= 384:
-                current_obj.location.z = 384
+            if current_obj.location.z <= 600:
+                current_obj.location.z = 600
                 self.car_state = ST_ROTATE
                 
         if self.car_state == ST_ROTATE:

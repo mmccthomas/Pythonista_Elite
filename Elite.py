@@ -24,6 +24,7 @@ from wireframe_3d import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad
+
 # turn off logging for this module.
 # it seems to be on by default
 target_logger = logging.getLogger('PIL.PngImagePlugin')
@@ -319,6 +320,11 @@ class EliteScene(Scene):
     def draw(self):
         # draw whatever is in mainloop universe
         self.t1 = time()
+        if self.mainloop.current_screen in [
+               cs.SCR_EQUIP_SHIP, cs.SCR_INVENTORY, cs.SCR_GALACTIC_CHART,
+               cs.SCR_SHORT_RANGE, cs.SCR_PLANET_DATA,  cs.SCR_MARKET_PRICES,
+               cs.SCR_TRADE,  cs.SCR_CMDR_STATUS,  cs.SCR_INVENTORY]:
+            return
         if self.mainloop.current_screen in [*cs.SCR_OUTSIDE, cs.SCR_INTRO_ONE,
                                             cs.SCR_INTRO_TWO, cs.SCR_MISSION]:
             objects = [obj

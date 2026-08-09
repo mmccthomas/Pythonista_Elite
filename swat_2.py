@@ -109,6 +109,7 @@ class UnivObject:
         m.position_in_world = Vector3(*self.location.to_tuple)
         
         # Rotation: store rotmat on the model so the renderer can use it
+        # m.set_rotation_matrix([Vector3(*row.to_tuple) for row in self.rotmat])
         m.rotmat_world = [Vector3(*row.to_tuple) for row in self.rotmat]
         
     def get_render_vertices(self):
@@ -319,7 +320,7 @@ class Swat:
         # Normalize direction and scale by step
         return loc2 + delta * step
                    
-    def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None) -> list:
+    def rotmat_facing(self, from_loc: Vector, to_loc: Vector, roof_hint=None, roll=0) -> list:
         """
         Build a rotmat [SIDEV, ROOFV, NOSEV] whose NOSEV axis points from
         from_loc toward to_loc.
@@ -339,8 +340,25 @@ class Swat:
     
         side = unit_vector(side)
         roof = cross_product(nose, side)
-            
+        if roll != 0.0:
+            side, roof = self._rotate_around_axis(side, roof, nose, roll)   
         return [side, roof, nose]
+        
+    def _rotate_around_axis(self, side: Vector, roof: Vector, axis: Vector, angle: float):
+        """
+        Rotate the side/roof pair around `axis` (assumed unit length) by `angle`
+        radians, using Rodrigues' rotation formula. Returns (new_side, new_roof).
+        """
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+    
+        def rodrigues(v: Vector) -> Vector:
+            # v_rot = v*cos + (axis x v)*sin + axis*(axis . v)*(1 - cos)
+            cross = cross_product(axis, v)            
+            dot = vector_dot_product(axis, v)
+            return v * cos_a + cross * sin_a + axis * dot * (1 - cos_a)
+            
+        return rodrigues(side), rodrigues(roof)
         
     def add_new_ship(self, ship_type, x, y, z, rotmat, rotx, rotz, roty=0) -> int:
         if rotmat is None:
@@ -678,9 +696,7 @@ class Swat:
         
         newship = self.add_new_ship(ship_type,
             location.x, location.y, location.z,
-            rotmat,
-            
-            16, 127, roty=0)
+            rotmat, 16, 16)
             
         if newship == -1:
             return -1
@@ -696,7 +712,8 @@ class Swat:
         ns.homing_offset = offset
         ns.flyby = flyby
         ns.max_range = max_range
-        
+        ns.roll = 0
+        ns.roll_rate = 16
         ns.flyby_locked = False       # becomes True once past closest approach
         # ns.flyby_heading = None       # frozen unit vector once locked
         return newship
@@ -744,7 +761,7 @@ class Swat:
                 # Passed the aim point without colliding
                 # continue straight until out of range.
                 seeker.flyby_locked = True
-                return
+               
             else:
                 # real impact
                 seeker.exploding = True
@@ -753,7 +770,9 @@ class Swat:
                 self.gs.sound.play_sample(cs.SND_EXPLODE)
                 
                 target.energy -= self.HOMING_DAMAGE
-                self.gs.msg_left.text = f'station enegy = {target.energy}'
+                self.gs.msg_left.text = f'station energy = {target.energy:.0f}'
+                if target.energy < 64:
+                   self.gs.info_message('Station Critical!')
                 if target.energy <= 0 and not target.exploding:
                     self.explode_object(seeker.target)
             return
@@ -762,11 +781,9 @@ class Swat:
             self.strafe(seeker, target)
             
         # Steer nose towards target
-        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset)
-        # seeker.roty += self.gs.parent_scene.dt * 5
-        #seeker.model.rotation.y = seeker.model.rotation.y % math.pi
-        # seeker.rotx += self.gs.parent_scene.dt * 10
-        # seeker.rotx = seeker.rotx % math.pi
+        seeker.roll = (seeker.roll + seeker.roll_rate * 0.001) % (2 * math.pi)                
+        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset, roll=seeker.roll)
+    
         seeker.sync_model()
         
     def strafe(self, seeker, target):
@@ -778,11 +795,15 @@ class Swat:
             # breakpoint()
             self.ship_fire(seeker, target)
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)        
-            self.gs.msg_left.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy}'
+            self.gs.msg_left.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy:.0f}'
             laser_strength = self.ship_list[seeker.type].laser_strength / 2
             target.energy -= laser_strength
+            if target.energy < 64:
+                   self.gs.info_message('Station Critical!', msg_count=37)
             if target.energy <= 0 and not target.exploding:
                 self.explode_object(seeker.target)
+                self.gs.message_count = 0
+                self.gs.info_message('Station Destroyed, mission failed!', msg_count=100)
         
                                          
     def launch_enemy(self, index: int, ship_type: int, flags: int, bravery: int):
@@ -1087,7 +1108,7 @@ class Swat:
                 sx = gfx.X_CENTRE + ship.location.x * scale
                 sy = gfx.Y_CENTRE - ship.location.y * scale
             
-            if target is not None:
+            if target is not None and target.type != 0:
                 # Aim the laser line at the target ship's projected screen
                 # position rather than always the origin.
                 # Convert both world points to camera space

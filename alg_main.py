@@ -405,9 +405,9 @@ class MainLoop():
         
     # ── Info message ──────────────────────────────────────────────────────────────
     
-    def info_message(self, message, color=None):
+    def info_message(self, message, msg_count=37, color=None):
         self.message_string = message
-        self.message_count = 37
+        self.message_count = msg_count
     
     def info_message_left(self, message, color=None):
         self.left_message_string = message
@@ -481,9 +481,9 @@ class MainLoop():
             elif elevation < -20:
                 v = f'{chr(start + code[5])}'
             else:
-                v = ' '
-            
-            arrows = f'{v}{f}' if n < 2 else f'{f}{v}'
+                v = ' '            
+            arrows = f'{v}{f}' if n < 2 else f'{f}{v}'            
+              
             textline.append(f'{obj.name:<12} {arrows:<2} {obj.distance/1000:.1f}k')
             # textline.append(f'{obj.name:<12} {azimuth:.2f} {elevation:.2f} {obj.distance/1000:.1f}k')
         self.obj_status.text = '\n'.join(textline)
@@ -751,6 +751,7 @@ class MainLoop():
             case _ if key is not None:
                 self.current_screen = cs.SCR_COMMANDER
                 self.swat.clear_universe()
+                self.space.populate_universe()
                 self.sound.stop_midi()
                 
     def mission_screen(self):
@@ -761,7 +762,7 @@ class MainLoop():
             case 'OK':
                 self.cmdr.mission = mission_phase.value
                 self.current_screen = cs.SCR_COMMANDER
-                self.missions.state = 0    
+                self.missions.state = 0
                 self.space.dock_player()
                 self.sound.stop_midi()
                 
@@ -919,7 +920,6 @@ class MainLoop():
         # clear left message every second
         if self.mcount & 63 == 0:
            self.msg_left.text = ''
-           cr ="\n"
            # logger.error(f'{cr.join([ship.distance_to_target for ship in self.universe if ship.type==cs.SHIP_ASTEROID ])}')
            
         if self.message_count > 0:
@@ -1205,27 +1205,30 @@ def loop():
     #  g.gfx.display_centre_text(20, "Press Fire or Space, Commander.", color="GOLD")
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
-    operations = {1: ['OK'], 8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Edtira'],
-                  
-                  70: ['Launch'],
+    operations = {1: ['Cancel'],
+                  2: ['Cancel'],
+                  3: ['Launch'], 
+                  # 8: ['Data'], 35: ['Local Chart'],
+                  # 40: ['Select', '$Edtira'],
+                  63: [], 
+                  # 70: ['Launch'],
                   
                   # 152: [*['Up']*811],
                   #
-                  150: ['Hyper Space'],
+                  # 150: ['Hyper Space'],
                   
                   # 140: ['Status'],
                   165: [],  # complete
                   200: [],
-                  #267: ['OK'],
-                  #300: ['Instant Dock'],
-                  300: ['To Station'],
-                  #400: ['->1047,922'],
-                  #500: ['Cancel Docking'],
-                  #510: ['<1.0'],
-                  #2000: ['<-1.0'],
+                  # 267: ['OK'],
+                  # 300: ['Instant Dock'],
+                  # 300: ['To Station'],
+                  # 400: ['->1047,922'],
+                  # 500: ['Cancel Docking'],
+                  # 510: ['<1.0'],
+                  # 2000: ['<-1.0'],
                   # 365: ['Launch'],
-                  448:[],
+                  448: [],
                   # 340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
@@ -1236,7 +1239,7 @@ def loop():
     for i in range(10000):
        logger.debug(i)
        if i in operations:
-          if i == 448:
+          if i == 1:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
@@ -1246,9 +1249,9 @@ def loop():
        if univ[3] != 0 and g.mcount % 30 == 0:
            logger.error(f'{g.universe[1].location.magnitude}')
            if g.universe[1].energy < 240:
-              pass                            
+              pass
            logger.error(f'{g.universe[1].energy}')
-           logger.debug(f'dist:{g.universe[3].distance:.0f} dir:{angle(g.universe[3].direction):.0f}')
+           logger.error(f'dist:{g.universe[3].distance:.0f} dir:{angle(g.universe[3].direction):.0f} roll:{(g.universe[3].roll):.2f}')
            logger.debug(f'fshield:{g.front_shield:.0f} ashield:{g.aft_shield} energy:{g.energy}')
        
        g.game_loop()

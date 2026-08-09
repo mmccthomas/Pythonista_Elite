@@ -6,6 +6,7 @@ ROOFV = 1
 SIDEV = 0
 
 
+                  
 def mult_matrix(first, second):
 
     rv = Matrix()
@@ -182,7 +183,10 @@ class Vector:
         c = self.z * self.z
         return sqrt(a+b+c)
 
-                
+def cross_product(A : Vector, B : Vector):
+    return Vector(A.y * B.z - A.z * B.y,
+                  A.z * B.x - A.x * B.z,
+                  A.x * B.y - A.y * B.x)                
 @dataclass
 class Matrix:
     rotmat: list = field(default_factory=lambda: [Vector(), Vector(), Vector()])
@@ -190,10 +194,7 @@ class Matrix:
     def __getitem__(self, index):
         return self.rotmat[index]
 
-def cross_product(A : Vector, B : Vector):
-    return Vector(A.y * B.z - A.z * B.y,
-                  A.z * B.x - A.x * B.z,
-                  A.x * B.y - A.y * B.x)
+
                               
 if __name__ == '__main__':
    mat = [Vector(-1, -.05,  .002), Vector(-.051, 1, -.05), Vector(0, -.05, -1)]

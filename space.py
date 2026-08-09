@@ -507,10 +507,11 @@ class Space:
                 
                 self.swat.tactics(i)
                 
-            obj = self.move_univ_object(obj)
-            tidy_matrix(obj.rotmat)
+            self.move_univ_object(obj)
+            if obj:
+                tidy_matrix(obj.rotmat)
             
-            obj.sync_model()
+                obj.sync_model()
             
             # give time for explosion
             # remove after exploded

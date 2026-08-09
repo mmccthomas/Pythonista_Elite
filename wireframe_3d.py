@@ -531,7 +531,61 @@ class WireframeObject:
             d["face_rep_verts"] = self.face_rep_verts
 
         return d
+ 
+ # -------- Rotation sync helpers
 
+    @staticmethod
+    def _euler_to_rotmat(rx, ry, rz):
+        """Build a [right, up, forward] rotation matrix matching the same
+        rotate_z().rotate_y().rotate_x() order used by get_world_vertices()."""
+        right   = Vector3(1, 0, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
+        up      = Vector3(0, 1, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
+        forward = Vector3(0, 0, 1).rotate_z(rz).rotate_y(ry).rotate_x(rx)
+        return [right, up, forward]
+
+    @staticmethod
+    def _rotmat_to_euler(rotmat):
+        """Extract approximate Euler angles (x=pitch, y=yaw, z=roll) from a
+        [right, up, forward] rotation matrix. Assumes the same rotation
+        order as _euler_to_rotmat (Z then Y then X). Used only to keep
+        rotation_angles_in_world roughly in sync for code that still reads
+        it (HUD/compass); the matrix remains the source of truth."""
+        right, up, forward = rotmat
+        # forward.x = -sin(ry)*cos(rx)  ... derive via standard ZYX extraction
+        ry = math.atan2(-forward.x, math.sqrt(forward.y**2 + forward.z**2)) \
+             if abs(forward.x) < 1.0 else math.copysign(math.pi/2, -forward.x)
+        # guard gimbal lock
+        cy = math.cos(ry)
+        if abs(cy) > 1e-6:
+            rx = math.atan2(forward.y, forward.z)
+            rz = math.atan2(right.x, up.x)
+        else:
+            # gimbal lock fallback
+            rx = math.atan2(-up.z, up.y)
+            rz = 0.0
+        return rx, ry, rz
+
+    def set_rotation_euler(self, rx, ry, rz):
+        """Set orientation via Euler angles and keep rotmat_world in sync.
+        Use this instead of touching rotation_angles_in_world directly —
+        it prevents the desync where a stale rotmat_world silently
+        overrides Euler updates in Renderer.draw()."""
+        self.rotation_angles_in_world = Vector3(rx, ry, rz)
+        self.rotmat_world = self._euler_to_rotmat(rx, ry, rz)
+
+    def set_rotation_matrix(self, rotmat):
+        """Set orientation via an explicit [right, up, forward] rotation
+        matrix (e.g. from autopilot) and keep rotation_angles_in_world
+        in sync for any code that still reads Euler angles."""
+        self.rotmat_world = rotmat
+        rx, ry, rz = self._rotmat_to_euler(rotmat)
+        self.rotation_angles_in_world = Vector3(rx, ry, rz)
+
+    def clear_rotation_matrix(self):
+        """Drop rotmat_world entirely, forcing get_world_vertices() and
+        _visible_edge_set() back onto the pure-Euler path."""
+        if hasattr(self, 'rotmat_world'):
+            del self.rotmat_world
 
 # Built-in primitive shapes
 class WireCube(WireframeObject):
@@ -1255,7 +1309,7 @@ class Renderer:
         # Guard against points behind or directly on the near plane
         if cam_v.z > camera.z_near:
             # Safety clamp for unclipped fallback to avoid division by zero/sign flips
-            z = 0.0001 if cam_v.z <= 0 else cam_v.z
+            z = 0.0001 if cam_v.z <= 0.0001 else cam_v.z
         else:
             z = cam_v.z
         # 2. Project to screen space   
@@ -1698,7 +1752,8 @@ class Demo(scene.Scene):
                 obj.rotation.y = self.joystick.x * math.pi
 
                 obj.position_in_world = obj.position.clone() + Vector3(0, 0, self.zoom*100)
-                obj.rotation_angles_in_world = obj.rotation.clone()
+                #obj.rotation_angles_in_world = obj.rotation.clone()
+                obj.set_rotation_euler(*obj.rotation.clone().to_tuple)
         """
         if self._exploding_obj is None:
             self._pick_new_explosion()
