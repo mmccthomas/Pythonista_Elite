@@ -538,32 +538,10 @@ class WireframeObject:
     def _euler_to_rotmat(rx, ry, rz):
         """Build a [right, up, forward] rotation matrix matching the same
         rotate_z().rotate_y().rotate_x() order used by get_world_vertices()."""
-        right   = Vector3(1, 0, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
-        up      = Vector3(0, 1, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
+        right = Vector3(1, 0, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
+        up = Vector3(0, 1, 0).rotate_z(rz).rotate_y(ry).rotate_x(rx)
         forward = Vector3(0, 0, 1).rotate_z(rz).rotate_y(ry).rotate_x(rx)
         return [right, up, forward]
-
-    @staticmethod
-    def _rotmat_to_euler(rotmat):
-        """Extract approximate Euler angles (x=pitch, y=yaw, z=roll) from a
-        [right, up, forward] rotation matrix. Assumes the same rotation
-        order as _euler_to_rotmat (Z then Y then X). Used only to keep
-        rotation_angles_in_world roughly in sync for code that still reads
-        it (HUD/compass); the matrix remains the source of truth."""
-        right, up, forward = rotmat
-        # forward.x = -sin(ry)*cos(rx)  ... derive via standard ZYX extraction
-        ry = math.atan2(-forward.x, math.sqrt(forward.y**2 + forward.z**2)) \
-             if abs(forward.x) < 1.0 else math.copysign(math.pi/2, -forward.x)
-        # guard gimbal lock
-        cy = math.cos(ry)
-        if abs(cy) > 1e-6:
-            rx = math.atan2(forward.y, forward.z)
-            rz = math.atan2(right.x, up.x)
-        else:
-            # gimbal lock fallback
-            rx = math.atan2(-up.z, up.y)
-            rz = 0.0
-        return rx, ry, rz
 
     def set_rotation_euler(self, rx, ry, rz):
         """Set orientation via Euler angles and keep rotmat_world in sync.
@@ -572,20 +550,7 @@ class WireframeObject:
         overrides Euler updates in Renderer.draw()."""
         self.rotation_angles_in_world = Vector3(rx, ry, rz)
         self.rotmat_world = self._euler_to_rotmat(rx, ry, rz)
-
-    def set_rotation_matrix(self, rotmat):
-        """Set orientation via an explicit [right, up, forward] rotation
-        matrix (e.g. from autopilot) and keep rotation_angles_in_world
-        in sync for any code that still reads Euler angles."""
-        self.rotmat_world = rotmat
-        rx, ry, rz = self._rotmat_to_euler(rotmat)
-        self.rotation_angles_in_world = Vector3(rx, ry, rz)
-
-    def clear_rotation_matrix(self):
-        """Drop rotmat_world entirely, forcing get_world_vertices() and
-        _visible_edge_set() back onto the pure-Euler path."""
-        if hasattr(self, 'rotmat_world'):
-            del self.rotmat_world
+    
 
 # Built-in primitive shapes
 class WireCube(WireframeObject):
@@ -789,9 +754,8 @@ class Renderer:
         
     def _rotate_normal_matrix(self, n, rotmat):
         """Rotate a local-space normal into world space using a rotation matrix."""
-        right = Vector3(rotmat[0].x, rotmat[0].y, rotmat[0].z)
-        up = Vector3(rotmat[1].x, rotmat[1].y, rotmat[1].z)
-        forward = Vector3(rotmat[2].x, rotmat[2].y, rotmat[2].z)
+        right, up, forward = rotmat
+        # return right * n.x + up * n.y + forward * n.z
         return Vector3(
             right.x*n.x + up.x*n.y + forward.x*n.z,
             right.y*n.x + up.y*n.y + forward.y*n.z,
@@ -901,7 +865,7 @@ class Renderer:
                    color = mcolors.to_rgb(obj.edge_colors.get(str(ei), default))
            else:
                color = mcolors.to_rgb(default)
-           color = self.shift_hue(color, self.hue_shift)    
+           color = self.shift_hue(color, self.hue_shift)
            scene.stroke(*color)
        except ValueError:
            raise ValueError("Color name not found")
@@ -914,7 +878,7 @@ class Renderer:
                 color = mcolors.to_rgb(obj.face_colors.get(str(face_id), obj.color))
         else:
             color = mcolors.to_rgb(obj.color)
-        color = self.shift_hue(color, self.hue_shift)    
+        color = self.shift_hue(color, self.hue_shift)
         # shade the fill
         # directly normal is brightest
         shade = -self.face_angles[face_id]
@@ -970,23 +934,23 @@ class Renderer:
                     w *= scale
                     h *= scale
                 cx, cy = screen_pt
-                tint_color = self.shift_hue((1, 1, 1), self.hue_shift)  + (1,)  
+                tint_color = self.shift_hue((1, 1, 1), self.hue_shift) + (1,)
                 
                 if isinstance(obj._image, scene.SpriteNode):
                     obj._image.position = (cx, cy)
                     obj._image.alpha = 1
                     if obj._image.shader is not None:
-                        r, g, b = self.shift_hue((1, 1, 1), self.hue_shift) 
+                        r, g, b = self.shift_hue((1, 1, 1), self.hue_shift)
                         obj._image.shader.set_uniform('u_tint_color', (r, g, b, 1.0))
                     else:
-                         obj._image.color = self.shift_hue((1, 1, 1), self.hue_shift)                     
+                        obj._image.color = self.shift_hue((1, 1, 1), self.hue_shift)
                     obj._image.scale = scale
                 else:
                     if obj._image is None:
                         obj._image = scene.load_image_file(obj.image_path)
                     scene.tint(*tint_color)
                     scene.image(obj._image, cx - w/2, cy - h/2, w, h)
-                    scene.tint(1, 1, 1, 1) # reset,tint
+                    scene.tint(1, 1, 1, 1)  # reset,tint
                 continue
 
             # Filled circle ---
@@ -1015,9 +979,9 @@ class Renderer:
             if hasattr(obj, 'rotmat_world'):
                 world_verts = obj.get_world_vertices_from_transform(
                     obj.position_in_world, obj.rotmat_world
-                )                
+                )
             else:
-                world_verts = obj.get_world_vertices()               
+                world_verts = obj.get_world_vertices()
             
             self.cam_verts = [self._to_camera(v, camera) for v in world_verts]
             screen_pts = [self._project(v, fl, camera) for v in self.cam_verts]
@@ -1045,9 +1009,9 @@ class Renderer:
             vx, vy, vw, vh = getattr(self, 'viewport',
                                      scene.Rect(0, 0, sw, sh))
             lines = 0
-            points= []
+            points = []
             for ei, (i1, i2) in enumerate(edges):
-                if visible_edges is not None and ei not in visible_edges:                    
+                if visible_edges is not None and ei not in visible_edges:
                     continue          # hidden-line removal culled this edge
                     
                 p1, p2 = screen_pts[i1], screen_pts[i2]
@@ -1073,20 +1037,27 @@ class Renderer:
                    
                 scene.rect(0, 0, 0, 0)
                 scene.line(*clipped)
-                lines += 1                
-                           
-                                       
+                lines += 1
+                                                                  
     def explode(self, obj, camera, screen_size):
         """ Explosion helper """
         scene.no_fill()
         fl = camera.focal_length
         t = getattr(obj, 'explosion_time', 1.0)
-        world_verts = obj.get_world_vertices()
+        if hasattr(obj, 'rotmat_world'):
+            world_verts = obj.get_world_vertices_from_transform(
+                obj.position_in_world, obj.rotmat_world
+            )
+        else:
+            world_verts = obj.get_world_vertices()
+        
         center = obj.position_in_world
         if obj.edges_with_faces is not None:
             edges = [ewf[:2] for ewf in obj.edges_with_faces]
         else:
             edges = obj.edges
+        line_width = getattr(obj, 'line_width', self.default_line_width)
+        scene.stroke_weight(line_width)
         for ei, (i1, i2) in enumerate(edges):
             v1, v2 = world_verts[i1], world_verts[i2]
             if t > 0:
@@ -1106,18 +1077,19 @@ class Renderer:
 
             if p1 and p2:
                 alpha = max(0, 1.0 - t)
+                
                 if isinstance(obj.color, (list, tuple)):
                     edge_color = obj.color[:3]
                 else:
-                  if obj.color in mcolors.CSS4_COLORS:
-                      edge_color = mcolors.to_rgb(obj.color)
-                  else:
-                     raise ValueError("Color name not found")
+                    try:
+                        edge_color = mcolors.to_rgb(obj.color)
+                    except ValueError:
+                       raise ValueError("Color invalid")
                 edge_color = edge_color + (alpha,)
                 scene.stroke(*edge_color)
                 scene.rect(0, 0, 0, 0)
                 scene.line(*p1, *p2)
-                
+                            
     def sort_faces(self, faces):
         coords = self.cam_verts
         
@@ -1285,7 +1257,7 @@ class Renderer:
         """World vertex → camera space using full roll/pitch/yaw basis."""
         v = world_v - camera.position
         r, u, f = camera.basis()
-        return Vector3(v.dot(r), v.dot(u), v.dot(f))        
+        return Vector3(v.dot(r), v.dot(u), v.dot(f))
 
     def _project(self, cam_v, fl, camera, clip_to_screen=True):
         """Camera-space vertex → (screen_x, screen_y) or None if clipped.
@@ -1294,7 +1266,7 @@ class Renderer:
             cam_v: Vector3 in camera space.
             fl: Focal length.
             camera: Camera object containing z_near and z_far.
-            clip_to_screen (bool): If True, returns None when (sx, sy) 
+            clip_to_screen (bool): If True, returns None when (sx, sy)
                                    fall outside the viewport bounds.
         """
         # 1. Near/Far plane clipping (depth check)
@@ -1311,10 +1283,11 @@ class Renderer:
             # Safety clamp for unclipped fallback to avoid division by zero/sign flips
             z = 0.0001 if cam_v.z <= 0.0001 else cam_v.z
         else:
-            z = cam_v.z
-        # 2. Project to screen space   
-        sx = (cam_v.x * fl / cam_v.z) * vp.w + vp.center().x
-        sy = (cam_v.y * fl / cam_v.z) * vp.h + vp.center().y
+            z = 0.0001 if cam_v.z <= 0.0001 else cam_v.z
+            
+        # 2. Project to screen space
+        sx = (cam_v.x * fl / z) * vp.w + vp.center().x
+        sy = (cam_v.y * fl / z) * vp.h + vp.center().y
         return (int(sx), int(sy))
         
     def _project_line(self, p1_cam, p2_cam, fl, camera):
@@ -1329,7 +1302,10 @@ class Renderer:
             
         # Case 2: Point 1 is behind the near plane, clip it to z_near
         if p1_cam.z < z_near:
-            t = (z_near - p1_cam.z) / (p2_cam.z - p1_cam.z)
+            if p1_cam.z == p2_cam.z:
+                t = (z_near - p1_cam.z) / 0.001
+            else:
+                t = (z_near - p1_cam.z) / (p2_cam.z - p1_cam.z)
             p1_cam = Vector3(
                 p1_cam.x + t * (p2_cam.x - p1_cam.x),
                 p1_cam.y + t * (p2_cam.y - p1_cam.y),
@@ -1337,7 +1313,10 @@ class Renderer:
             )
         # Case 3: Point 2 is behind the near plane, clip it to z_near
         elif p2_cam.z < z_near:
-            t = (z_near - p2_cam.z) / (p1_cam.z - p2_cam.z)
+            if p1_cam.z == p2_cam.z:
+                t = (z_near - p2_cam.z) / 0.001
+            else:
+                t = (z_near - p2_cam.z) / (p1_cam.z - p2_cam.z)
             p2_cam = Vector3(
                 p2_cam.x + t * (p1_cam.x - p2_cam.x),
                 p2_cam.y + t * (p1_cam.y - p2_cam.y),
@@ -1349,7 +1328,8 @@ class Renderer:
         screen_pt2 = self._project(p2_cam, fl, camera, clip_to_screen=False)
         
         return screen_pt1, screen_pt2
-        
+
+                
 class EliteShip(WireframeObject):
     """
     Generic Elite ship wireframe built directly from BBC Micro assembly source.
@@ -1625,7 +1605,9 @@ class Demo(scene.Scene):
         self.down = scene.LabelNode('Down', position=(W-100, 750), parent=self)
         self.text = scene.LabelNode(str(self.select), position=(W-100, 850), parent=self)
         self.fill_mode = scene.LabelNode('Fill', position=(W-100, 650), parent=self)
+        
         self.numbers_mode = scene.LabelNode('Show Numbers', position=(W-100, 600), parent=self)
+        self.explode = scene.LabelNode('Explode', position=(W-100, 550), parent=self)
         self.zoom_value = scene.LabelNode('Distance 100', position=(W-100, 350), parent=self)
         self.zoom_in = scene.LabelNode('Zoom In', position=(W-100, 250), parent=self)
         self.zoom_out = scene.LabelNode('Zoom Out', position=(W-100, 200), parent=self)
@@ -1645,7 +1627,9 @@ class Demo(scene.Scene):
         self.zoom = 1
         self.show_numbers = True
         self.renderer = Renderer(depth_sort=True, backface_cull=True, fill=True)
+        self.renderer.viewport = scene.Rect(0, 0, *get_screen_size())
         self.t = 0
+        
         self.renderer.show_index = True
         self.x = self.y = 0.0
 
@@ -1686,7 +1670,7 @@ class Demo(scene.Scene):
         for i, ship in enumerate(self.objects):
            if hasattr(ship, 'name'):
                print(i, ship.name)
-        self._explosion_t = random.random()
+        self._explosion_t = 0
         
     def _pick_new_explosion(self):
         candidates = [o for o in self.objects if hasattr(o, 'name')]
@@ -1724,7 +1708,8 @@ class Demo(scene.Scene):
        elif self.zoom_out.bbox.contains_point(touch.location):
            self.zoom += 1
            self.zoom_value.text = f'Distance {self.zoom *100}'
-       
+       elif self.explode.bbox.contains_point(touch.location):
+           self._exploding_obj = self.objects[self.select]
        self.joystick.touch_ended(touch)
        self.is_joystick_active = False
            
@@ -1752,22 +1737,18 @@ class Demo(scene.Scene):
                 obj.rotation.y = self.joystick.x * math.pi
 
                 obj.position_in_world = obj.position.clone() + Vector3(0, 0, self.zoom*100)
-                #obj.rotation_angles_in_world = obj.rotation.clone()
-                obj.set_rotation_euler(*obj.rotation.clone().to_tuple)
-        """
-        if self._exploding_obj is None:
-            self._pick_new_explosion()
-        else:
-            self._explosion_t += self.dt * EXPLOSION_SPEED
+                obj.rotation_angles_in_world = obj.rotation.clone()
+                # obj.set_rotation_euler(*obj.rotation.clone().to_tuple)
+        
+        if self._exploding_obj:
+            self._explosion_t += 1 / 60 * EXPLOSION_SPEED
             self._exploding_obj.explosion_time = self._explosion_t
             if self._explosion_t >= 1.0:
-                self.objects.remove(self._exploding_obj)
                 self._exploding_obj = None
-        """
+                self._explosion_t = 0
+        
     def draw(self):
         scene.background(0, 0, 0)
-        self.renderer.viewport = scene.Rect(0, 0, *get_screen_size())
-
         for obj in self.objects[self.select:self.select+1]:
             if obj == self._exploding_obj:
                 self.renderer.explode(obj, self.camera, self.size)
@@ -1781,6 +1762,7 @@ if __name__ == '__main__':
     g = Demo()
     g.setup()
     g.renderer.get_normals = False
+    g._exploding_obj = g.objects[g.select]
     g.update()
     #
     t = time()

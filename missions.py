@@ -4,12 +4,13 @@
 # Missions
 #
 # No Name.       Planet Galaxy Score
+# .                       0-7
 # 1 Constrictor.  -     0,1.   256
 # 2 Plans.        -     2.     1280
 # 3 Cloaking.     -     2
 # 4 Thargoid.     -     3.     1500
 # 5 Supernova.    -     3
-# 6 Asteroids  not Ceenge  5
+# 6 Asteroids  not Ceenge  4
 
 from vector import Vector
 import constants as cs
@@ -53,7 +54,7 @@ planet_3_3 = 'Onenqu'
 planet_4_1 = "Edtira"
 planet_5_1 = "Edbedi"
 planet_6_1 = "Ceenge"
-planet_6_2 = "Ceorge"
+planet_6_2 = "Maera"
 
 STATION = 1
 SUN = 2
@@ -72,6 +73,7 @@ class MissionManager:
         self.no_opposition = 10
         self.destroyed_opposition = 0
         self.generated = 0
+        self.waiting_swarm = []
         self.MAX_OPPOSITION = 10
         self.SPAWN_DISTANCE = 30000
         self.state = 0
@@ -188,7 +190,9 @@ class MissionManager:
         self.m6_brief = (
             "Attention Commander, Captain Fortesque of Her Majesty's Space Navy."
             "We have need of your services again."
-            f"We have a situation in {planet_6_2}, in which our station is under bombardment from an asteroid storm."
+            f"We have a situation in {planet_6_2}, in which our station is under bombardment from"
+            " an accurately targetted asteroid storm."
+            "We believe that this is an attacked orchestrated by the Thargoids"
             "Use your skills to protect the station."
             f"We believe there are {self.MAX_OPPOSITION} near to the station."
             "Please help."
@@ -259,13 +263,12 @@ class MissionManager:
             
         if self.state == ST_UPDATE:
             # Set a constant roll for the intro effect
-            current_obj = self.universe[0]
+            # current_obj = self.universe[0]
             # Keep ship at fixed distance for viewing
             self.gs.universe[0].location.z = 600
             # current_obj.rotx += 0.5  # flight_yaw = 0.5 unit per cycle
             # current_obj.rotz += 0.5  # flight_roll = 0.5
             self.gs.space.update_universe()
-            #self.gs.swat.update_model(current_obj)
             
     def constrictor_debrief(self):
         if self.state == ST_SETUP:
@@ -317,25 +320,35 @@ class MissionManager:
        if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_4
                and ship.type == cs.SHIP_THARGOID):
            self.destroyed_opposition += 1
-           self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Thargoids'
+           self.gs.info_message(f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Thargoids')
            if self.destroyed_opposition >= self.MAX_OPPOSITION:
                self.gs.cmdr.mission = Mission.COMPLETE_4.value
                self.gs.msg.text = 'All Thargoids destroyed'
+               self.gs.info_message('All Thargoids destroyed')
+               self.gs.msg_left_lower.text = ''
        elif Mission(self.gs.cmdr.mission) == Mission.BRIEFED_6:
            if ship.type == cs.SHIP_ASTEROID:
                self.destroyed_opposition += 1
-               self.gs.msg.text = f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Asteroids'
+               self.gs.info_message(f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Asteroids')
                if self.destroyed_opposition >= self.MAX_OPPOSITION:
                    self.gs.cmdr.mission = Mission.COMPLETE_6.value
                    self.gs.msg.text = 'All asteroids destroyed'
-           elif ship.type == cs.SHIP.CORIOLIS:
+                   self.gs.info_message('All asteroids destroyed')
+                   self.gs.msg_left_lower.text = ''
+           """
+           elif ship.type in [cs.SHIP_CORIOLIS, cs.SHIP_DODEC, cs.SHIP_STATIONV]:
                self.gs.msg.text = 'Station Destroyed. Mission Failed'
+               self.gs.info_message('Station Destroyed. Mission Failed')
+               for ship in  self.waiting_swarm:
+                   ship.velocity = 5
+           """
        logger.debug(f'destroyed {ship.name} {self.destroyed_opposition}')
                
     def swarm_attack(self, ship_type, target_index, velocity=1,
                      offset=Vector(0, 0, 0), flyby=False, sequential=0):
         # create a swarm of enemies to attack the station
         # they can either target the station or an offset to fly by.
+        # sequential determines how many attack simultaneously
         gs = self.gs
         target = gs.universe[target_index]
         
@@ -346,7 +359,6 @@ class MissionManager:
                                 random.randint(-self.SPAWN_DISTANCE, self.SPAWN_DISTANCE))
             
             opposition_position = target.location + opp_offset
- 
             newship = gs.swat.spawn_homing_object(ship_type, opposition_position,
                                                   target_index, velocity,
                                                   offset=offset,
@@ -362,14 +374,14 @@ class MissionManager:
                      if ship.flags & cs.FLG_SEEKER]
         # ensure at least one of the swarm is moving
         # waiting ships are  not flying by
-        waiting_swarm = [ship for ship in all_swarm
-                         if not ship.flyby_locked]
+        self.waiting_swarm = [ship for ship in all_swarm
+                              if not ship.flyby_locked]
         # start a random swarm ship
-        if waiting_swarm:
-            if all([ship.velocity == 0 for ship in waiting_swarm]):
+        if self.waiting_swarm:
+            if all([ship.velocity == 0 for ship in self.waiting_swarm]):
                for i in range(sequential):
                   try:
-                      waiting_swarm[i].velocity = velocity
+                      self.waiting_swarm[i].velocity = velocity
                   except IndexError:
                       pass
         if not all_swarm:
@@ -443,7 +455,7 @@ class MissionManager:
                     gs.swat.HOMING_DAMAGE = 10
                     gs.space.scanner_scale = 128
                     finished = self.swarm_attack(cs.SHIP_ASTEROID, STATION,
-                                                 velocity=5, sequential=1)
+                                                 velocity=5, sequential=2)
                     if finished:
                         self.gs.cmdr.mission = Mission.COMPLETE_6
                         self.gs.msg.text = 'All Asteroids destroyed'
@@ -586,11 +598,11 @@ class MissionManager:
                     
             case Mission.FINISHED_5:
                 # Trigger Mission 6 :
-                if (gal_num == 5 and gs.present_planet.name != planet_6_1):
+                if (gal_num == 4 and gs.present_planet.name != planet_6_1):
                     self.MAX_OPPOSITION = 10
                     self.destroyed_opposition = 0
                     self.generated = 0
-                    self.display_brief(self.m6_brief_a)
+                    self.display_brief(self.m6_brief)
                     self.state = ST_SETUP
                     return Mission.BRIEFED_6
                     

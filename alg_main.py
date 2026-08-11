@@ -28,6 +28,7 @@ from intro import EliteIntro
 from missions import MissionManager
 import constants as cs
 import logging
+# import vdb
 from vector import unit_vector
 cs.setup_logging()
 logger = logging.getLogger(__name__)
@@ -200,6 +201,7 @@ class MainLoop():
        self.energy_status = IntervalTrigger(0.25)
        self.encounter = IntervalTrigger(4.25)
        self.docking_on = IntervalTrigger(0.5)
+       self._explosion_t = 0.0
                           
        # ------ Class instances
        try:  # testing
@@ -208,6 +210,7 @@ class MainLoop():
            self.msg = parent_scene.msg
            self.msg_right = parent_scene.msg_right
            self.msg_left = parent_scene.msg_left
+           self.msg_left_lower = parent_scene.msg_left_lower
            self.obj_status = parent_scene.obj_status
            self.hud = parent_scene.hud
            self.camera = parent_scene.camera
@@ -481,8 +484,8 @@ class MainLoop():
             elif elevation < -20:
                 v = f'{chr(start + code[5])}'
             else:
-                v = ' '            
-            arrows = f'{v}{f}' if n < 2 else f'{f}{v}'            
+                v = ' '
+            arrows = f'{v}{f}' if n < 2 else f'{f}{v}'
               
             textline.append(f'{obj.name:<12} {arrows:<2} {obj.distance/1000:.1f}k')
             # textline.append(f'{obj.name:<12} {azimuth:.2f} {elevation:.2f} {obj.distance/1000:.1f}k')
@@ -1205,62 +1208,89 @@ def loop():
     #  g.gfx.display_centre_text(20, "Press Fire or Space, Commander.", color="GOLD")
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
-    operations = {1: ['Cancel'],
-                  2: ['Cancel'],
-                  3: ['Launch'], 
-                  # 8: ['Data'], 35: ['Local Chart'],
-                  # 40: ['Select', '$Edtira'],
-                  63: [], 
-                  # 70: ['Launch'],
+    operations = {1: ['OK'],
+                  2: ['OK'],
+                  # 3: ['Launch'],
                   
+                  8: ['Data'], 35: ['Local Chart'],
+                  40: ['Select', '$Maera'],
+                  63: [],
+                  42: ['Launch'],
+                  70: ['Hyper Space'],
+                  # 65:  ['<1.0'],
+                  150: ['To Planet'],
+                  # 240:  ['-1.0'],
+                  # 241: ['Docking'],
                   # 152: [*['Up']*811],
                   #
                   # 150: ['Hyper Space'],
                   
                   # 140: ['Status'],
                   165: [],  # complete
-                  200: [],
+                  1474: [],
                   # 267: ['OK'],
                   # 300: ['Instant Dock'],
-                  # 300: ['To Station'],
-                  # 400: ['->1047,922'],
+                  # 300: ['To Planet'],
+                  160: ['Docking'],
                   # 500: ['Cancel Docking'],
                   # 510: ['<1.0'],
-                  # 2000: ['<-1.0'],
+                  # 510: ['<-1.0'],
                   # 365: ['Launch'],
                   448: [],
                   # 340: [],  # finished align
                   # 555: ['->974,957'],
                   # 560: ['Cancel Docking'],
+                  2904: [],
                   # 7359: [], # station spawned
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
     for i in range(10000):
-       logger.debug(i)
+       # logger.debug(i)
        if i in operations:
-          if i == 1:
+          if i == 1474:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
-       print(i, g.present_planet)
+       # print(i, g.present_planet)
        # logger.debug(f'{g.trade.stock_market=}')
        univ = [obj.type for obj in g.universe]
-       if univ[3] != 0 and g.mcount % 30 == 0:
-           logger.error(f'{g.universe[1].location.magnitude}')
+       if g.universe[1].distance < 10000:
+          g.input_queue.put('Cancel Docking')
+          g.input_queue.put('<-1.0')
+       if univ[3] != 0 and g.mcount % 30 == 0 or i > 1461:
+           # logger.error(f'{g.universe[1].location.magnitude}')
            if g.universe[1].energy < 240:
               pass
-           logger.error(f'{g.universe[1].energy}')
-           logger.error(f'dist:{g.universe[3].distance:.0f} dir:{angle(g.universe[3].direction):.0f} roll:{(g.universe[3].roll):.2f}')
+           logger.error(f'{i} {g.universe[1].energy=} {g.universe[1].exploding=}')
+           logger.error(f'dist:{g.universe[1].distance:.0f} dir:{angle(g.universe[1].direction):.0f} roll:{(g.space.flight_roll):.2f}')
+           
            logger.debug(f'fshield:{g.front_shield:.0f} ashield:{g.aft_shield} energy:{g.energy}')
        
        g.game_loop()
        
-       objects = [obj.model
+       objects = [obj
                   for obj in g.universe
                   if hasattr(obj, 'model') and obj.model]
-        
-       g.parent_scene.renderer.draw(objects, g.parent_scene.camera, cs.FLIGHT_RECT)
+       
+       # Draw all objects
+       for obj in objects:
+           if obj.exploding:
+               logger.error(f'{obj.name} exploding')
+               if obj.name == 'STATIONV':
+                 # vdb.set_trace()
+                 pass
+               # Draw the explosion instead of the ship
+               g._explosion_t += 1 / 60 * 0.4
+               obj.model.explosion_time = g._explosion_t
+               g.parent_scene.renderer.explode(obj.model, g.parent_scene.camera, cs.FLIGHT_RECT)
+               if g._explosion_t >= 1.0:
+                   obj.flags |= cs.FLG_REMOVE
+                   obj.exploding = False
+                   g._explosion_t = 0.0
+           else:
+               # Draw normal ship (Renderer.draw checks .visible)
+               g.parent_scene.renderer.draw([obj.model], g.parent_scene.camera, cs.FLIGHT_RECT)
        
         
 if __name__ == '__main__':

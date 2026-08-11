@@ -278,6 +278,7 @@ class Demo2(scene.Scene):
             z_near=5
         )
         self.renderer = Renderer(depth_sort=True, backface_cull=False)
+        self.renderer.viewport = scene.Rect(0, 0, W, H)
         self.t = 0
 
         self.objects = [
@@ -287,6 +288,8 @@ class Demo2(scene.Scene):
 
         try:
             objects = load_wireframes_from_json('files/Elite_ships.json')
+            objects1 = load_wireframes_from_json('stationv.json')
+            objects = objects + objects1
         except Exception:
             ship_locs = [
                 'missile', 'coriolis', 'escape_pod', 'plate', 'canister',
@@ -295,7 +298,7 @@ class Demo2(scene.Scene):
                 'Viper', 'Sidewinder', 'Mamba', 'Krait', 'Adder', 'Gecko',
                 'Cobra_Mk_1', 'Worm', 'Cobra_Mk_3_p', 'Asp_Mk_2', 'Python_p',
                 'Fer_de_lance', 'Moray', 'Thargoid', 'Thargon', 'Constrictor',
-                'logo', 'Cougar', 'Dodo'
+                'logo', 'Cougar', 'Dodo', 'StationV'
             ]
             ships = GetEliteShips('6502sp', ship_locs)
             objects = ships.ship_objects
@@ -308,7 +311,7 @@ class Demo2(scene.Scene):
                 500
             )
             ship.scale = 0.5
-            ship.visible = i % 2
+            ship.visible = 1 #i % 2
             ship.color = choice([GREEN, RED, YELLOW, WHITE, CYAN, BLUE])
             ship.explosion_time = random.random()
             self.objects.append(ship)

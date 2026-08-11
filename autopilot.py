@@ -463,14 +463,11 @@ class Pilot:
         
         cross_z = (ship.rotmat[SIDEV].x * station.rotmat[ROOFV].y
                    - ship.rotmat[SIDEV].y * station.rotmat[ROOFV].x)
-        
         if cross_z < 0:
             angle_err = -angle_err
         
         MAX_ROLL = 31
         self.gs.space.flight_roll = max(min(-angle_err * 10, MAX_ROLL), -MAX_ROLL)
-        
-        # ship.rotz = max(min(angle_err * 5.0, MAX_ROLL), -MAX_ROLL)
         ship.rotx = 0
         ship.acceleration = 0
 
@@ -669,14 +666,12 @@ class Pilot:
             case 'TO_DOCK':
                 # PHASE: final roll and crawl into slot
                 self.target_loc = self.universe[STATION].location
-                self.gs.yaw_coupling = 0
+      
                 if self.distance_to_target < DOCKED_DIST:
                     ship.flags |= cs.FLG_REMOVE
+                    self.change_phase(ship, None)  # reset for next time
                     self.gs.break_mode = 'docking'
                     self.gs.current_screen = cs.SCR_BREAK_PATTERN
-                    # self.gs.space.dock_player()
-                    self.change_phase(ship, None)  # reset for next time
-                    self.gs.yaw_coupling = cs.YAW_COUPLING
                     return
                 
                 rolled, error = self.roll_to_match_station(ship)
@@ -685,10 +680,9 @@ class Pilot:
                     ship.rotz = 0
                     ship.acceleration = 1
                     ship.velocity = 2
-                
-                cr = '\n'
-                self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
-                                          f'{cr}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')
+                              
+                self.gs.msg_right.text = (f'Autopilot{cs.CR}{self.flight_phase}{cs.CR}'
+                                          f'{cs.CR}D:{self.distance_to_target:.0f} V:{self.gs.flight_speed:.1f}')
                        
     def vector_func(self, target, roll, pitch, speed=0):
         # minimised function from move universe

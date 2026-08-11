@@ -24,6 +24,7 @@ from wireframe_3d import Camera, Vector3, Renderer
 from joystick import Joystick
 from change_screensize import get_screen_size
 from elite_keypad import EliteKeypad
+# import vdb
 
 # turn off logging for this module.
 # it seems to be on by default
@@ -32,8 +33,11 @@ target_logger.setLevel('ERROR')
 
 logger = logging.getLogger(__name__)
 EXPLOSION_SPEED = 0.4
+# experimental get all modules
+# modules = module_tree.build_module_tree()
+# module_tree.print_tree(modules)
 
-
+  
 class EliteScene(Scene):
            
     def did_change_size(self):
@@ -89,6 +93,9 @@ class EliteScene(Scene):
         self.msg_left = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H),
                                   color=cs.WHITE, font=('Copperplate', fontsize*0.8),
                                   anchor_point=(0, 1), parent=self)
+        self.msg_left_lower = LabelNode('', position=(cs.HUD_LEFT.x + 10, cs.HUD_H - cs.HUD_LEFT.h/2),
+                                        color=cs.WHITE, font=('Copperplate', fontsize*0.8),
+                                        anchor_point=(0, 1), parent=self)
         self.kbd = Keyboard(self)
 
         self.hud = HudPanel()
@@ -325,27 +332,28 @@ class EliteScene(Scene):
                cs.SCR_SHORT_RANGE, cs.SCR_PLANET_DATA,  cs.SCR_MARKET_PRICES,
                cs.SCR_TRADE,  cs.SCR_CMDR_STATUS,  cs.SCR_INVENTORY]:
             return
+        if self.mainloop.current_screen == cs.SCR_MISSION:
+           if self.mainloop.cmdr.mission != 0:
+              return
         if self.mainloop.current_screen in [*cs.SCR_OUTSIDE, cs.SCR_INTRO_ONE,
-                                            cs.SCR_INTRO_TWO, cs.SCR_MISSION]:
-            objects = [obj
-                       for obj in self.mainloop.universe
+                                            cs.SCR_INTRO_TWO]:
+                                             
+            objects = [obj for obj in self.mainloop.universe
                        if obj.type != 0]
             
-            # Draw all objects            
+            # Draw all objects
             for obj in objects:
                 if obj.exploding:
-                    
                     # Draw the explosion instead of the ship
                     self._explosion_t += self.dt * EXPLOSION_SPEED
-                    obj.model.explosion_time = self._explosion_t                                            
+                    obj.model.explosion_time = self._explosion_t
+                    self.renderer.explode(obj.model, self.camera, cs.FLIGHT_RECT)
                     if self._explosion_t >= 1.0:
                         obj.flags |= cs.FLG_REMOVE
                         obj.exploding = False
                         self._explosion_t = 0.0
-                    self.renderer.explode(obj.model, self.camera, cs.FLIGHT_RECT)
-                    
                 else:
-                    # Draw normal ship (Renderer.draw checks .visible)                    
+                    # Draw normal ship (Renderer.draw checks .visible)
                     self.renderer.draw([obj.model], self.camera, cs.FLIGHT_RECT)
         self.elapsed_top = time() - self.t1
                 
@@ -430,7 +438,7 @@ class EliteScene(Scene):
         elif control == 'screen' and cs.FLIGHT_RECT.contains_point(touch.location):
             self.input_queue.put(f'#{touch.location.x:.0f},{touch.location.y:.0f}')
         elif control == 'target' and self.obj_status.bbox.contains_point(touch.location):
-            self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')            
+            self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')
         # If the screen was tapped quickly without moving
         elif not self.moved and not self.mainloop.space.safe_mode:
           self.input_queue.put('Fire Laser')

@@ -233,7 +233,43 @@ significant changes:
     Added copy() to add_new_ship() obj.model assignment.
     
 49. Added ability for ships to target each other.
-      
+
+Program Organisation
+
+The entry module is Elite.py
+  This creates a Pythonista Scene class which is the fundamntal game loop.
+  It loads all the fixed GUI elements, the keypad and joysticks.
+  The class has an update method which runs an iteration of the mainloop,
+  and a draw method which renders the wireframe and shaded flight graphics. 
+  It has touch methods to interact with the keypad and joysticks.
+  These interact with the mainloop via a message queue. This permits stacked
+  commands but also allows debug in the mainloop by injecting touch commands.
+  The Keyboard class receives touches from the keypad and injects commands into
+  the queue.
+  
+Main logic module is alg_main.py
+  In the original game this was the top level run loop.
+  The MainLoop class links all other modules and classes.
+  Each class is able to access all others via links in this
+  class.
+  The gameloop function is called by EliteScene.update(), and is a classic
+  state machine to handle the multiple screens in the game.
+  The inflight method is in_flight_screen()
+  Each method handles its own keys, which simplifies the sekection
+  logic.
+
+Movement logic is space.py
+   This is responsible for movement of all objects in the universe
+   in response to player movements.
+   it also uodates console, handles hyperspace and docking etc.
+   The method update_universe() runs in the gameloop and orchestrates
+   all operations.
+   
+AI ship logic is swat_2.py
+   This is responsible for creation, movement and response of all ships.
+   Each ship is an jnstance of UnivObject.
+   The key method is tactics(). which orchestrates everything.
+                  
 Getting Started
 
    If you have never seen this game before, here are the first few steps.
@@ -266,22 +302,13 @@ Getting Started
                                                                                                                                                                                                                                                                                                                         
 Chris `Thomas. June 2026
 
-# TODO list 
-
-In the thargon mission, sometimes thargoid is destroyed in one hit, indicating a bug.
-these destroyed ships do not count toward destroyed.
-
-At the end of Supernova mission station graphics show through text. not cleared properly 
-This might be result of maintaining universe objects.
-maybe switch off rendering draw while docked.
-
+# TODO list
+Sun not appearing or changing location
 
 Possible additional missions from PC version:
-Supernova: You receive an emergency distress signal from a system about to be destroyed by a supernova. You must arrive in time to scoop fuel or assist in an evacuation before the star explodes. Once the star goes supernova, that system is permanently inaccessible. DONE
+
 
 • Stolen Police Ship: A mission where you must track down and destroy a specific police vessel that has been compromised or stolen. It is essentially a high-bounty hunting task.
-• Asteroid Bombardment: You are assigned to defend a station from an incoming asteroid storm. You must destroy the asteroids before they impact the station's shielding. DONE
-• Thargoid Invasion: This triggers an event in a star system where a station is actively being besieged by a large fleet of Thargoids. You must jump to the system and assist in the defense by destroying the attacking ships. DONE
 
 Finally:
 

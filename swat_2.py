@@ -11,7 +11,6 @@ from wireframe_3d import load_wireframes_from_json, WireframeObject, WireSphere
 from wireframe_3d import Vector3, Sprite3D, WireAxes
 from dataclasses import dataclass, field
 from planet_generator import Planet, AlienPlanet
-from missions import Mission
 # import vdb
 # import pdb ; pdb.set_trace()
 import logging
@@ -77,17 +76,15 @@ class UnivObject:
         else:
           pos = f'distance ok {distance}'
           dist_ok = True
-        
-        
+                
         if (-10 < azimuth < 10) and (-10 < elevation < 10):
            direction = f'angle ok {azimuth:.1f} {elevation:.1f}'
            angle_ok = True
         else:
             direction = f'angle {azimuth:.1f} {elevation:.1f}'
         
-        return  dist_ok and angle_ok, f'{pos} {direction} {self.direction}'
-          
-        
+        return dist_ok and angle_ok, f'{pos} {direction} {self.direction}'
+                  
     @property
     def direction(self):
         nvec = unit_vector(self.location)
@@ -109,7 +106,6 @@ class UnivObject:
         m.position_in_world = Vector3(*self.location.to_tuple)
         
         # Rotation: store rotmat on the model so the renderer can use it
-        # m.set_rotation_matrix([Vector3(*row.to_tuple) for row in self.rotmat])
         m.rotmat_world = [Vector3(*row.to_tuple) for row in self.rotmat]
         
     def get_render_vertices(self):
@@ -186,6 +182,7 @@ class Swat:
         self.ecm_ours = 0
         self.in_battle = 0
         self.step = 0
+        self.light = 0
         self.HOMING_DAMAGE = 1         # damage applied to target on impact
     
     # ----- Universe management
@@ -341,7 +338,7 @@ class Swat:
         side = unit_vector(side)
         roof = cross_product(nose, side)
         if roll != 0.0:
-            side, roof = self._rotate_around_axis(side, roof, nose, roll)   
+            side, roof = self._rotate_around_axis(side, roof, nose, roll)
         return [side, roof, nose]
         
     def _rotate_around_axis(self, side: Vector, roof: Vector, axis: Vector, angle: float):
@@ -354,7 +351,7 @@ class Swat:
     
         def rodrigues(v: Vector) -> Vector:
             # v_rot = v*cos + (axis x v)*sin + axis*(axis . v)*(1 - cos)
-            cross = cross_product(axis, v)            
+            cross = cross_product(axis, v)
             dot = vector_dot_product(axis, v)
             return v * cos_a + cross * sin_a + axis * dot * (1 - cos_a)
             
@@ -415,7 +412,7 @@ class Swat:
         obj.name = ''
         self.check_missiles(index)
         
-        if index == STATION and not self.gs.missions.in_mission():               
+        if index == STATION and not self.gs.missions.in_mission():
             self.add_new_ship(ship_type, *obj.location, None, 0, 0)
 
     def add_new_station(self, sx, sy, sz, rotmat):
@@ -597,9 +594,10 @@ class Swat:
             obj.flags |= cs.FLG_BOLD
             
     def explode_object(self, index: int):
+       
         gs = self.gs
         ship = self.gs.universe[index]
-        # logger.debug('exploding')
+        logger.debug('exploding')
         gs.cmdr.score += 1
         if (gs.cmdr.score & 255) == 0:
             gs.info_message("Right On Commander!")
@@ -624,10 +622,10 @@ class Swat:
                 x, z = -z, x
         return x, y, z
          
-    def check_target(self, index: int, flip: UnivObject):
+    def check_target(self, index: int):
         univ = self.gs.universe[index]
         
-        if not self.in_target(univ.type, *self._flip_location(flip.location)):
+        if not self.in_target(univ.type, *self._flip_location(univ.location)):
             return
 
         if self.missile_target == cs.MISSILE_ARMED and univ.type >= 0:
@@ -649,7 +647,11 @@ class Swat:
             # self.gs.msg.text = f'{x=:.0f} {y=:.0f} Error{(x*x+y*y):.0f} {univ.model.header["Targetable area"]}'
             # logger.debug(f'{self.ship_names[univ.type]} {univ.location}   {(x*x + y*y)= } {univ.energy=}')
             # This runs once only
+            logger.debug(f'{univ.name} energy {univ.energy}')
+            
             if univ.energy <= 0 and not univ.exploding:
+                                
+                logger.debug(f'{univ.name} exploded')
                 if univ.type == cs.SHIP_ASTEROID:
                     if self.laser == (cs. MINING_LASER & 127):
                         self.launch_loot(index, cs.SHIP_ROCK, univ)
@@ -658,10 +660,9 @@ class Swat:
                         self.launch_loot(index, cs.SHIP_CARGO, parent=univ)
                     else:
                         self.launch_loot(index, cs.SHIP_ALLOY, parent=univ)
-                    
                 self.explode_object(index)
             self.make_angry(index)
-    
+            
     # ------ Ship spawning
     def spawn_homing_object(self, ship_type: int, location, target_index: int,
                             velocity: float = 10, offset: Vector = None,
@@ -695,8 +696,8 @@ class Swat:
         rotmat = self.rotmat_facing(location, aim_point)
         
         newship = self.add_new_ship(ship_type,
-            location.x, location.y, location.z,
-            rotmat, 16, 16)
+                                    location.x, location.y, location.z,
+                                    rotmat, 16, 16)
             
         if newship == -1:
             return -1
@@ -706,7 +707,7 @@ class Swat:
         ns.velocity = 0 if sequential != 0 else velocity
         ns.acceleration = 0
         ns.flags = cs.FLG_SEEKER
-        ns.target = target_index        
+        ns.target = target_index
         ns.bravery = 113
         # New per-seeker state — offset targeting / flyby behaviour
         ns.homing_offset = offset
@@ -721,19 +722,17 @@ class Swat:
     def home_on_target(self, index: int):
         """
         Per-tick homing behaviour for an autonomous seeker created by
-        spawn_homing_object(). Call this from tactics()/update loop instead
-        of missile_tactics() for ship_types that should track any object
-        (not just the player).
+        spawn_homing_object().
+        Currently it is intended for STATION targetting.
+        Note that seeker can change its target
         """
-        
         seeker = self.gs.universe[index]
-        #seeker.sync_model()
         if seeker.target == cs.SHIP_PLAYER:
             return
-        target = self.gs.universe[seeker.target]
-        if target.type == 0:
-            self.remove_ship(index)
+        if seeker.target != STATION:
             return
+        target = self.gs.universe[seeker.target]
+        
         if seeker.flags & (cs.FLG_DEAD | cs.FLG_INACTIVE):
             return
         if seeker.location.magnitude > getattr(seeker, 'max_range', 40000):
@@ -750,11 +749,13 @@ class Swat:
         # if seeker.target is None or self.gs.universe[seeker.target].type == 0:
         #    # target gone — self-destruct harmlessly
         #    seeker.flags |= cs.FLG_DEAD
-        #    return            
-       
+        #    return
+        if target.type == 0:
+            # not homing any more
+            return
         offset = getattr(seeker, 'homing_offset', Vector(0, 0, 0))
         vec = target.location + offset - seeker.location
-        target_vec = target.location  - seeker.location
+        target_vec = target.location - seeker.location
         # Impact check — delete self, damage target
         if vec.magnitude < HOMING_HIT_DISTANCE and not seeker.flyby_locked:
             if getattr(seeker, 'flyby', False):
@@ -770,9 +771,9 @@ class Swat:
                 self.gs.sound.play_sample(cs.SND_EXPLODE)
                 
                 target.energy -= self.HOMING_DAMAGE
-                self.gs.msg_left.text = f'station energy = {target.energy:.0f}'
+                self.gs.msg_left_lower.text = f'station energy = {target.energy:.0f}'
                 if target.energy < 64:
-                   self.gs.info_message('Station Critical!')
+                    self.gs.info_message('Station Critical!')
                 if target.energy <= 0 and not target.exploding:
                     self.explode_object(seeker.target)
             return
@@ -781,7 +782,7 @@ class Swat:
             self.strafe(seeker, target)
             
         # Steer nose towards target
-        seeker.roll = (seeker.roll + seeker.roll_rate * 0.001) % (2 * math.pi)                
+        seeker.roll = (seeker.roll + seeker.roll_rate * 0.001) % (2 * math.pi)
         seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset, roll=seeker.roll)
     
         seeker.sync_model()
@@ -789,27 +790,23 @@ class Swat:
     def strafe(self, seeker, target):
         """ allow an NPC to fire at target even if not pointed directly. Dont change flight direction """
         if self.gs.mcount % 30 == 0:
-            #vdb.set_trace()
-            target_vec = target.location - seeker.location
-            target_dir = vector_dot_product(unit_vector(target_vec), seeker.rotmat[NOSEV])
-            # breakpoint()
+                        
             self.ship_fire(seeker, target)
-            self.gs.sound.play_sample(cs.SND_HIT_ENEMY)        
-            self.gs.msg_left.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy:.0f}'
+            self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
+            self.gs.msg_left_lower.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy:.0f}'
             laser_strength = self.ship_list[seeker.type].laser_strength / 2
             target.energy -= laser_strength
             if target.energy < 64:
-                   self.gs.info_message('Station Critical!', msg_count=37)
+                self.gs.info_message('Station Critical!', msg_count=37)
             if target.energy <= 0 and not target.exploding:
                 self.explode_object(seeker.target)
                 self.gs.message_count = 0
                 self.gs.info_message('Station Destroyed, mission failed!', msg_count=100)
-        
                                          
     def launch_enemy(self, index: int, ship_type: int, flags: int, bravery: int):
         src = self.gs.universe[index]
         newship = self.add_new_ship(ship_type,
-                                    src.location.x, src.location.y, src.location.z,
+                                    *src.location.to_tuple,
                                     src.rotmat, src.rotx, src.rotz)
         if newship == -1:
             return
@@ -817,9 +814,7 @@ class Swat:
         ns = self.gs.universe[newship]
         if index != STATION:
             ns.velocity = 32
-            ns.location.x += ns.rotmat[NOSEV].x * 2
-            ns.location.y += ns.rotmat[NOSEV].y * 2
-            ns.location.z += ns.rotmat[NOSEV].z * 2
+            ns.location += ns.rotmat[NOSEV] * 2
         else:
             ns.velocity = 10
         ns.flags |= flags
@@ -840,7 +835,7 @@ class Swat:
         if loot == cs.SHIP_ROCK:
             cnt = rand_no(3)
         elif loot == cs.SHIP_ALLOY:
-           cnt = rand_no(3)
+           cnt = rand_no(1)
         elif loot == cs.SHIP_CARGO:
             if rand_no(1):
                 return
@@ -957,14 +952,14 @@ class Swat:
             self.home_on_target(index)
         # every 8 /60ths
         if ((index ^ gs.mcount) & 15) != 0:
-            return            
+            return
         
         # Recharge the ship's energy banks by 1
         try:
             if ship.energy < self.ship_list[ship.type].energy:
                 ship.energy += 1
         except KeyError:
-            pass                    
+            pass
                 
         # If this is a lone Thargon without a mothership, set it adrift aimlessly
         if ship.type == cs.SHIP_THARGON and self.ship_count.get(cs.SHIP_THARGOID, 0) == 0:
@@ -981,6 +976,8 @@ class Swat:
         if flags & cs.FLG_POLICE and gs.cmdr.legal_status >= 64:
             flags |= cs.FLG_ANGRY
             ship.flags = flags
+        if (flags & cs.FLG_POLICE) and (flags & cs.FLG_ANGRY):
+            self.flash_police_lights(ship)
         # If the ship is not hostile, fly to and from  the planet and station
         if not (flags & cs.FLG_ANGRY):
             if flags & (cs.FLG_FLY_TO_PLANET | cs.FLG_FLY_TO_STATION):
@@ -995,6 +992,17 @@ class Swat:
 
         self._tactics_attack(index, ship, flags)
         
+    def flash_police_lights(self, ship):
+       # flash red/blue on Viper
+       if self.gs.mcount % 32 < 4:
+           colors = [('red', 'cornflowerblue'), ('cornflowerblue', 'red')]
+           color1, color2 = colors[self.light]
+           ship.model.face_colors[3] = color1
+           ship.model.face_colors[4] = color2
+           ship.model.face_colors[6] = color2
+           
+           self.light = not self.light
+       
     def track_object(self, ship: UnivObject, direction: float, nvec: Vector):
         rat = 3
         rat2 = 0.111
@@ -1100,7 +1108,7 @@ class Swat:
         
         cam_pos = gs.renderer._to_camera(ship.model.position_in_world, cam)
         screen_pt = gs.renderer._project(cam_pos, fl, cam, clip_to_screen=False)
-        if True: #ship.location.z > 0:
+        if True:  # ship.location.z > 0:
             scale = fl / ship.location.z
             if screen_pt:
                sx, sy = screen_pt
@@ -1122,7 +1130,7 @@ class Swat:
                     pt1, pt2 = line_screen_pts
                     # Draw line from pt1 to pt2 on your canvas/display
                     gfx.draw_line(*pt1, *pt2,
-                              colour=colour, width=3)
+                                  colour=colour, width=3)
                     return
                 """
                 if True: #target.location.z > 0:
@@ -1134,7 +1142,7 @@ class Swat:
                          ey = gfx.Y_CENTRE - target.location.y * scale"""
             else:
                 # tx, ty, tz = target.location.to_tuple
-                #if tz > 0:
+                # if tz > 0:
                 #    tscale = fl / tz
                 #    ex_screen = gfx.X_CENTRE + tx * tscale
                 #    ey_screen = gfx.Y_LOW - ty * tscale
@@ -1258,13 +1266,13 @@ class Swat:
         """
         Vector from `ship` toward its current target, and the distance
         between them. For the player (target_index == -96), `ship.location`
-        is already player-relative. 
+        is already player-relative.
         """
         if target_index == cs.SHIP_PLAYER:
             return ship.location, ship.distance
 
         target = self.gs.universe[target_index]
-        vec = target.location - ship.location                    
+        vec = target.location - ship.location
         return vec, vec.magnitude
 
     def _tactics_combat(self, index, ship, flags):

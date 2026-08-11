@@ -94,11 +94,11 @@ class TradeManager:
                 cargo_held += self.gs.cmdr.current_cargo[i]
         return cargo_held
 
-    def scoop_item(self, universe_obj_index, universe):
+    def scoop_item(self, index, universe):
         """
         Handles the logic for fuel-scooping cargo canisters or debris.
         """
-        obj = universe[universe_obj_index]
+        obj = universe[index]
         parent = getattr(obj, 'parent', None)
         
         if (obj.flags & cs.FLG_DEAD and obj.type != cs.SHIP_THARGON):
@@ -139,8 +139,8 @@ class TradeManager:
                 quantity = random.randint(0, 255) & 15
                 self.gs.cmdr.current_cargo[trade_type] += quantity
                 self.gs.info_message(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
-                logger.debug(f"Scooped: {quantity} {self.stock_market[trade_type]['name']}")
-            self.gs.swat.remove_ship(universe_obj_index)
+                
+            self.gs.swat.remove_ship(index)
             obj.exploding = True
             return
 
@@ -151,20 +151,19 @@ class TradeManager:
             if parent == cs.SHIP_THARGOID or obj.type == cs.SHIP_THARGON:
                 self.gs.cmdr.current_cargo[16] += 1
                 self.gs.info_message("Scooped: Alien Items")
-                logging.debug(f'captured alien item {obj.location}')
-                self.gs.swat.remove_ship(universe_obj_index)
+                self.gs.swat.remove_ship(index)
                 return
                
             self.gs.cmdr.current_cargo[9] += 1
-            self.gs.info_message("Scooped: Alloy")
-            logging.debug(f'Scooped: Alloy {obj.location}')
+            self.gs.info_message("Scooped: Alloy")            
             obj.exploding = True
-            self.gs.swat.remove_ship(universe_obj_index)
+            self.gs.swat.remove_ship(index)
             return
         
         # Default collision if item isn't scoopable
         obj.exploding = True
-        logging.debug(f'damaged by {obj.name} {obj.location}')
+        self.gs.missions.check_destroy(obj)
+        logging.error(f'damaged by {obj.name} {obj.location}')
         self.gs.space.damage_ship(obj.energy // 2, True)
         
         

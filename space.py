@@ -48,6 +48,7 @@ class Space:
         self.flight_climb = 0
         self.flight_yaw = 0
         self.yaw_coupling = cs.YAW_COUPLING
+        self.coupling_mult = 1.0
         self.low_altitude = False
         self.in_corona = False
     
@@ -147,7 +148,7 @@ class Space:
            
         # Auto-yaw: couple roll into lateral X movement ---
         # Yaw naturally follows bank — rolling right drifts nose right
-        yaw_rate = self.flight_roll * self.yaw_coupling / 256.0 / 8
+        yaw_rate = self.flight_roll * self.coupling_mult * self.yaw_coupling / 256.0 / 8
         cos_y, sin_y = math.cos(yaw_rate), math.sin(yaw_rate)
         x, z = x * cos_y - z * sin_y, z * cos_y + x * sin_y
         
@@ -388,6 +389,9 @@ class Space:
             return
         object = self.gs.universe[SUN]
         loc = object.location
+        dist = loc.magnitude
+        if dist > 65535:
+            return
         x = abs(int(loc.x))
         y = abs(int(loc.y))
         z = abs(int(loc.z))
@@ -499,8 +503,7 @@ class Space:
             type = obj.type
             if type == 0:
                 continue
-            if i == SUN:
-                continue    
+   
             intro_screens = (cs.SCR_INTRO_ONE, cs.SCR_INTRO_TWO,
                              cs.SCR_GAME_OVER, cs.SCR_ESCAPE_POD)
             if gs.current_screen not in intro_screens:
@@ -532,8 +535,11 @@ class Space:
                     and type not in [cs.SHIP_CONSTRICTOR, cs.SHIP_COUGAR]):
                 self.snd.play_sample(cs.SND_EXPLODE)
                 obj.exploding = True
-                obj.flags |= cs.FLG_DEAD            
+                obj.flags |= cs.FLG_DEAD
             
+            if i == STATION:
+                self.coupling_mult = 0 if obj.distance < 2000 else 1
+             
             if obj.distance < 170:
                 if i == STATION:
                     self.check_docking(i)
@@ -550,11 +556,11 @@ class Space:
             if obj.distance > 57344 and i > SUN:  # not sun, planet or station
                 gs.swat.remove_ship(i)
                 # continue
-                     
+                                                         
             obj.flags &= ~cs.FLG_FIRING
 
             if not (obj.flags & cs.FLG_DEAD):
-                self.swat.check_target(i, obj)
+                self.swat.check_target(i)
                         
         gfx.finish_render()
         gs.detonate_bomb = False
@@ -621,7 +627,7 @@ class Space:
             for i in range(4):
                 gfx.draw_colour_line(x1, y1 + i * dy, x1, y1 + (i + 1) * dy, colour[i % 2], width=3)
             if cs.SCANNER_LABELS and cs.SCANNER_RECT.contains_point(Point(x1+6, y2)):
-                name = obj.name[:3] 
+                name = obj.name[:3]
                 if obj.name[-1].isnumeric():
                     name += obj.name[-2:]
                 text(name.capitalize(),
@@ -1124,7 +1130,7 @@ class Space:
         # universe already populated
         # move player onto station.
         self.stars.create_new_stars()
-        gs.swat.clear_universe(all_others=True)        
+        gs.swat.clear_universe(all_others=True)
         self.teleport(station, -1000, axis=NOSEV)
         self.update_universe()
         gs.flight_speed = 0
