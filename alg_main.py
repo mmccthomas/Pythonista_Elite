@@ -354,18 +354,21 @@ class MainLoop():
     
     def auto_dock(self):
            
-        # self.yaw_coupling = 0
         self.ship = self.space.ship
         if self.mcount == 0:
             logger.debug(f' Dist: {self.pilot.distance_to_target:.0f}km')
         
         self.pilot.auto_pilot_ship_(self.ship)   # modifies ship in-place
-        
-        # flight speed tracks velocity
-        self.flight_speed = min(self.myship.max_speed * (1 + 12 * self.pilot.escape), self.ship.velocity)
-        # control joystick
-        self.space.joystick_position()
-             
+        # if attacking target, control speed manually
+        if self.pilot.flight_phase == 'FIND_TARGET':            
+            self.pilot.velocity_override = self.flight_speed
+        else:  
+            self.pilot.velocity_override = None    
+            # flight speed tracks velocity
+            self.flight_speed = min(self.myship.max_speed * (1 + 12 * self.pilot.escape), self.ship.velocity)
+            # control joystick
+            self.space.joystick_position()        
+                     
     # ── Escape sequence ───────────────────────────────────────────────────────────
     def run_escape_sequence(self):
         # convert to state machine
@@ -535,7 +538,7 @@ class MainLoop():
                                                      
     def launch(self):
         # enable flight keys and launch
-        self._change_flight_keys()
+        self._change_flight_keys()        
         self.space.launch_player()
         
     def check_change_screen(self):
@@ -758,6 +761,8 @@ class MainLoop():
                 self.sound.stop_midi()
                 
     def mission_screen(self):
+        if self.cmdr.mission == 22:
+           pass
         mission_phase = self.missions.check_mission_brief(self.present_planet)
         # logger.debug('')
         key = self.kbd.poll()
@@ -1201,24 +1206,26 @@ def loop():
     test_parent_scene.setup()
     g = test_parent_scene.mainloop
     current_glx = GalaxySeed(0xAD, 0x38, 0x14, 0x9c, 0x15, 0x1d)
-    planets = g.planet.get_closest_planets(GalaxySeed(), current_glx, max_distance=None)
-    for planet in planets:
-       sm = g.trade.generate_stock_market(planet.glx.econ)
-       logger.debug(f'{sm[7]["current_quantity"]}')
+    
+    
     #  g.gfx.display_centre_text(20, "Press Fire or Space, Commander.", color="GOLD")
     # g.gfx.text_render()
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'],
-                  2: ['OK'],
-                  # 3: ['Launch'],
                   
-                  8: ['Data'], 35: ['Local Chart'],
-                  40: ['Select', '$Maera'],
-                  63: [],
-                  42: ['Launch'],
-                  70: ['Hyper Space'],
+                  3: ['Launch'],
+                  70: ['Docking'],
+                  262: ['Instant Dock'],
+                  449: ['OK'],                
+                  450: ['Local Chart'],
+                  451: ['Select', '$Oredonat'],
+                  
+                  453: ['Launch'],
+                  520: ['Hyper Space'],
                   # 65:  ['<1.0'],
-                  150: ['To Planet'],
+                  590: ['To Station'],
+                  595: ['Docking'],
+                  700: ['Instant Dock'],
                   # 240:  ['-1.0'],
                   # 241: ['Docking'],
                   # 152: [*['Up']*811],
@@ -1226,12 +1233,12 @@ def loop():
                   # 150: ['Hyper Space'],
                   
                   # 140: ['Status'],
-                  165: [],  # complete
+                  762: [],  # complete
                   1474: [],
-                  # 267: ['OK'],
+                  763: ['OK'],
                   # 300: ['Instant Dock'],
                   # 300: ['To Planet'],
-                  160: ['Docking'],
+                  #160: ['Docking'],
                   # 500: ['Cancel Docking'],
                   # 510: ['<1.0'],
                   # 510: ['<-1.0'],
@@ -1245,27 +1252,16 @@ def loop():
                   # 7500: ['Docking']
                   }
     # cycle through loop, picking up messages at specific iterations
-    for i in range(10000):
+    for i in range(1000):
        # logger.debug(i)
        if i in operations:
-          if i == 1474:
+          if i == 762:
               pass
           for command in operations[i]:
               g.input_queue.put(command)
-       # print(i, g.present_planet)
-       # logger.debug(f'{g.trade.stock_market=}')
-       univ = [obj.type for obj in g.universe]
-       if g.universe[1].distance < 10000:
-          g.input_queue.put('Cancel Docking')
-          g.input_queue.put('<-1.0')
-       if univ[3] != 0 and g.mcount % 30 == 0 or i > 1461:
-           # logger.error(f'{g.universe[1].location.magnitude}')
-           if g.universe[1].energy < 240:
-              pass
-           logger.error(f'{i} {g.universe[1].energy=} {g.universe[1].exploding=}')
-           logger.error(f'dist:{g.universe[1].distance:.0f} dir:{angle(g.universe[1].direction):.0f} roll:{(g.space.flight_roll):.2f}')
-           
-           logger.debug(f'fshield:{g.front_shield:.0f} ashield:{g.aft_shield} energy:{g.energy}')
+       print(i, g.present_planet)
+       
+       
        
        g.game_loop()
        
@@ -1298,14 +1294,14 @@ if __name__ == '__main__':
     loop()
     # logger.debug('finished')
     #
-    # cProfile.run('loop()')
-    
+    #cProfile.run('loop()')
+    """
     import pstats
     import io
     
     def my_function():
         # Example workload
-        # loop()
+        #loop()
         pass
     
     # 1. Create a Profile object
@@ -1345,6 +1341,6 @@ if __name__ == '__main__':
             # This handles headers and non-data lines
             if "ncalls" in line or "filename" in line:
                 print(line)
-   
+   """
   
 

@@ -51,7 +51,7 @@ class Space:
         self.coupling_mult = 1.0
         self.low_altitude = False
         self.in_corona = False
-    
+        
         ship = Ship()
         # ship.location = Vector(0.0, 0.0, 0.0)
         ship.rotmat = set_init_matrix()
@@ -554,7 +554,8 @@ class Space:
                 # continue
 
             if obj.distance > 57344 and i > SUN:  # not sun, planet or station
-                gs.swat.remove_ship(i)
+                if not obj.flags & cs.FLG_IMMORTAL:                   
+                    gs.swat.remove_ship(i)
                 # continue
                                                          
             obj.flags &= ~cs.FLG_FIRING

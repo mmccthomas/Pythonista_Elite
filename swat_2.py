@@ -88,8 +88,8 @@ class UnivObject:
     @property
     def direction(self):
         nvec = unit_vector(self.location)
-        return vector_dot_product(nvec, self.rotmat[NOSEV])
-        
+        return vector_dot_product(nvec, self.rotmat[NOSEV])        
+            
     def sync_model(self):
         """
         Push UnivObject state into the WireframeObject for rendering.
@@ -708,6 +708,7 @@ class Swat:
         ns.acceleration = 0
         ns.flags = cs.FLG_SEEKER
         ns.target = target_index
+        ns.original_target = target_index
         ns.bravery = 113
         # New per-seeker state — offset targeting / flyby behaviour
         ns.homing_offset = offset
@@ -729,7 +730,7 @@ class Swat:
         seeker = self.gs.universe[index]
         if seeker.target == cs.SHIP_PLAYER:
             return
-        if seeker.target != STATION:
+        if seeker.target != seeker.original_target:
             return
         target = self.gs.universe[seeker.target]
         
@@ -771,9 +772,9 @@ class Swat:
                 self.gs.sound.play_sample(cs.SND_EXPLODE)
                 
                 target.energy -= self.HOMING_DAMAGE
-                self.gs.msg_left_lower.text = f'station energy = {target.energy:.0f}'
+                self.gs.msg_left_lower.text = f'{target.name} energy = {target.energy:.0f}'
                 if target.energy < 64:
-                    self.gs.info_message('Station Critical!')
+                    self.gs.info_message('target.name} Critical!')
                 if target.energy <= 0 and not target.exploding:
                     self.explode_object(seeker.target)
             return
@@ -783,7 +784,7 @@ class Swat:
             
         # Steer nose towards target
         seeker.roll = (seeker.roll + seeker.roll_rate * 0.001) % (2 * math.pi)
-        seeker.rotmat = self.gs.swat.rotmat_facing(seeker.location, target.location + offset, roll=seeker.roll)
+        seeker.rotmat = self.rotmat_facing(seeker.location, target.location + offset, roll=seeker.roll)
     
         seeker.sync_model()
         
@@ -793,15 +794,15 @@ class Swat:
                         
             self.ship_fire(seeker, target)
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
-            self.gs.msg_left_lower.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}station energy = {target.energy:.0f}'
+            self.gs.msg_left_lower.text = f'{seeker.name} firing {cs.CR}at {target.name}{cs.CR}{target.name} energy = {target.energy:.0f}'
             laser_strength = self.ship_list[seeker.type].laser_strength / 2
             target.energy -= laser_strength
             if target.energy < 64:
-                self.gs.info_message('Station Critical!', msg_count=37)
+                self.gs.info_message(f'{target.name} Critical!', msg_count=37)
             if target.energy <= 0 and not target.exploding:
                 self.explode_object(seeker.target)
                 self.gs.message_count = 0
-                self.gs.info_message('Station Destroyed, mission failed!', msg_count=100)
+                self.gs.info_message(f'{target.name} Destroyed, mission failed!', msg_count=100)
                                          
     def launch_enemy(self, index: int, ship_type: int, flags: int, bravery: int):
         src = self.gs.universe[index]
@@ -950,6 +951,13 @@ class Swat:
             return
         if flags & cs.FLG_SEEKER:
             self.home_on_target(index)
+            
+        # If the ship is not hostile, fly to and from  the planet and station
+        if not (flags & cs.FLG_ANGRY):
+            if flags & (cs.FLG_FLY_TO_PLANET | cs.FLG_FLY_TO_STATION):
+                gs.pilot.auto_pilot_ship(index)
+            return
+            
         # every 8 /60ths
         if ((index ^ gs.mcount) & 15) != 0:
             return
@@ -978,12 +986,7 @@ class Swat:
             ship.flags = flags
         if (flags & cs.FLG_POLICE) and (flags & cs.FLG_ANGRY):
             self.flash_police_lights(ship)
-        # If the ship is not hostile, fly to and from  the planet and station
-        if not (flags & cs.FLG_ANGRY):
-            if flags & (cs.FLG_FLY_TO_PLANET | cs.FLG_FLY_TO_STATION):
-                gs.pilot.auto_pilot_ship(index)
-            return
-            
+        
         if self.gs.cloaking_device_active:
             return
 

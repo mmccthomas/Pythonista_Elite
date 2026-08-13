@@ -11,8 +11,9 @@
 # 4 Thargoid.     -     3.     1500
 # 5 Supernova.    -     3
 # 6 Asteroids  not Ceenge  4
+# 7 Boa.          -     2.     1500
 
-from vector import Vector
+from vector import Vector, cross_product, unit_vector
 import constants as cs
 import random
 from enum import Enum
@@ -43,6 +44,10 @@ class Mission(Enum):
     BRIEFED_6 = 19
     COMPLETE_6 = 20
     FINISHED_6 = 21
+    BRIEFED_7_A = 22
+    BRIEFED_7_B = 23
+    COMPLETE_7 = 24
+    FINISHED_7 = 25
     
     
 ST_SETUP = 0   # Initialise and setup
@@ -55,9 +60,12 @@ planet_4_1 = "Edtira"
 planet_5_1 = "Edbedi"
 planet_6_1 = "Ceenge"
 planet_6_2 = "Maera"
-
+planet_7_1 = "Cearle"
+planet_7_2 = "Oredonat"
+planet_7_3 = "Anenmaqu"
 STATION = 1
 SUN = 2
+PLANET = 0
 
 
 def rand255():
@@ -77,6 +85,8 @@ class MissionManager:
         self.MAX_OPPOSITION = 10
         self.SPAWN_DISTANCE = 30000
         self.state = 0
+        self.floating_boa = -1
+        self.close_to_boa = 60.0
         
         # Mission 1 Text (The Constrictor)
         self.m1_brief_a = (
@@ -110,7 +120,18 @@ class MissionManager:
                 "Please accept a reward of 10000 credits."
                 "There will always be a place for you in Her Majesty's Space Navy."
                 "---MESSAGE ENDS.")
-                
+        self.m1_pdesc = [
+            "THE CONSTRICTOR WAS LAST SEEN AT REESDICE, COMMANDER.",  # 0
+            "A STRANGE LOOKING SHIP LEFT HERE A WHILE BACK. LOOKED BOUND FOR AREXE.",  # 1
+            "YEP, AN UNUSUAL NEW SHIP HAD A GALACTIC HYPERDRIVE FITTED HERE, USED IT TOO.",  # 2
+            "I HEAR A WEIRD LOOKING SHIP WAS SEEN AT ERRIUS.",  # 3
+            "THIS STRANGE SHIP DEHYPED HERE FROM NOWHERE, SUN SKIMMED AND JUMPED. I HEAR IT WENT TO INBIBE.",  # 4
+            "ROGUE SHIP WENT FOR ME AT AUSAR. MY LASERS DIDN'T EVEN SCRATCH ITS HULL.",  # 5
+            "OH DEAR ME YES. A FRIGHTFUL ROGUE WITH WHAT I BELIEVE YOU PEOPLE CALL A LEAD. POSTERIOR SHOT UP LOTS OF THOSE BEASTLY PIRATES AND WENT TO USLERI.",  # 6
+            "YOU CAN TACKLE THE VICIOUS SCOUNDREL IF YOU LIKE. HE'S AT ORARRA.",  # 7
+            "THERE'S A REAL DEADLY PIRATE OUT THERE.",  # 8
+            "BOY ARE YOU IN THE WRONG GALAXY!"  # 9
+        ]
         self.m2_brief_a = (
             "Attention Commander, I am Captain Fortesque of Her Majesty's Space Navy. "
             "We have need of your services again. If you would be so good as to go to "
@@ -200,6 +221,32 @@ class MissionManager:
             
         self.m6_debrief = (
             "Well done Commander.You have saved the station and we shall remember."
+            "You have been awarded 10,000 credits."
+            "---MESSAGE ENDS.")
+            
+        self.m7_brief_a = (
+            "Attention Commander, Captain Fortesque of Her Majesty's Space Navy."
+            "We have need of your services again."
+            
+            "A deep-cover intelligence vessel disguised as an ordinary Boa freighter has gone dark near the border of a nearby anarchy system. It is carrying an experimental ECM-frequency dampener."
+  
+            "Locate the derelict Boa floating deep in space (outside of standard orbital lines). You must approach close enough to transfer data via a hard-wired umbilical link (requiring you to stay within a 1km radius for 60 consecutive seconds while fending off opportunistic Mambas)."
+            "."
+            "Return the encrypted data to the issuing station."
+            f"Please proceed to {planet_7_2} for final orders."
+            "---MESSAGE ENDS.")
+                 
+        self.m7_brief_b = (
+            "Thank you for coming, Commander."
+            f"The intelligence vessel in question in in the {planet_7_3} system."
+            "Travel to the target system without drawing local pirate attention."
+            " Remember that you need to stay within 1km for 60 secs."
+            " Proceed carefully, that system is dangerous"
+            "Return the encrypted cassette data to this station."
+            "---MESSAGE ENDS.")
+            
+        self.m7_debrief = (
+            "Well done Commander.You have retrieved the data and we shall remember."
             "You have been awarded 10,000 credits."
             "---MESSAGE ENDS.")
             
@@ -311,6 +358,11 @@ class MissionManager:
             self.gs.cmdr.credits += 100000
             self.gs.space.scanner_scale = 256
             self.display_brief(self.m6_debrief)
+            
+    def boa_debrief(self):
+        if self.state == ST_SETUP:
+            self.gs.cmdr.credits += 100000
+            self.display_brief(self.m7_debrief)
                             
     def check_destroy(self, ship):
        # special case of destroyed ship in missions
@@ -335,13 +387,22 @@ class MissionManager:
                    self.gs.msg.text = 'All asteroids destroyed'
                    self.gs.info_message('All asteroids destroyed')
                    self.gs.msg_left_lower.text = ''
-           """
+          
            elif ship.type in [cs.SHIP_CORIOLIS, cs.SHIP_DODEC, cs.SHIP_STATIONV]:
                self.gs.msg.text = 'Station Destroyed. Mission Failed'
                self.gs.info_message('Station Destroyed. Mission Failed')
-               for ship in  self.waiting_swarm:
+               for ship in self.waiting_swarm:
                    ship.velocity = 5
-           """
+                   
+       elif Mission(self.gs.cmdr.mission) == Mission.BRIEFED_7_B:
+           if ship.type == cs.SHIP_MAMBA:
+               self.destroyed_opposition += 1
+               self.gs.info_message(f'Destroyed {self.destroyed_opposition}/{self.MAX_OPPOSITION} Mambas')
+               if self.destroyed_opposition >= self.MAX_OPPOSITION:
+                   
+                   self.gs.msg.text = 'All Mambas destroyed'
+                   self.gs.info_message('All Mambas destroyed')
+                   self.gs.msg_left_lower.text = ''   
        logger.debug(f'destroyed {ship.name} {self.destroyed_opposition}')
                
     def swarm_attack(self, ship_type, target_index, velocity=1,
@@ -455,29 +516,97 @@ class MissionManager:
                     gs.swat.HOMING_DAMAGE = 10
                     gs.space.scanner_scale = 128
                     finished = self.swarm_attack(cs.SHIP_ASTEROID, STATION,
-                                                 velocity=5, sequential=2)
+                                                 velocity=10, sequential=2)
                     if finished:
                         self.gs.cmdr.mission = Mission.COMPLETE_6
                         self.gs.msg.text = 'All Asteroids destroyed'
+                        
+            case Mission.BRIEFED_7_B:
+                # spawn a bunch of Mambas around the floating Boa               
+                if gs.present_planet.name == planet_7_3:
+                    if self.floating_boa != -1:
+                        # maurauding mambas
+                        self.SPAWN_DISTANCE = 15000
+                        self.MAX_OPPOSITION = 5
+                        finished = self.swarm_attack(cs.SHIP_MAMBA, self.floating_boa, velocity=5,
+                                                     offset=Vector(0, 0, -1000),
+                                                     flyby=True, sequential=3)
+                    boa_dist =  gs.universe[self.floating_boa].distance      
+                    # stay within 1km of boa for 60 seconds to retrieve data                         
+                    if boa_dist < 1000:
+                        self.close_to_boa -= 4.25                    
+                        gs.info_message(f'Boa {boa_dist:.1f}km {self.close_to_boa:.0f} seconds')
+                    else: 
+                         # resets time               
+                         self.close_to_boa = 60.0
                     
+                    if self.close_to_boa <= 0:
+                         # time out
+                         gs.info_message(f'Data acquired')
+                         gs.msg.text = f'Data acquired'
+                         gs.cmdr.mission = Mission.COMPLETE_7.value
+                    if gs.universe[self.floating_boa].type != cs.SHIP_BOA:
+                        # Boa destroyed
+                        gs.info_message(f'Boa destroyed. Mission failed')
+                        gs.msg.text = f'Boa destroyed. Mission failed' 
+                        gs.cmdr.mission = Mission.FINISHED_7.value
+                                   
     def scoop_cargo(self, obj):
         if (obj.type == cs.SHIP_CARGO
                 and obj.parent == cs.SHIP_ASP2
                 and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_3):
            self.gs.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] += 1
            self.gs.info_message("Scooped: Cloaking Device")
+           return cs.ALIEN_ITEMS_IDX
+        if (obj.type == cs.SHIP_CARGO
+                and obj.parent == cs.SHIP_BOA                
+                and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_7_B):
+           self.gs.cmdr.current_cargo[cs.PLATINUM] += 200
+           self.gs.info_message("Scooped: Platinum")
+           return cs.PLATINUM
            
     def system_arrival(self):
+        gs = self.gs
         # mission specific arrngements when we arrive in system
-        if (Mission(self.gs.cmdr.mission) == Mission.BRIEFED_5
-                and self.gs.present_planet.name == planet_5_1):
+        if (Mission(gs.cmdr.mission) == Mission.BRIEFED_5
+                and gs.present_planet.name == planet_5_1):
             # sun moves closer to planet by 1km / secs
             # make everthing Red
-            sun = self.gs.universe[SUN]
-            self.gs.renderer.hue_shift = 0.9
-            rotmat = self.gs.swat.rotmat_facing(sun.location, self.gs.universe[STATION].location)
+            sun = gs.universe[SUN]
+            gs.renderer.hue_shift = 0.9
+            rotmat = gs.swat.rotmat_facing(sun.location, gs.universe[STATION].location)
             sun.rotmat = rotmat
             sun.velocity = 10
+        elif (Mission(gs.cmdr.mission) == Mission.BRIEFED_7_B
+              and gs.present_planet.name == planet_7_3):
+            # spawn inert Boa ship                   
+           if self.floating_boa == -1:
+               # place the drifting boa
+               # midway between sun and planet
+               # orthagonal at distance between 10k-30k
+               distance = random.randint(10000, 30000)
+               midpoint = (gs.universe[SUN].location + gs.universe[PLANET].location) / 2.0
+               v = gs.universe[SUN].location - gs.universe[PLANET].location
+               n = cross_product(v, Vector(0, 1, 0))
+               unit_n = unit_vector(n)
+               pos = midpoint + distance * unit_n
+               
+               self.floating_boa = gs.swat.add_new_ship(cs.SHIP_BOA, *pos.to_tuple, None, 0, 0)
+               if self.floating_boa != -1:
+                   #
+                   ns = gs.universe[self.floating_boa]
+                   ns.flags |= cs.FLG_INACTIVE
+                   # need Boa to stay even if out of range of player
+                   ns.flags |= cs.FLG_IMMORTAL
+                   ns.velocity = 0
+                   ns.energy = 100
+                   ns.name = 'BOAx'
+                   # make the boa mostly red
+                   ns.model.face_colors = ["red", "red", "red", "red",
+                                           "red", "red", "red", "cornflowerblue",
+                                           "cornflowerblue", "red", "cornflowerblue", "red",
+                                           "red"]
+                
         else:
             self.gs.renderer.hue_shift = 0
                         
@@ -559,10 +688,16 @@ class MissionManager:
                         and self.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] >= 3):
                     self.cloaking_debrief()
                     return Mission.COMPLETE_3
-                       
+                                 
             case Mission.COMPLETE_3:
-                # Trigger Mission 4 :
-                if score >= 1500 and gal_num == 3:
+                if score >= 1500 and gal_num == 2:
+                    # Trigger Mission 7 :
+                    self.display_brief(self.m7_brief_a)
+                    self.state = ST_SETUP
+                    return Mission.BRIEFED_7_A
+                
+                elif score >= 1500 and gal_num == 3:
+                    # Trigger Mission 4 :
                     self.MAX_OPPOSITION = 10
                     self.destroyed_opposition = 0
                     self.display_brief(self.m4_brief)
@@ -609,5 +744,16 @@ class MissionManager:
             case Mission.COMPLETE_6:
                 self.asteroid_debrief()
                 return Mission.FINISHED_6
-                                                    
+                
+            case Mission.BRIEFED_7_A:
+                if gs.present_planet.name == planet_7_2:
+                    self.display_brief(self.m7_brief_b)
+                    self.state = ST_SETUP
+                    return Mission.BRIEFED_7_B
+                       
+            case Mission.COMPLETE_7:
+                if gs.present_planet.name == planet_7_2:
+                    self.boa_debrief()
+                    return Mission.FINISHED_7
+                                                                    
         self.gs.current_screen = cs.SCR_PLANET_DATA

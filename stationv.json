@@ -24,8 +24,8 @@
     0.0, 0.0, 0.0
   ],
   "scale": 1.0,
-  "color": "#fffff6",
-  "edge_color": "cyan",
+  "color": "#feffe4",
+  "edge_color": "#feffe4",
   "visible": true,
   "line_width": 2.0,
   "original_vertices": [

@@ -130,10 +130,11 @@ class TradeManager:
             obj.exploding = True
             damage = 128 + (obj.energy // 2)
             self.gs.space.damage_ship(damage, True)
-            return
-
+            return             
+        
         # If it's a generic cargo canister
         if obj.type == cs.SHIP_CARGO:
+            # check if special treatment from a mission   
             if self.gs.missions.scoop_cargo(obj) is None:
                 trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
                 quantity = random.randint(0, 255) & 15
@@ -162,6 +163,7 @@ class TradeManager:
         
         # Default collision if item isn't scoopable
         obj.exploding = True
+        # check if special treatment from a mission   
         self.gs.missions.check_destroy(obj)
         logging.error(f'damaged by {obj.name} {obj.location}')
         self.gs.space.damage_ship(obj.energy // 2, True)

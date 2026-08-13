@@ -73,7 +73,8 @@ class Pilot:
         self.angle = 0
         self.distance_to_target = 0
         self.escape = False
-   
+        self.velocity_override = None  # default, autopilot controls velocity
+        
     # Experimental functions
 
     def get_angles(self, target_x, target_y, target_z):
@@ -163,40 +164,38 @@ class Pilot:
             target_v = max_velocity * (1 + 4 * self.escape)
     
         # Only accelerate when reasonably aligned (avoid full thrust while turning)
-        if fwd_dot >= _cos(25):
-            ship.velocity = target_v * (1 + 4 * self.escape)
+      
+        if self.velocity_override is not None:
+            ship.velocity = self.velocity_override
         else:
-            ship.velocity = MIN_SPEED
-            
+            if fwd_dot >= _cos(25):
+                ship.velocity = target_v * (1 + 4 * self.escape)
+            else:
+                ship.velocity = MIN_SPEED
+             
     # ------ AI ship autopilot
-    def fly_to_vector__(self, ship, vec):
-        """ Used for ai ship only
-            to point toward and move to a specific vector.
-        """
-        ship.rotmat[NOSEV] = unit_vector(vec)
-        ship.rotx = ship.rotz = 0
-
     def fly_to_planet(self, ship):
         """Points the ship toward the planet."""
         vec = self.universe[PLANET].location - ship.location
         if vec.magnitude < 25000:
             ship.flags &= ~cs.FLG_FLY_TO_PLANET  # clears bit
             ship.flags |= cs.FLG_FLY_TO_STATION
-            return
-        self.fly_to_vector__(ship, vec)
+        else:
+            ship.rotmat[NOSEV] = self.universe[STATION].rotmat[NOSEV]
 
     def fly_to_station(self, ship):
         """Points the ship directly toward the space station."""
         vec = self.universe[STATION].location - ship.location
-        if vec.magnitude < 160:
+        if vec.magnitude < 100:
             ship.flags |= cs.FLG_REMOVE
-            return
-        self.fly_to_vector__(ship, vec)
+        else:
+            ship.rotmat[NOSEV] = self.universe[STATION].rotmat[NOSEV] * -1
         
     def auto_pilot_ship(self, index):
         """Automated ship runs to planet and back to station
         """
         ship = self.universe[index]
+        ship.rotx = ship.rotz = 0
         if (ship.flags & cs.FLG_FLY_TO_PLANET):
             self.fly_to_planet(ship)
         else:
@@ -205,7 +204,7 @@ class Pilot:
     # --------  Engage/ disengage
     def engage_auto_pilot(self, target=False):
         """Activates the docking computer and plays Blue Danube."""
-        # Condition checks: not already on, not in witchspace, etc.
+        # Condition os: not already on, not in witchspace, etc.
         self.auto_pilot_active = True
         name = 'Cancel Target' if target else 'Cancel Docking'
         self.gs.keypad.key_change(key_name='Docking',
@@ -380,8 +379,10 @@ class Pilot:
         self.gs.flight_speed = 0
         vec = target - ship.location
         nvec = unit_vector(vec)
-        target_roll, target_climb = self.steer_to_origin(nvec, fast=True)
-        
+        # target_roll, target_climb = self.steer_to_origin(nvec, fast=True)
+        target_roll, target_climb = 0, 0
+        # reuse fly_to_target as its much faster
+        self.fly_to_target(ship, target, max_velocity=0, pgain=250)
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
         self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
@@ -398,8 +399,8 @@ class Pilot:
         ship.smooth_roll += (target_roll - ship.smooth_roll) * smoothing
 
         # Apply the smoothed values
-        space.flight_climb = ship.smooth_climb
-        space.flight_roll = ship.smooth_roll
+        # space.flight_climb = ship.smooth_climb
+        # space.flight_roll = ship.smooth_roll
         
         return False  # fwd_dot >= ALIGNED_TIGHT
 
@@ -510,9 +511,8 @@ class Pilot:
         if closest is None:
             return self._pole_waypoint(), 'FIND_POLE'
         return closest, min_phase
-       
+                 
     # Main state machine
-
     def auto_pilot_ship_(self, ship):
         """
         Docking state machine.
@@ -601,6 +601,7 @@ class Pilot:
                     self.target_loc = self._fly_around(ship, self.blocker)
                                 
                 aligned = self.orient_to_target(ship, self.target_loc)
+                
                 if aligned:
                     self.change_phase(ship, 'TO_IP')
                     
@@ -618,6 +619,7 @@ class Pilot:
                 self.target_loc = self.ip_waypoint()
                 if self.gs.instant_dock:
                     self.gs.keypad.key_change('Instant Dock', enabled=True)
+                    logger.debug('instant dock enabled')
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
                 

@@ -234,6 +234,9 @@ significant changes:
     
 49. Added ability for ships to target each other.
 
+50. New mission. A deep-cover intelligence vessel disguised as an ordinary Boa freighter has gone dark near the border of a contested anarchy system. It is carrying important data. Locate the derelict Boa floating deep in space. You must approach close enough to transfer data via a hard-wired umbilical link (requiring you to stay within a 1km radius for 60 consecutive game-seconds while fending off opportunistic Mambas). Return the encrypted data to the issuing station.
+    Reward:  a substantial cash bounty.
+    
 Program Organisation
 
 The entry module is Elite.py
@@ -269,6 +272,36 @@ AI ship logic is swat_2.py
    This is responsible for creation, movement and response of all ships.
    Each ship is an jnstance of UnivObject.
    The key method is tactics(). which orchestrates everything.
+   
+Autopilot logic is in autopilot.py
+  There is a simple autopilot for shuttles and transporters and escape pods
+  The main autopilot is for the player, and is a state machine with significant
+  phase points
+  The autopilot is also used to point and fly towards target objects
+  
+Planet data generation is performed by planet.py
+
+Procedural planet imagery is perfomed by planet_generator.py
+
+Ship, planet, station and sun drawing is handled in wireframe_3d.py
+    This extensive module reads all the ship data from Elite_ships.json
+    and constructs objects with vertices, edges and faces.
+    The class Renderer.draw method is called every frame cycle, or Renderer.explode
+    for exploding ships.
+
+Text and some basic graphics are contained in graphics.py
+
+Missions are contained in mission.py
+   Mission data is kept out of the main code.
+   Methods check_mission_brief is called on docking
+   system_arrival on completion of hyperspace
+   spawn_ship in the tactics loop
+   scoop_cargo when scooping cargo 
+   check_destroy when ship is destroyed
+   
+
+Supplimentary modules are vector.py, image_helpers.py,    game_engine.py, 
+hud_elite.py, intro.py, joystick.py, 
                   
 Getting Started
 
@@ -306,6 +339,8 @@ Chris `Thomas. June 2026
 Sun not appearing or changing location
 
 Possible additional missions from PC version:
+
+This one from Gemini
 
 
 • Stolen Police Ship: A mission where you must track down and destroy a specific police vessel that has been compromised or stolen. It is essentially a high-bounty hunting task.

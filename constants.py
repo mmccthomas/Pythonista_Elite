@@ -284,7 +284,7 @@ SLAVES = 3
 NARCOTICS = 6
 FIREARMS = 10
 ALIEN_ITEMS_IDX = 16
-
+PLATINUM = 14
 # images
 
 IMG_MISSILE_YELLOW = 'missyell.bmp'
@@ -331,6 +331,7 @@ FLG_ALIEN = 0x4000
 FLG_STATION = 0x8000  # for scanner
 FLG_PLANET = 0x10000  # for scanner
 FLG_SEEKER = 0x20000
+FLG_IMMORTAL = 0x40000 # does not diappear with distance
 
 MISSILE_UNARMED = -2
 MISSILE_ARMED = -1
