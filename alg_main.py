@@ -1063,6 +1063,26 @@ class MainLoop():
             # testing keys
             case 'To Sun' | 'To Planet' | 'To Station':
                 self.space.jump_direct(key)
+            case key if key.startswith('scale'):
+                if key.split('scale')[1] == '':
+                    # cycle scale of scanner
+                    scale = self.space.scanner_scale
+                    match scale:
+                        case 256:
+                            self.space.scanner_scale = 128
+                            self.hud.scale_indicator.text = 'x2'
+                        
+                        case 128:
+                            self.space.scanner_scale = 64
+                            self.hud.scale_indicator.text = 'x4'
+                        case 64:
+                            self.space.scanner_scale = 256
+                            self.hud.scale_indicator.text = 'x1'
+                else:
+                     scale_factor = int(key.split('scale')[1])
+                     self.hud.scale_indicator.text = f'x{scale_factor}'
+                     self.space.scanner_scale = 256 / scale_factor
+                pass
             case key if key.startswith('->'):
                 # only allow target locking if docking computer fitted
                 if self.cmdr.docking_computer:
@@ -1213,19 +1233,19 @@ def loop():
     # [a, *[b]*3, c] will give [a, b, b, b, c]
     operations = {1: ['OK'],
                   
-                  3: ['Launch'],
-                  70: ['Docking'],
-                  262: ['Instant Dock'],
-                  449: ['OK'],                
+                  # 3: ['Launch'],
+                  #70: ['Docking'],
+                  #262: ['Instant Dock'],
+                  #449: ['OK'],                
                   450: ['Local Chart'],
-                  451: ['Select', '$Oredonat'],
+                  451: ['Select', '$Anenmaqu'],
                   
                   453: ['Launch'],
-                  520: ['Hyper Space'],
+                  600: ['Hyper Space'],
                   # 65:  ['<1.0'],
-                  590: ['To Station'],
-                  595: ['Docking'],
-                  700: ['Instant Dock'],
+                  #590: ['To Station'],
+                  #595: ['Docking'],
+                  #700: ['Instant Dock'],
                   # 240:  ['-1.0'],
                   # 241: ['Docking'],
                   # 152: [*['Up']*811],
@@ -1235,7 +1255,7 @@ def loop():
                   # 140: ['Status'],
                   762: [],  # complete
                   1474: [],
-                  763: ['OK'],
+                  #763: ['OK'],
                   # 300: ['Instant Dock'],
                   # 300: ['To Planet'],
                   #160: ['Docking'],

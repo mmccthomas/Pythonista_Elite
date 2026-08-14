@@ -400,6 +400,8 @@ class EliteScene(Scene):
             self.active_touches[touch.touch_id] = 'fire'
         elif self.obj_status.bbox.contains_point(touch.location):
             self.active_touches[touch.touch_id] = 'target'
+        elif cs.SCANNER_RECT.contains_point(touch.location):
+            self.active_touches[touch.touch_id] = 'scale'
         else:
             self.active_touches[touch.touch_id] = 'screen'
             # print('screen', touch.location)
@@ -439,6 +441,8 @@ class EliteScene(Scene):
             self.input_queue.put(f'#{touch.location.x:.0f},{touch.location.y:.0f}')
         elif control == 'target' and self.obj_status.bbox.contains_point(touch.location):
             self.input_queue.put(f'->{touch.location.x:.0f},{touch.location.y:.0f}')
+        elif control == 'scale' and cs.SCANNER_RECT.contains_point(touch.location):
+            self.input_queue.put(f'scale')
         # If the screen was tapped quickly without moving
         elif not self.moved and not self.mainloop.space.safe_mode:
           self.input_queue.put('Fire Laser')

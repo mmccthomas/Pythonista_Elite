@@ -477,7 +477,7 @@ class Pilot:
     def change_phase(self, ship, new_phase):
         """Transition to a new flight phase, zeroing rates."""
         logger.debug(f'Autopilot phase {self.flight_phase} -> {new_phase}')
-        self.gs.info_message(f"Docking Computers On {new_phase}")
+        # self.gs.info_message(f"Docking Computers On {new_phase}")
         
         self.flight_phase = new_phase
         ship.acceleration = 0
@@ -558,9 +558,13 @@ class Pilot:
                 
             case 'FIND_TARGET':
                 # orient to arbitrary target, usually a ship
-                distance = self._dist_to(ship, self.target.location)
+                if self.target.type in [cs.SHIP_CARGO, cs.SHIP_ALLOY]:
+                    target_loc = self.target.location + Vector(0, 100, 0)
+                else:
+                    target_loc = self.target.location
+                distance = self._dist_to(ship, target_loc)
                 self.gs.msg_left.text = f'Target \n {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
-                self.fly_to_target(ship, self.target.location, max_velocity=22, pgain=250)
+                self.fly_to_target(ship, target_loc, max_velocity=22, pgain=250)
                 if self.target.type == 0:
                    self.gs.msg_left.text = 'Target Lost'
                    self.disengage_auto_pilot()

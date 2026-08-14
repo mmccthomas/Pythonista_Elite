@@ -343,7 +343,7 @@ class MissionManager:
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000
             self.gs.cmdr.legal_status = 0
-            self.gs.space.scanner_scale = 256
+            
             self.display_brief(self.m4_debrief)
             
     def supernova_debrief(self):
@@ -356,7 +356,7 @@ class MissionManager:
         if self.state == ST_SETUP:
             self.gs.cmdr.score += 256
             self.gs.cmdr.credits += 100000
-            self.gs.space.scanner_scale = 256
+            
             self.display_brief(self.m6_debrief)
             
     def boa_debrief(self):
@@ -494,7 +494,7 @@ class MissionManager:
                     # slowly reducing as you kill.
                     # get attrition by distance
                     # logger.error('')
-                    gs.space.scanner_scale = 128
+                    
                     finished = self.swarm_attack(cs.SHIP_THARGOID, STATION, velocity=5,
                                                  offset=Vector(0, 0, -1000),
                                                  flyby=True, sequential=2)
@@ -514,7 +514,7 @@ class MissionManager:
                     # get attrition by distance
                     self.SPAWN_DISTANCE = 30000
                     gs.swat.HOMING_DAMAGE = 10
-                    gs.space.scanner_scale = 128
+                    
                     finished = self.swarm_attack(cs.SHIP_ASTEROID, STATION,
                                                  velocity=10, sequential=2)
                     if finished:
@@ -535,7 +535,7 @@ class MissionManager:
                     # stay within 1km of boa for 60 seconds to retrieve data                         
                     if boa_dist < 1000:
                         self.close_to_boa -= 4.25                    
-                        gs.info_message(f'Boa {boa_dist:.1f}km {self.close_to_boa:.0f} seconds')
+                        gs.info_message(f'Boa {boa_dist:.0f}m {self.close_to_boa:.0f} seconds left')
                     else: 
                          # resets time               
                          self.close_to_boa = 60.0
@@ -544,23 +544,30 @@ class MissionManager:
                          # time out
                          gs.info_message(f'Data acquired')
                          gs.msg.text = f'Data acquired'
+                         gs.sound.play_sample(cs.SND_BOOP)
+                         gs.sound.play_sample(cs.SND_BOOP)
                          gs.cmdr.mission = Mission.COMPLETE_7.value
-                    if gs.universe[self.floating_boa].type != cs.SHIP_BOA:
+                    if (gs.universe[self.floating_boa].type != cs.SHIP_BOA
+                          and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_7_B):
                         # Boa destroyed
                         gs.info_message(f'Boa destroyed. Mission failed')
                         gs.msg.text = f'Boa destroyed. Mission failed' 
+                        gs.sound.play_sample(cs.SND_CRASH)
                         gs.cmdr.mission = Mission.FINISHED_7.value
                                    
     def scoop_cargo(self, obj):
+        
         if (obj.type == cs.SHIP_CARGO
                 and obj.parent == cs.SHIP_ASP2
                 and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_3):
            self.gs.cmdr.current_cargo[cs.ALIEN_ITEMS_IDX] += 1
            self.gs.info_message("Scooped: Cloaking Device")
            return cs.ALIEN_ITEMS_IDX
+        # if mission 7 complete and it is destroyed
+        # released cargo contains platinum
         if (obj.type == cs.SHIP_CARGO
-                and obj.parent == cs.SHIP_BOA                
-                and Mission(self.gs.cmdr.mission) == Mission.BRIEFED_7_B):
+                and obj.parent == "BOA_"         
+                and Mission(self.gs.cmdr.mission) == Mission.COMPLETE_7):           
            self.gs.cmdr.current_cargo[cs.PLATINUM] += 200
            self.gs.info_message("Scooped: Platinum")
            return cs.PLATINUM
@@ -598,9 +605,10 @@ class MissionManager:
                    ns.flags |= cs.FLG_INACTIVE
                    # need Boa to stay even if out of range of player
                    ns.flags |= cs.FLG_IMMORTAL
+                   ns.max_loot = 1
                    ns.velocity = 0
                    ns.energy = 100
-                   ns.name = 'BOAx'
+                   ns.name = 'BOA_'
                    # make the boa mostly red
                    ns.model.face_colors = ["red", "red", "red", "red",
                                            "red", "red", "red", "cornflowerblue",
@@ -700,6 +708,7 @@ class MissionManager:
                     # Trigger Mission 4 :
                     self.MAX_OPPOSITION = 10
                     self.destroyed_opposition = 0
+                    gs.input_queue.put('scale2')
                     self.display_brief(self.m4_brief)
                     self.state = ST_SETUP
                     return Mission.BRIEFED_4
@@ -737,6 +746,7 @@ class MissionManager:
                     self.MAX_OPPOSITION = 10
                     self.destroyed_opposition = 0
                     self.generated = 0
+                    gs.input_queue.put('scale2')
                     self.display_brief(self.m6_brief)
                     self.state = ST_SETUP
                     return Mission.BRIEFED_6

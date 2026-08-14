@@ -118,7 +118,7 @@ class TradeManager:
         full_cargo_hold = self.total_cargo() >= self.gs.cmdr.cargo_capacity
         
         if (no_fuel_scoop or above_ship or full_cargo_hold):
-            logging.debug(f'collided with {obj.name} {obj.location} {obj.location.y=}')
+            logging.error(f'collided with {obj.name} {obj.location} {obj.location.y=}')
             if no_fuel_scoop:
                reason = 'No Fuel Scoop'
             elif above_ship:
@@ -134,8 +134,8 @@ class TradeManager:
         
         # If it's a generic cargo canister
         if obj.type == cs.SHIP_CARGO:
-            # check if special treatment from a mission   
-            if self.gs.missions.scoop_cargo(obj) is None:
+            # check if special treatment from a mission               
+            if self.gs.missions.scoop_cargo(obj) is None:                
                 trade_type = random.randint(0, 255) & 15  # Randomly determine what's inside
                 quantity = random.randint(0, 255) & 15
                 self.gs.cmdr.current_cargo[trade_type] += quantity
@@ -146,10 +146,9 @@ class TradeManager:
             return
 
         # If it's a specific item (like an escape pod or alloy)
-        elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON:
-            
+        elif obj.type == cs.SHIP_ALLOY or obj.type == cs.SHIP_THARGON:            
             # allow capture of alien items
-            if parent == cs.SHIP_THARGOID or obj.type == cs.SHIP_THARGON:
+            if parent == "THARGOID" or obj.type == cs.SHIP_THARGON:
                 self.gs.cmdr.current_cargo[16] += 1
                 self.gs.info_message("Scooped: Alien Items")
                 self.gs.swat.remove_ship(index)

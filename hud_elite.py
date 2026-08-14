@@ -1,7 +1,7 @@
 # Author: Darron Vanaria
 # Filesize: 24409 bytes
 # LOC: 538
-from scene import Rect,  Node, ShapeNode, Scene, run
+from scene import Rect,  Node, ShapeNode, Scene, run, LabelNode
 import constants as cs
 import ui
 # from constants import logger
@@ -186,6 +186,10 @@ class HudPanel(Node):
         self.compass = Compass(width=cs.COMPASS_RECT.w)
         self.compass.position = cs.COMPASS_RECT.center()
         self.add_child(self.compass)
+        fontsize = (cs.W - cs.FLIGHT_RECT.max_x) // 18
+        self.scale_indicator =  LabelNode('x1', position=(cs.HUD_CENTRE.x + 10, cs.HUD_CENTRE.y + 10),
+                                  color=cs.WHITE, font=('Copperplate', fontsize),
+                                  anchor_point=(0, 0), parent=self)
 
 
 

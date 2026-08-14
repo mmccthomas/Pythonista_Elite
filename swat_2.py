@@ -22,7 +22,7 @@ PLANET = 0
 STATION = 1
 MIN_FIRING_DISTANCE = 8192
 HOMING_HIT_DISTANCE = 256   # matches missile_tactics' player-hit threshold
-
+GRACE_TICKS = 32
 
 def rand255():
    return random.randint(0, 255)
@@ -59,6 +59,8 @@ class UnivObject:
     smooth_roll: float = 0.0
     has_fired: bool = False
     explosion_time: float = 0.0
+    invuln_until : int = 0
+    
     
     def is_visible(self):
         # within 20 degrees in from and 0 < distance < 20000
@@ -634,6 +636,11 @@ class Swat:
             self.gs.sound.play_sample(cs.SND_BEEP)
 
         if self.laser:
+            # loot is invulnerable to fire for short time once spawned
+            remaining = (getattr(univ, 'invuln_until', 0) - self.gs.mcount) % 256
+            if remaining != 0 and remaining <= GRACE_TICKS:  # loot is still immune
+                return
+                
             x, y, z = univ.location.to_tuple
             
             self.gs.sound.play_sample(cs.SND_HIT_ENEMY)
@@ -809,6 +816,7 @@ class Swat:
         newship = self.add_new_ship(ship_type,
                                     *src.location.to_tuple,
                                     src.rotmat, src.rotx, src.rotz)
+        # logger.error(f'{newship} {self.gs.universe[newship]}')               
         if newship == -1:
             return
 
@@ -832,23 +840,26 @@ class Swat:
         
     def launch_loot(self, index: int, loot: int, parent: UnivObject):
         """ up to 3 rocks, up to 3 plates, max_loot cannisters if
-        max_loot < 3 """
+        max_loot < 3 
+        Track who it belonged to to allow special treatment in mission scooping"""
         if loot == cs.SHIP_ROCK:
             cnt = rand_no(3)
         elif loot == cs.SHIP_ALLOY:
            cnt = rand_no(1)
         elif loot == cs.SHIP_CARGO:
-            if rand_no(1):
-                return
+            #if rand_no(1):
+            #    return
             cnt = max(parent.max_loot, 2)
+            
         else:
             cnt = 0
 
         for _ in range(cnt):
             ns = self.launch_enemy(index, loot, 0, 0)
             if ns:
-                setattr(ns, 'parent', parent.type)
-
+                setattr(ns, 'parent', parent.name)
+                ns.invuln_until = (self.gs.mcount + GRACE_TICKS) % 256  # ~8 ticks grace period
+                
     def launch_shuttle(self):
         gs = self.gs
         if (self.ship_count.get(cs.SHIP_TRANSPORTER, 0) != 0
