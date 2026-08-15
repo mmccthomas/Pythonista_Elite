@@ -129,9 +129,8 @@ class Pilot:
         target_roll = (side_dot) * pgain * 2  # max(min(-side_dot * P_GAIN, MAX_ROT), -MAX_ROT)
 
         self.angle = math.degrees(math.acos(round(fwd_dot, 3)))
-        cr = '\n'
-        self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}F:{fwd_dot:+.2f} P:{up_dot:+.2f} R:{side_dot:+.2f}'
-                                  f'{cr}D:{self.distance_to_target:.0f} A:{self.angle:.1f} V:{self.gs.flight_speed:.1f}')
+        self.gs.msg_right.text = (f'Autopilot{cs.CR}{self.flight_phase}{cs.CR}F:{fwd_dot:+.2f} P:{up_dot:+.2f} R:{side_dot:+.2f}'
+                                  f'{cs.CR}D:{self.distance_to_target:.0f} A:{self.angle:.1f} V:{self.gs.flight_speed:.1f}')
         # SMOOTHING:
         # Simple linear interpolation (LERP) toward the target
         ship.smooth_climb += (target_climb - ship.smooth_climb) * smoothing
@@ -148,7 +147,7 @@ class Pilot:
         STOP_DIST = 100
         # Distance at which we start braking (half-way heuristic,
         # but clamped so we don't start braking before we've even accelerated)
-        BRAKE_DIST = 10000  # hmax(dist * 0.5, STOP_DIST * 2)
+        BRAKE_DIST = 10000
         MIN_SPEED = 1
     
         if dist <= STOP_DIST:
@@ -166,7 +165,7 @@ class Pilot:
         if self.velocity_override is not None:
             ship.velocity = self.velocity_override
         else:
-            if fwd_dot >= _cos(25):
+            if fwd_dot >= _cos(10):
                 ship.velocity = target_v * (1 + 4 * self.escape)
             else:
                 ship.velocity = MIN_SPEED
@@ -213,9 +212,8 @@ class Pilot:
     def disengage_auto_pilot(self):
         """Deactivates docking computer and stops music."""
         self.auto_pilot_active = False
-        self.flight_phase = None
-        cr = '\n'
-        self.gs.msg_right.text = f'Autopilot{cr}Off'
+        self.flight_phase = None       
+        self.gs.msg_right.text = f'Autopilot{cs.CR}Off'
         self.gs.keypad.key_change(key_name='Cancel Docking',
                                   name='Docking', color='lightgreen')
         self.gs.keypad.key_change(key_name='Cancel Target',
@@ -223,8 +221,7 @@ class Pilot:
         self.gs.keypad.key_change('Instant Dock', enabled=False)
         ship = self.gs.space.ship
         ship.smooth_climb = 0
-        ship.smooth_roll = 0
-        # stop_midi()
+        ship.smooth_roll = 0      
         
     def world_to_screen(self, loc, focal=256):
         # First apply view transform (copy the logic from switch_to_view)
@@ -322,46 +319,9 @@ class Pilot:
         """Point IP_DIST ahead of station nose."""
         station = self.universe[STATION]
         return station.location + station.rotmat[NOSEV] * IP_DIST
-        # return Vector(0, 0, 0)
 
     def _dist_to(self, ship, point):
-        return (point - ship.location).magnitude
-
-    def _fwd_dot_to(self, ship, point):
-        """How well the ship is pointing at a world-space point."""
-        vec = point - ship.location
-        return vector_dot_product(unit_vector(vec), ship.rotmat[NOSEV])
-        
-    def _ray_blocks_sphere(self, origin, unit_dir, sphere_centre, sphere_radius):
-        """Returns True if the sphere occludes the ray from origin in direction unit_dir."""
-        w = sphere_centre - origin
-        tc = vector_dot_product(w, unit_dir)
-        if tc < 0:
-            return False   # sphere is behind us
-        perp_sq = w.x**2 + w.y**2 + w.z**2 - tc * tc
-        return perp_sq < sphere_radius * sphere_radius
-
-    def _has_line_of_sight(self, ship, target):
-        """
-        Returns (clear, blocker) where clear is True if nothing blocks
-        the path, or False with blocker = 'planet' or 'station'.
-        """
-        # return True, ''
-        origin = ship.location
-        vec = target - origin
-        # dist = vec.magnitude
-        unit_dir = unit_vector(vec)
-    
-        PLANET_RADIUS = cs.PLANET_RADIUS   # or a hardcoded value e.g. 6000
-        if self._ray_blocks_sphere(origin, unit_dir, self.universe[PLANET].location, PLANET_RADIUS):
-            return False, self.universe[PLANET]
-    
-        # Station (treat as a sphere with a generous radius)
-        STATION_RADIUS = 160   # roughly the docking exclusion zone
-        if self._ray_blocks_sphere(origin, unit_dir, self.universe[STATION].location, STATION_RADIUS):
-            return False, self.universe[STATION]
-    
-        return True, None
+        return (point - ship.location).magnitude    
     
     # Primitive manoeuvres
 
@@ -384,9 +344,8 @@ class Pilot:
         fwd_dot = vector_dot_product(nvec, ship.rotmat[NOSEV])  # target in front behind
         # Clamp fwd_dot for acos safety
         self.angle = math.degrees(math.acos(max(-1.0, min(1.0, fwd_dot))))
-        cr = '\n'
-        self.gs.msg_right.text = (f'Autopilot{cr}{self.flight_phase}{cr}'
-                                  f'{cr}D:{self.distance_to_target:.0f} A:{self.angle:+.1f} V:{self.gs.flight_speed:.1f}')
+        self.gs.msg_right.text = (f'Autopilot{cs.CR}{self.flight_phase}{cs.CR}'
+                                  f'{cs.CR}D:{self.distance_to_target:.0f} A:{self.angle:+.1f} V:{self.gs.flight_speed:.1f}')
         # already aligned
         if fwd_dot >= aligned:
            space.flight_climb = space.flight_roll = 0
@@ -406,50 +365,9 @@ class Pilot:
         """
         Fly toward target with distance-based speed profile.
         Checks line of sight; if blocked routes via waypoint.
-        """
-        clear, blocker = self._has_line_of_sight(ship, target)
-        if False:  # not clear:
-            logger.debug('flying around')
-            self._fly_around(ship, target, blocker)
-            return
-
+        """        
         vec = target - ship.location
         self.fly_to_vector(ship, vec, max_velocity, pgain=pgain)
-
-    def _fly_around(self, ship, blocker):
-        """
-        Calculates a detour waypoint perpendicular to the blocker-ship line
-        to steer around the obstacle.
-        """
-        # 1. Vector from blocker to ship
-        blocker_to_ship = ship.location - blocker.location
-        
-        # Avoid division by zero
-        if blocker_to_ship.magnitude == 0:
-            blocker_to_ship = Vector(1, 0, 0)
-            
-        # 2. Normalize the direction
-        direction = unit_vector(blocker_to_ship)
-        
-        # 3. Calculate radius with safety buffer
-        radius = cs.PLANET_RADIUS if blocker.type == cs.SHIP_PLANET else cs.STATION_RADIUS
-        detour_distance = radius * 20
-        
-        # 4. Calculate a perpendicular vector (the "tangent")
-        # For 2D: If direction is (x, y), a perpendicular is (-y, x) or (y, -x)
-        # This steers the ship to the side instead of moving directly away
-        perp_direction = Vector(0, 1, 0)
-        
-        # 5. Determine the waypoint
-        # We place the waypoint at the edge of the radius, but offset to the side
-        waypoint = blocker.location + (direction * radius * 0.5) + (perp_direction * detour_distance)
-        
-        target = waypoint - ship.location
-    
-        logger.debug(f"Detour calculated. Steering to the side of {blocker.type}")
-        self.change_phase(ship, 'FIND_DETOUR')
-        logger.debug(f'{target=}')
-        return target
         
     def roll_to_match_station(self, ship):
         """
@@ -480,10 +398,6 @@ class Pilot:
         self.flight_phase = new_phase
         ship.acceleration = 0
         ship.velocity = 1
-        # if new_phase and 'FIND' in new_phase:
-        #     self.climb_av.size = self.roll_av.size = 12
-        # else:
-        #    self.climb_av.size = self.roll_av.size = 24
         
     def closest_visible_target(self, ship):
         # when enabling docking computer, find closest target
@@ -496,12 +410,8 @@ class Pilot:
             return self._pole_waypoint(), 'FIND_POLE'
           
         for target, phase in zip(targets, phases):
-            distance = self._dist_to(ship, target)
-            clear, blocker = self._has_line_of_sight(ship, target)
-            clear = True  # TODO FIX THIS
-            if not clear:
-                logger.debug(f'Phase {phase}, has blocker {blocker.name}')
-            if clear and distance < min_distance:
+            distance = self._dist_to(ship, target)                        
+            if distance < min_distance:
                min_distance = distance
                closest = target
                min_phase = phase
@@ -528,9 +438,7 @@ class Pilot:
         4. arrive at low speed.
         5. orient to dock at low speed the accelerate at medium slow speed
         6. roll into dock
-        7. if on far side of station, fly to initial point 2, outside of
-           station. arrive at slow speed.
-           jump to item 3
+        
         8. if close to station and not orientated correctly, jump to item 3.
         9. if other side of planet, go to 1.
         
@@ -541,8 +449,6 @@ class Pilot:
         
         state_machine to control flight phase
         
-        Weakness: line of sight code is flaky. occasionaly need to cancel, move and renable 
-        docking
         """
         # log initial positions
         
@@ -554,7 +460,7 @@ class Pilot:
         match self.flight_phase:
             case None:
                 # Just enabled, get closest
-                self.target_loc, phase = self.closest_visible_target(ship)
+                self.target_loc, phase = self.closest_visible_target(ship)                                      
                 self.change_phase(ship, phase)
                 
             case 'FIND_TARGET':
@@ -564,7 +470,7 @@ class Pilot:
                 else:
                     target_loc = self.target.location
                 distance = self._dist_to(ship, target_loc)
-                self.gs.msg_left.text = f'Target \n {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
+                self.gs.msg_left.text = f'Target {cs.CR} {self.target.name} {distance/1000:.1f}km {self.target.energy}'.upper()
                 self.fly_to_target(ship, target_loc, max_velocity=22, pgain=250)
                 if self.target.type == 0:
                    self.gs.msg_left.text = 'Target Lost'
@@ -583,11 +489,9 @@ class Pilot:
                 self.target_loc = self._pole_waypoint()
                 
                 # divert if station visible
-                if self.gs.space.close_to_station():
-                    clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
-                    if True:
-                        self.change_phase(ship, 'FIND_IP')
-                        return
+                if self.gs.space.close_to_station():                    
+                    self.change_phase(ship, 'FIND_IP')
+                    return
                                 
                 elif self.distance_to_target < CLOSE_TO_POLE:
                     self.change_phase(ship, 'FIND_IP')
@@ -597,25 +501,10 @@ class Pilot:
             
             case 'AT_POLE' | 'FIND_IP':
                 # PHASE: at pole, or elsewhere,  orient to IP before flying there
-                self.target_loc = self.ip_waypoint()
-                clear, self.blocker = self._has_line_of_sight(ship, self.target_loc)
-                
-                clear = True
-                if not clear:
-                    self.gs.msg_left.text = f'IP has blocker {self.blocker.name}'
-                    self.target_loc = self._fly_around(ship, self.blocker)
-                                
-                aligned = self.orient_to_target(ship, self.target_loc)
-                
+                self.target_loc = self.ip_waypoint()                                                               
+                aligned = self.orient_to_target(ship, self.target_loc)                
                 if aligned:
-                    self.change_phase(ship, 'TO_IP')
-                    
-            case 'FIND_DETOUR':
-                # PHASE: orient to DETOUR before flying there
-                self.target_loc = self._fly_around(ship, self.blocker)
-                aligned = self.orient_to_target(ship, self.target_loc)
-                if aligned:
-                    self.change_phase(ship, 'TO_DETOUR')
+                    self.change_phase(ship, 'TO_IP')                                
                     
             case 'TO_IP':
                 # PHASE: fly to IP (ahead of station nose)
@@ -627,21 +516,7 @@ class Pilot:
                 if self.distance_to_target < CLOSE_TO_IP:
                     self.change_phase(ship, 'FIND_STATION')
                 
-                self.fly_to_target(ship, self.target_loc, max_velocity=self.gs.myship.max_speed)
-                    
-            case 'TO_DETOUR':
-                # the rare case when target is blocked
-                # divert  to ip possible
-                if self.gs.close_to_station():
-                    clear, blocker = self._has_line_of_sight(ship, self.ip_waypoint())
-                    clear = True
-                    if clear:
-                        self.change_phase(ship, 'FIND_IP')
-                        return
-                
-                vec = self.target_loc - ship.location
-                self.fly_to_vector(ship, vec, max_velocity=20)
-                # self.fly_to_target(ship, self.target_loc, max_velocity=20)
+                self.fly_to_target(ship, self.target_loc, max_velocity=self.gs.myship.max_speed)                    
                     
             case 'FIND_STATION':
                 # At the IP orient to station
