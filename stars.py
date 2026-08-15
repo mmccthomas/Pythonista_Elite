@@ -1,8 +1,6 @@
 import random
 import constants as cs
 
-# Mocking the GFX and Config constants usually found in the headers
-
 # NOTE graphics routine handles clipping
 
 

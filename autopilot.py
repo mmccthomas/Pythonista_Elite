@@ -6,8 +6,6 @@
 # if docking computer not fitted/ enabled,
 # guidance cross will show directions
 
-# TODO needs more development to achieve entry at
-# any location.
 
 import math
 from math import sin, cos, atan2
@@ -542,6 +540,9 @@ class Pilot:
         For flight director, use same section logic by dont implement the fly_to
         
         state_machine to control flight phase
+        
+        Weakness: line of sight code is flaky. occasionaly need to cancel, move and renable 
+        docking
         """
         # log initial positions
         
@@ -611,7 +612,6 @@ class Pilot:
                     
             case 'FIND_DETOUR':
                 # PHASE: orient to DETOUR before flying there
-                # TODO DOESN'T UPDATE
                 self.target_loc = self._fly_around(ship, self.blocker)
                 aligned = self.orient_to_target(ship, self.target_loc)
                 if aligned:

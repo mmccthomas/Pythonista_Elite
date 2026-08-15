@@ -1,7 +1,5 @@
 import math
 import random
-# from scene import Rect
-# from ui import Path
 from copy import deepcopy, copy
 from types import SimpleNamespace
 import colorsys
@@ -752,12 +750,7 @@ class Swat:
             return
         if seeker.velocity == 0:
             return  # waiting its turn — literally inert
-        # TODO decide what to do if target disappears
-        # maybe set nominal velocity
-        # if seeker.target is None or self.gs.universe[seeker.target].type == 0:
-        #    # target gone — self-destruct harmlessly
-        #    seeker.flags |= cs.FLG_DEAD
-        #    return
+        
         if target.type == 0:
             # not homing any more
             return
@@ -1221,7 +1214,7 @@ class Swat:
         
         #  If the ship is hostile, and a pirate, and we are within the space station
         # safe zone, stop the pirate from attacking by removing all its aggression
-        # TODO in the thargoid invasion mission, turn this off for thargoids
+        
         if self.gs.space.safe_mode and not (flags & cs.FLG_BOLD):
             ship.bravery = 0
         # If this is an Anaconda, consider spawning (22% chance) a Worm (61% of the
