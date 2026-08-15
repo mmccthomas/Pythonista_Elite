@@ -840,13 +840,14 @@ class Swat:
         elif loot == cs.SHIP_ALLOY:
            cnt = rand_no(1)
         elif loot == cs.SHIP_CARGO:
-            #if rand_no(1):
-            #    return
-            cnt = max(parent.max_loot, 2)
-            
+            cnt = getattr(parent, 'special_cargo', None)
+            if cnt is None:
+                if rand_no(1):
+                    return
+                cnt = max(parent.max_loot, 2)            
         else:
             cnt = 0
-
+            
         for _ in range(cnt):
             ns = self.launch_enemy(index, loot, 0, 0)
             if ns:

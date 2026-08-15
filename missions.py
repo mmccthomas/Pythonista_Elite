@@ -246,7 +246,7 @@ class MissionManager:
             "---MESSAGE ENDS.")
             
         self.m7_debrief = (
-            "Well done Commander.You have retrieved the data and we shall remember."
+            "Well done Commander.You have retrieved the very valuable data."
             "You have been awarded 10,000 credits."
             "---MESSAGE ENDS.")
             
@@ -606,6 +606,7 @@ class MissionManager:
                    # need Boa to stay even if out of range of player
                    ns.flags |= cs.FLG_IMMORTAL
                    ns.max_loot = 1
+                   ns.special_cargo = 2
                    ns.velocity = 0
                    ns.energy = 100
                    ns.name = 'BOA_'
