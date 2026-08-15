@@ -482,6 +482,7 @@ class MissionManager:
                            if newship != -1:
                                # give these asps a cargo
                                gs.swat.ship_list[cs.SHIP_ASP2].max_loot = 1
+                               gs.universe[newship].special_cargo = 1
                                gs.universe[newship].flags = cs.FLG_ANGRY
                                if rand255() > 245:
                                    self.gs.universe[newship].flags |= cs.FLG_HAS_ECM
@@ -606,7 +607,7 @@ class MissionManager:
                    # need Boa to stay even if out of range of player
                    ns.flags |= cs.FLG_IMMORTAL
                    ns.max_loot = 1
-                   ns.special_cargo = 2
+                   ns.special_cargo = 1
                    ns.velocity = 0
                    ns.energy = 100
                    ns.name = 'BOA_'
